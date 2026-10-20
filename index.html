@@ -366,6 +366,11 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .sstats div{background:var(--sunk);border-radius:12px;padding:10px 4px}
 .sstats b{display:block;font-family:var(--display);font-size:20px}
 .sstats small{font-size:11px;color:var(--muted)}
+.dgrupos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
+.dgrupos button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:10px 2px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center}
+.dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.dgrupos .pill{font-size:10px;padding:1px 6px}
+.dsubs{display:flex;flex-direction:column;gap:8px}
 .bigstat{font-family:var(--display);font-size:38px;font-weight:800;line-height:1}
 
 .chat{display:flex;flex-direction:column;gap:10px}
@@ -934,11 +939,18 @@ function gcal({titulo,data,hora,dur,detalhes,rrule}){
 }
 
 /* ================= VIEW: Dinheiro ================= */
-const DSUB=[['resumo','Resumo'],['previsao','Previsão'],['orcamento','Orçamento'],['transacoes','Transações'],['recorrentes','Recorrentes'],['decidir','Decidir'],['metasf','Metas'],['dividas','Dívidas'],['calc','Calculadoras']];
+const DGRUPOS=[
+ {k:'geral',l:'Visão geral',d:'Como está o mês e o que vem pela frente',s:[['resumo','Resumo'],['previsao','Previsão']]},
+ {k:'gastos',l:'Gastos',d:'Tudo que entrou e saiu, e as contas de todo mês',s:[['transacoes','Transações'],['recorrentes','Contas fixas']]},
+ {k:'plano',l:'Planejar',d:'Seu limite por categoria e se dá pra comprar',s:[['orcamento','Orçamento'],['decidir','Posso comprar?'],['calc','Calculadoras']]},
+ {k:'obj',l:'Objetivos',d:'O que você está juntando e o que está pagando',s:[['metasf','Metas'],['dividas','Dívidas']]}];
+const DSUB=DGRUPOS.flatMap(g=>g.s);
+const grupoDe=s=>DGRUPOS.find(g=>g.s.some(([k])=>k===s))||DGRUPOS[0];
 function vDinheiro(){
   const s=UI.sub.dinheiro; const nd=decisoes().length;
-  let out=`<section><div class="eyebrow">Dinheiro</div><h1>Visão geral</h1></section>
-  <nav class="chips" aria-label="Seções do dinheiro">${DSUB.map(([k,l])=>`<button class="chip ${s===k?'on':''}" data-a="dsub" data-s="${k}">${l}${k==='decidir'&&nd?` <span class="pill acc">${nd}</span>`:''}</button>`).join('')}</nav>`;
+  let out=`<section><div class="eyebrow">Dinheiro</div><h1>${grupoDe(s).l}</h1></section>
+  ${(()=>{const g=grupoDe(s); return `<nav class="dgrupos" aria-label="Áreas do dinheiro">${DGRUPOS.map(x=>{const n=x.k==='plano'?nd:0;return `<button class="${x.k===g.k?'on':''}" data-a="dsub" data-s="${x.k===g.k?s:(UI.dlast&&UI.dlast[x.k])||x.s[0][0]}">${x.l}${n?`<span class="pill acc">${n}</span>`:''}</button>`}).join('')}</nav>
+  <div class="dsubs"><p class="muted tiny">${g.d}</p><nav class="chips" aria-label="${g.l}">${g.s.map(([k,l])=>`<button class="chip ${s===k?'on':''}" data-a="dsub" data-s="${k}">${l}${k==='decidir'&&nd?` <span class="pill acc">${nd}</span>`:''}</button>`).join('')}</nav></div>`})()}`;
   if(['resumo','orcamento','transacoes'].includes(s)) out+=`<div class="row between"><button class="iconbtn" data-a="mes" data-n="-1" aria-label="Mês anterior">${svg('l')}</button><b>${UI.mes===TODAY().slice(0,7)?'Esse mês · ':''}${cap(fmtM(UI.mes))}</b><button class="iconbtn" data-a="mes" data-n="1" aria-label="Próximo mês">${svg('r')}</button></div>`;
   return out+({resumo:dResumo,previsao:dPrevisao,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)();
 }
@@ -1022,7 +1034,7 @@ function dResumo(){
   if(m===cur&&f.base>0) out+=`<section class="card"><div class="row between"><span class="muted small">Livre até o fim do mês</span><b class="num">${brl(f.livre)}</b></div><div class="bar ${f.comprom>(+cfg().limite||90)/100?'warn':''}"><i style="width:${Math.min(100,Math.round(f.comprom*100))}%"></i></div><p class="small muted">${brl(f.porDia)} por dia · ${brl0(f.ateDom)} até domingo · ${Math.round(f.comprom*100)}% da renda já tem destino</p></section>`;
   if(m===cur){ const rep=repetidos(); const nd=decisoes().length;
     if(rep.length){ const r=rep[0]; out+=`<section class="card"><div class="row top">${ic('assistente')}<div class="grow"><b>Achei um gasto que se repete: ${brl(r.med)} por mês em ${esc(cap(r.k))}.</b><p class="muted small">${brl0(r.anual)} por ano. É assinatura ou conta fixa?</p></div></div><div class="row"><button class="btn acc sm" data-a="repVer">Ver</button><button class="btn ghost sm" data-a="repIgn" data-k="${esc(r.k)}">Agora não</button></div></section>`; }
-    if(nd) out+=`<button class="linkbtn" data-a="dsub" data-s="decidir" style="align-self:flex-start">Mais ${nd} no Decidir ›</button>`;
+    if(nd) out+=`<button class="linkbtn" data-a="dsub" data-s="decidir" style="align-self:flex-start">Mais ${nd} em Posso comprar? ›</button>`;
   }
   const cats=Object.entries(f.porCat).sort((a,b)=>b[1]-a[1]);
   out+=`<section class="card"><h2>Contra ${nomeMes(pm)}, no mesmo dia</h2>`;
@@ -1606,7 +1618,7 @@ function sairDemo(){ if(!REAL) return; S=REAL.S; M=REAL.M; REAL=null; UI.decIdx=
 const ACT={
  go:d=>go(d.v),
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
- dsub:d=>{UI.sub.dinheiro=d.s;UI.decIdx=0;render();window.scrollTo(0,0)},
+ dsub:d=>{UI.sub.dinheiro=d.s;UI.dlast=UI.dlast||{};UI.dlast[grupoDe(d.s).k]=d.s;UI.decIdx=0;render();window.scrollTo(0,0)},
  ssub:d=>{UI.sub.saude=d.s;render()},
  mes:d=>{UI.mes=addMonth(UI.mes,+d.n);render()},
  dia:d=>{UI.dia=d.d;render()},
