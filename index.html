@@ -135,6 +135,11 @@ a{color:var(--accent)}
 
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=search],input[type=url],select,textarea{width:100%;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;font-size:16px}
 textarea{resize:vertical;min-height:70px}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-height:46px;line-height:1.25;text-align:left;color:var(--ink)}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.25em}
+input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{opacity:.5}
+select{-webkit-appearance:none;appearance:none;min-height:46px;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238C7B84' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;color:var(--ink)}
+.fgrid>*{min-width:0}
 label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fgrid .full{grid-column:1/-1}
@@ -154,7 +159,9 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .frow{display:flex;align-items:center;gap:10px;padding:8px 12px;min-height:48px;border-top:1px solid var(--line)}
 .frow:first-child{border-top:0}
 .frow>span{flex:1;font-weight:500}
-.frow input,.frow select{width:auto;max-width:58%;border:0;background:var(--sunk);text-align:right;padding:7px 10px;font-size:15px}
+.frow input,.frow select{width:auto;max-width:58%;border:0;background-color:var(--sunk);text-align:right;padding:7px 10px;font-size:15px;min-height:36px}
+.frow select{padding-right:30px;background-position:right 10px center}
+.frow input[type=date]::-webkit-date-and-time-value,.frow input[type=time]::-webkit-date-and-time-value{text-align:right}
 .frow.col{flex-direction:column;align-items:stretch}
 .frow.col input[type=text],.frow.col input[type=url]{max-width:none;text-align:left;background:var(--surface);border:1px solid var(--line)}
 .frow.col .row input[type=checkbox]{width:20px;height:20px;flex:none}
@@ -325,6 +332,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .bars7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:120px}
 .bars7 div{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;font-size:11px;color:var(--muted);font-weight:600}
 .bars7 i{display:block;width:100%;max-width:34px;border-radius:7px 7px 3px 3px;background:var(--c10);min-height:3px}
+.bars7 i.vazio{background:var(--sunk)}
 .bigstat{font-family:var(--display);font-size:38px;font-weight:800;line-height:1}
 
 .chat{display:flex;flex-direction:column;gap:10px}
@@ -340,6 +348,16 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .tile .ic{color:var(--accent)}
 .tile b{font-family:var(--display);font-size:17px}
 
+#drawer{position:fixed;inset:0;z-index:45}
+#drawer .scrim{position:absolute;inset:0;background:rgba(20,8,14,.45)}
+#drawer .dpanel{position:absolute;top:0;bottom:0;left:0;width:min(82vw,320px);background:var(--surface);overflow:auto;display:flex;flex-direction:column;gap:2px;padding:calc(22px + env(safe-area-inset-top,0px)) 12px calc(22px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));box-shadow:8px 0 30px -12px rgba(20,8,14,.4);animation:entra .22s ease-out}
+#drawer .brand{font-family:var(--display);font-weight:800;font-size:26px;padding:0 10px 4px}
+#drawer .brand small{display:block;font-family:var(--body);font-size:12px;font-weight:500;color:var(--muted)}
+#drawer .dlabel{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 10px 6px}
+#drawer .ditem{display:flex;align-items:center;gap:12px;background:none;border:0;padding:12px 10px;border-radius:12px;cursor:pointer;color:var(--ink);font:inherit;font-size:16px;font-weight:500;text-align:left}
+#drawer .ditem.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+#drawer .ditem small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+@keyframes entra{from{transform:translateX(-100%)}to{transform:none}}
 #sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
 #sheet .scrim{position:absolute;inset:0;background:rgba(20,8,14,.45)}
 #sheet .panel{position:relative;background:var(--bg);width:100%;max-width:620px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
@@ -353,6 +371,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 details summary{list-style:none}
 details summary::-webkit-details-marker{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (min-width:900px){#drawer{display:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 </head>
@@ -363,6 +382,7 @@ details summary::-webkit-details-marker{display:none}
   <nav id="tabs" aria-label="Navegação"></nav>
 </div>
 <div id="fabslot"></div>
+<div id="drawer" hidden><div class="scrim" data-a="fecharMais"></div><nav class="dpanel" id="drawerBody" aria-label="Outras áreas"></nav></div>
 <div id="sheet" hidden><div class="scrim" data-a="fecharSheet"></div><div class="panel" role="dialog" aria-modal="true" id="sheetBody"></div></div>
 <div id="toast" hidden></div>
 
@@ -566,7 +586,7 @@ function render(){
     NAV.map(([v,l])=>`<button class="${UI.view===v?'on':''}" data-a="go" data-v="${v}">${ic(v)}${l}</button>`).join('');
   const menu=menuAtual(); const tabs=[...menu.map(v=>[v,NOMEMENU[v]]),['mais','Mais']];
   const inMais=!menu.includes(UI.view);
-  $('#tabs').innerHTML=tabs.map(([v,l])=>`<button class="${(UI.view===v||(v==='mais'&&inMais))?'on':''} " data-a="go" data-v="${v}">${ic(v)}${l}</button>`).join('');
+  $('#tabs').innerHTML=tabs.map(([v,l])=>`<button class="${(UI.view===v||(v==='mais'&&inMais))?'on':''}" data-a="${v==='mais'?'abrirMais':'go'}" data-v="${v}">${ic(v)}${l}</button>`).join('');
   const fn={hoje:vHoje,agenda:vAgenda,dinheiro:vDinheiro,metas:vMetas,saude:vSaude,estudos:vEstudos,casa:vCasa,ajustes:vAjustes,mais:vMais}[UI.view]||vHoje;
   $('#view').className=UI.view==='agenda'?'wide':'';
   $('#view').innerHTML=fn();
@@ -1270,7 +1290,7 @@ function sInj(){
     <div class="row wrap"><button class="btn pri" data-a="tomeiInj">Tomei hoje</button><a class="btn" target="_blank" rel="noopener" href="${gcal({titulo:'Injeção anticoncepcional',data:st.prox,rrule:'FREQ=DAILY;INTERVAL='+(+j.intervalo||30),detalhes:'Lembrete do Rumo. Confirme a data certa com a bula ou com sua médica.'})}">Lembrete no Google Agenda</a></div>`; }
   else out+=`<h2>Quando foi a última injeção?</h2><p class="muted small">Com a data eu calculo a próxima, te cobro na tela Hoje alguns dias antes e gero o lembrete pro calendário.</p>`;
   out+=`<form data-f="inj" class="fgrid"><label class="f">Data da última dose<input type="date" name="ultima" id="iUlt" value="${esc(j.ultima||'')}" required></label>
-   <label class="f">Intervalo<select name="intervalo" id="iInt"><option value="30" ${+j.intervalo===30?'selected':''}>Mensal (30 dias)</option><option value="84" ${+j.intervalo===84?'selected':''}>Trimestral (12 semanas)</option><option value="90" ${+j.intervalo===90?'selected':''}>Trimestral (90 dias)</option></select></label>
+   <label class="f">Intervalo<select name="intervalo" id="iInt"><option value="30" ${+j.intervalo===30?'selected':''}>Mensal</option><option value="84" ${+j.intervalo===84?'selected':''}>A cada 12 semanas</option><option value="90" ${+j.intervalo===90?'selected':''}>A cada 90 dias</option></select></label>
    <label class="f full">Nome do anticoncepcional (opcional)<input type="text" name="nome" id="iNome" value="${esc(j.nome||'')}"></label><button class="btn full">Salvar</button></form>
    <p class="muted tiny">O intervalo e a janela de tolerância dependem do produto. Confira na bula ou com a sua médica; aqui é só lembrete.</p></section>`;
   if(j.historico.length) out+=`<section class="card"><h2>Histórico</h2>${[...j.historico].sort().reverse().slice(0,12).map((d,i,a)=>`<div class="lrow small"><span class="grow">${fmtD(d)} de ${d.slice(0,4)}</span>${a[i+1]?`<span class="muted">${diffDays(a[i+1],d)} dias depois</span>`:''}<button class="iconbtn" data-a="delInj" data-d="${d}" aria-label="Apagar">${svg('trash')}</button></div>`).join('')}</section>`;
@@ -1306,7 +1326,7 @@ function sSono(){
    <label class="f">Noite que terminou em<input type="date" name="data" id="sData" value="${t}"></label>
    <button class="btn pri full">Salvar</button></form></section>
   <section class="card"><div class="row between"><h2>Últimos 7 dias</h2><span class="pill mut">${com.length?'média '+fmtH(med):'sem registros'}</span></div>
-  <div class="bars7">${dias.map((d,i)=>`<div><span class="num">${hs[i]?fmtH(hs[i]):''}</span><i style="height:${Math.round(Math.min(10,hs[i])/10*80)}px;${hs[i]&&hs[i]<6?'background:var(--warn)':''}"></i>${DOW[parseD(d).getDay()]}</div>`).join('')}</div>
+  <div class="bars7">${dias.map((d,i)=>`<div><span class="num">${hs[i]?fmtH(hs[i]):''}</span><i class="${hs[i]?'':'vazio'}" style="height:${Math.round(Math.min(10,hs[i])/10*80)}px;${hs[i]&&hs[i]<6?'background:var(--warn)':''}"></i>${DOW[parseD(d).getDay()]}</div>`).join('')}</div>
   <p class="muted tiny">Barras em amarelo: menos de 6 horas.</p></section>`;
 }
 
@@ -1358,6 +1378,16 @@ function syncCard(){
 }
 const erroSB=e=>{const m=String(e&&e.message||e||'');return /invalid login/i.test(m)?'E-mail ou senha errados.':/not confirmed/i.test(m)?'Confirme o e-mail que o Supabase te mandou e tente de novo.':/already registered|already exists/i.test(m)?'Esse e-mail já tem conta. Toque em Entrar.':/password/i.test(m)?'A senha precisa ter pelo menos 6 caracteres.':/fetch|network/i.test(m)?'Sem internet agora.':'Não deu certo: '+m};
 
+const AREAS=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina']];
+function abrirMais(){
+  const menu=menuAtual(), outras=AREAS.filter(a=>!menu.includes(a[0]));
+  const item=([v,l,s])=>`<button class="ditem ${UI.view===v?'on':''}" data-a="irMais" data-v="${v}">${ic(v)}<span>${l}<small>${s}</small></span></button>`;
+  $('#drawerBody').innerHTML=`<div class="brand">Rumo<small>${esc(S.perfil.nome||'')}</small></div>
+   ${outras.length?`<div class="dlabel">Outras áreas</div>${outras.map(item).join('')}`:''}
+   <div class="dlabel">No menu de baixo</div>${AREAS.filter(a=>menu.includes(a[0])).map(item).join('')}
+   <div class="dlabel">App</div>${item(['ajustes','Ajustes','Menu, aparência, sincronizar'])}`;
+  $('#drawer').hidden=false;
+}
 function vMais(){
   const todos=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina']];
   const menu=menuAtual(); const tiles=[...todos.filter(t=>!menu.includes(t[0])),['ajustes','Ajustes','Menu, aparência, sincronizar']];
@@ -1564,6 +1594,9 @@ const ACT={
  rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();save('casa');render();toast(r.nome+': feito')},
  backup:()=>{ const src=REAL||{S,M}; const blob=new Blob([JSON.stringify({versao:2,S:src.S,M:src.M},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rumo-backup-'+TODAY()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Cópia baixada'); },
  syncAgora:()=>pull(),
+ abrirMais:()=>abrirMais(),
+ fecharMais:()=>{$('#drawer').hidden=true},
+ irMais:d=>{$('#drawer').hidden=true;go(d.v)},
  tema:d=>{S.perfil.tema=d.t;save('perfil');render()},
  sbSair:async()=>{ flushAll(); try{await SB.client.auth.signOut()}catch(e){} setUser(null); toast('Você saiu. Os dados continuam neste aparelho.'); },
  sbReset:async()=>{ try{ if(SB.client) await SB.client.auth.signOut() }catch(e){} SB.cfg=null; SB.client=null; try{localStorage.removeItem(LSCFG)}catch(e){} setUser(null); render(); },
@@ -1626,7 +1659,7 @@ document.addEventListener('submit',e=>{const f=e.target.closest('form[data-f]');
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&!e.shiftKey&&e.target.id==='chatTxt'){e.preventDefault();e.target.form.requestSubmit()}
   if(e.key==='Enter'&&e.target.id==='psNovo'){e.preventDefault();const v=e.target.value.trim();if(!v)return;const k=document.querySelectorAll('#passosBox input[name=pok]').length;const row=document.createElement('div');row.className='row';row.innerHTML=`<input type="checkbox" name="pok" value="${k}" aria-label="Passo feito"><input type="text" name="passo" id="ps-${k}" value="${esc(v)}">`;e.target.parentElement.before(row);e.target.value='';}
-  if(e.key==='Escape'&&!$('#sheet').hidden) closeSheet(); });
+  if(e.key==='Escape'&&!$('#sheet').hidden) closeSheet(); if(e.key==='Escape') $('#drawer').hidden=true; });
 let buscaT=null;
 document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c;
   if(c==='agBusca'||c==='txBusca'){clearTimeout(buscaT);buscaT=setTimeout(()=>{if(c==='agBusca')UI.ag.q=el.value;else UI.txq=el.value;const pos=el.selectionStart;render();const n=document.getElementById(el.id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}},250)}
