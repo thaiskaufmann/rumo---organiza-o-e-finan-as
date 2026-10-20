@@ -442,7 +442,7 @@ const KW={
 };
 const KWLIST=Object.entries(KW).flatMap(([c,ks])=>ks.map(k=>[k,c])).sort((a,b)=>b[0].length-a[0].length);
 const DEF={
- perfil:{nome:'Thais',onboard:false},
+ perfil:{nome:'Thais',onboard:false,tema:'auto'},
  tarefas:{items:[],mente:[]},
  agenda:{eventos:[]},
  metas:{items:[]},
@@ -549,7 +549,14 @@ const typing=()=>{const a=document.activeElement;return a&&$('#view').contains(a
 function scheduleRender(){ if(rq) return; rq=true; requestAnimationFrame(()=>{rq=false; if(typing()||!$('#sheet').hidden){pendingRender=true;return} render();}); }
 document.addEventListener('focusout',()=>{ if(pendingRender){ setTimeout(()=>{ if(!typing()&&$('#sheet').hidden&&pendingRender){pendingRender=false;render()} },120);} });
 
+function aplicaTema(){
+  const t=S.perfil.tema, r=document.documentElement;
+  if(t==='claro') r.dataset.theme='light'; else if(t==='escuro') r.dataset.theme='dark'; else delete r.dataset.theme;
+  const cor=getComputedStyle(document.body).backgroundColor;
+  document.querySelectorAll('meta[name=theme-color]').forEach(m=>{m.setAttribute('content',cor);m.removeAttribute('media')});
+}
 function render(){
+  aplicaTema();
   drawBanner();
   $('#side').innerHTML=`<div class="brand">Rumo<small>${esc(S.perfil.nome||'')}${S.perfil.nome?' · ':''}organização do dia e do dinheiro</small></div>`+
     NAV.map(([v,l])=>`<button class="${UI.view===v?'on':''}" data-a="go" data-v="${v}">${ic(v)}${l}</button>`).join('');
@@ -1354,6 +1361,7 @@ function vMais(){
 function vAjustes(){
   return `<section><div class="eyebrow">Ajustes</div><h1>Do seu jeito</h1></section>
   <section class="card"><h2>Seu nome</h2><form data-f="perfil" class="row"><input type="text" name="nome" id="pNome" value="${esc(S.perfil.nome||'')}"><button class="btn">Salvar</button></form></section>
+  <section class="card"><h2>Aparência</h2><p class="small muted">Automático segue o claro ou escuro do seu celular.</p><div class="segtabs">${[['auto','Automático'],['claro','Claro'],['escuro','Escuro']].map(([k,l])=>`<button class="${(S.perfil.tema||'auto')===k?'on':''}" data-a="tema" data-t="${k}">${l}</button>`).join('')}</div></section>
   <section class="card"><h2>Ver como funciona</h2><p class="small">Abre o app cheio de dados de exemplo pra você testar tudo à vontade. Seus dados ficam guardados e voltam quando você sair.</p><button class="btn pri" style="align-self:flex-start" data-a="${REAL?'sairDemo':'entrarDemo'}">${REAL?'Sair da demonstração':'Abrir demonstração'}</button></section>
   ${syncCard()}
   <section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
@@ -1404,7 +1412,7 @@ function parseLanc(txt){
 /* ================= demonstração ================= */
 function demoData(){
   const t=TODAY(), m=t.slice(0,7), pm=addMonth(m,-1), ppm=addMonth(m,-2); let seed=7; const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280};
-  const today=new Date().getDate(); const D=clone(DEF); D.perfil={nome:S.perfil.nome||'Thais',onboard:true};
+  const today=new Date().getDate(); const D=clone(DEF); D.perfil={nome:S.perfil.nome||'Thais',onboard:true,tema:S.perfil.tema||'auto'};
   const it=o=>({id:uid(),feitos:{},passos:[],rep:'nao',...o});
   const hab=o=>{const h=it({tipo:'habito',data:addDays(t,-25),...o}); for(let k=1;k<25;k++){const d=addDays(t,-k); if(ocorre(h,d)&&rnd()>.25) h.feitos[d]=true} return h};
   D.tarefas.items=[hab({titulo:'Acordar',rep:'diario',hora:'06:00',dur:10,etiqueta:'Pessoal'}),hab({titulo:'Café da manhã',rep:'diario',hora:'06:30',dur:30,etiqueta:'Pessoal'}),hab({titulo:'Academia',rep:'dias',dias:[1,2,3,4,5],hora:'07:00',dur:90,etiqueta:'Saúde'}),
@@ -1550,6 +1558,7 @@ const ACT={
  rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();save('casa');render();toast(r.nome+': feito')},
  backup:()=>{ const src=REAL||{S,M}; const blob=new Blob([JSON.stringify({versao:2,S:src.S,M:src.M},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rumo-backup-'+TODAY()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Cópia baixada'); },
  syncAgora:()=>pull(),
+ tema:d=>{S.perfil.tema=d.t;save('perfil');render()},
  sbSair:async()=>{ flushAll(); try{await SB.client.auth.signOut()}catch(e){} setUser(null); toast('Você saiu. Os dados continuam neste aparelho.'); },
  sbReset:async()=>{ try{ if(SB.client) await SB.client.auth.signOut() }catch(e){} SB.cfg=null; SB.client=null; try{localStorage.removeItem(LSCFG)}catch(e){} setUser(null); render(); },
  criarConta:async()=>{ const email=($('#sbEmail')||{}).value, senha=($('#sbSenha')||{}).value; if(!email||!senha||senha.length<6){toast('Preencha e-mail e uma senha com 6 ou mais caracteres.');return}
