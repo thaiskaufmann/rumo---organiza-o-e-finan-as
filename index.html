@@ -366,6 +366,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .sstats div{background:var(--sunk);border-radius:12px;padding:10px 4px}
 .sstats b{display:block;font-family:var(--display);font-size:20px}
 .sstats small{font-size:11px;color:var(--muted)}
+.novaversao{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 12px);z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px 10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-weight:600;font-size:14px;max-width:520px;margin:0 auto}
 .dgrupos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
 .dgrupos button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:10px 2px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -580,7 +581,15 @@ async function initSync(){
     SB.client.auth.onAuthStateChange((ev,s)=>{ const u=s?.user||null; if((u&&u.id)!==(SB.user&&SB.user.id)) setUser(u); });
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else if(SB.user) pull(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
+const VERSAO='2026-10-20.3';
+async function checaVersao(manual){
+  try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
+    if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
+    else if(manual) toast('Você já está na versão mais nova');
+  }catch(e){ if(manual) toast('Sem internet pra procurar agora'); }
+}
+setTimeout(checaVersao,3000);
 window.addEventListener('online',()=>{ if(SB.user) pull(); });
 async function initStore(){ loadLocal(); migrar(); if(UI.wantDemo) entrarDemo(); render(); initSync(); }
 function drawBanner(){
@@ -1525,7 +1534,8 @@ function vAjustes(){
   <section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
    <div class="row wrap"><button class="btn" data-a="backup">Baixar cópia de segurança</button><label class="btn" for="restFile">Restaurar cópia</label><input type="file" id="restFile" accept=".json,application/json" data-c="restaurar" hidden></div>
    ${UI.confirmApagar?`<div class="stack" style="padding:12px;border-radius:10px;background:var(--bad-soft)"><b style="color:var(--bad)">Apagar tudo mesmo?</b><span class="small">Tarefas, finanças, saúde, tudo. Não dá pra desfazer. Baixe uma cópia antes.</span><div class="row"><button class="btn danger" data-a="apagarTudo">Sim, apagar tudo</button><button class="btn ghost" data-a="cancelApagar">Cancelar</button></div></div>`:`<button class="btn ghost danger" style="align-self:flex-start" data-a="pedeApagar">Apagar todos os dados</button>`}</section>
-  <section class="card"><h2>No iPhone</h2><p class="small">Abra o Rumo no Safari, toque em Compartilhar e em “Adicionar à Tela de Início”. Lembretes que apitam (injeção, contas) saem pelo botão “Google Agenda” de cada um.</p></section>`;
+  <section class="card"><h2>No iPhone</h2><p class="small">Abra o Rumo no Safari, toque em Compartilhar e em “Adicionar à Tela de Início”. Lembretes que apitam (injeção, contas) saem pelo botão “Google Agenda” de cada um.</p></section>
+  <section class="card"><div class="row between"><span class="small muted">Versão do app: <b>${VERSAO}</b></span><button class="btn sm" data-a="checaVersao">Procurar atualização</button></div></section>`;
 }
 
 /* ================= adicionar rápido na agenda ================= */
@@ -1718,6 +1728,8 @@ const ACT={
  rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();save('casa');render();toast(r.nome+': feito')},
  backup:()=>{ const src=REAL||{S,M}; const blob=new Blob([JSON.stringify({versao:2,S:src.S,M:src.M},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rumo-backup-'+TODAY()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Cópia baixada'); },
  syncAgora:()=>pull(),
+ checaVersao:()=>checaVersao(true),
+ atualizarApp:()=>{ try{flushAll()}catch(e){} setTimeout(()=>location.replace(location.pathname+'?v='+Date.now()+location.hash),400)},
  sonoQ:d=>{UI.sono.q=+d.q;render()},
  sonoDia:d=>{const r=S.saude.sono.find(s=>s.data===d.d), st=UI.sono; st.data=d.d; if(r){st.bed=toMin(r.deitou);st.wake=toMin(r.acordou);st.q=+r.q||3} render()},
  sonoSalvar:()=>{const st=UI.sono; S.saude.sono=S.saude.sono.filter(s=>s.data!==st.data); S.saude.sono.push({data:st.data,deitou:fromMin(st.bed),acordou:fromMin(st.wake),q:st.q}); S.saude.sono.sort((a,b)=>a.data<b.data?-1:1); if(S.saude.sono.length>400) S.saude.sono=S.saude.sono.slice(-400); save('saude'); render(); toast('Noite salva: '+sDurTxt(sDur(st.bed,st.wake)))},
