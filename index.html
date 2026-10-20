@@ -901,13 +901,13 @@ function gcal({titulo,data,hora,dur,detalhes,rrule}){
 }
 
 /* ================= VIEW: Dinheiro ================= */
-const DSUB=[['resumo','Resumo'],['orcamento','Orçamento'],['transacoes','Transações'],['recorrentes','Recorrentes'],['decidir','Decidir'],['metasf','Metas'],['dividas','Dívidas'],['calc','Calculadoras']];
+const DSUB=[['resumo','Resumo'],['previsao','Previsão'],['orcamento','Orçamento'],['transacoes','Transações'],['recorrentes','Recorrentes'],['decidir','Decidir'],['metasf','Metas'],['dividas','Dívidas'],['calc','Calculadoras']];
 function vDinheiro(){
   const s=UI.sub.dinheiro; const nd=decisoes().length;
   let out=`<section><div class="eyebrow">Dinheiro</div><h1>Visão geral</h1></section>
   <nav class="chips" aria-label="Seções do dinheiro">${DSUB.map(([k,l])=>`<button class="chip ${s===k?'on':''}" data-a="dsub" data-s="${k}">${l}${k==='decidir'&&nd?` <span class="pill acc">${nd}</span>`:''}</button>`).join('')}</nav>`;
   if(['resumo','orcamento','transacoes'].includes(s)) out+=`<div class="row between"><button class="iconbtn" data-a="mes" data-n="-1" aria-label="Mês anterior">${svg('l')}</button><b>${UI.mes===TODAY().slice(0,7)?'Esse mês · ':''}${cap(fmtM(UI.mes))}</b><button class="iconbtn" data-a="mes" data-n="1" aria-label="Próximo mês">${svg('r')}</button></div>`;
-  return out+({resumo:dResumo,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)();
+  return out+({resumo:dResumo,previsao:dPrevisao,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)();
 }
 function chartMes(m){
   const pm=addMonth(m,-1), nm=daysInMonth(m), np=daysInMonth(pm), cur=TODAY().slice(0,7);
@@ -919,6 +919,58 @@ function chartMes(m){
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Gastos acumulados deste mês comparados com o mês passado"><path d="${path(b)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/><path d="${path(a)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${x(ate)}" cy="${y(a[ate])}" r="4" fill="var(--accent)"/></svg>
   <div class="row small" style="gap:14px"><span class="row" style="gap:5px"><i style="width:14px;height:3px;background:var(--accent);display:inline-block;border-radius:2px"></i>${cap(nomeMes(m))}</span><span class="row muted" style="gap:5px"><i style="width:14px;border-top:2px dashed var(--muted);display:inline-block"></i>${cap(nomeMes(pm))}, tracejado</span></div>`;
 }
+/* ---------- Previsão dos próximos meses ---------- */
+function previsao(n){
+  const cur=TODAY().slice(0,7);
+  const hist=Object.keys(M).filter(m=>m<cur&&txMes(m).length).sort().slice(-3);
+  const media=f=>hist.length?hist.reduce((a,m)=>a+f(m),0)/hist.length:0;
+  const varMes=m=>txMes(m).filter(t=>ehGasto(t)&&t.origem!=='recorrente').reduce((a,t)=>a+(+t.valor||0),0);
+  const fixasNomes=new Set(S.fin.recorrentes.map(r=>norm(r.nome)));
+  const varMed=hist.length?media(m=>txMes(m).filter(t=>ehGasto(t)&&t.origem!=='recorrente'&&!fixasNomes.has(norm(t.desc))).reduce((a,t)=>a+(+t.valor||0),0)):0;
+  const fixTot=S.fin.recorrentes.reduce((a,r)=>a+(+r.valor||0),0);
+  const variavel=hist.length?varMed:Math.max(0,cfg().cats.reduce((a,c)=>a+(+c.orc||0),0)-fixTot);
+  const entMed=media(m=>fin(m).ent);
+  const renda=+cfg().renda||entMed;
+  const sim=simDividas(+cfg().extraDivida||0,cfg().metodo||'avalanche');
+  const metasAtivas=S.fin.metas.filter(x=>metaInfo(x).status!=='Chegou');
+  const meses=[]; let acum=0;
+  for(let k=1;k<=n;k++){
+    const m=addMonth(cur,k);
+    const recs=S.fin.recorrentes.filter(r=>recAtivo(r,m));
+    const contas=recs.filter(r=>r.tipo!=='parcela').reduce((a,r)=>a+(+r.valor||0),0);
+    const parcelas=recs.filter(r=>r.tipo==='parcela').reduce((a,r)=>a+(+r.valor||0),0);
+    const dividas=sim&&sim.meses&&k<=sim.meses?sim.orc:(sim&&!sim.meses?sim.orc:0);
+    const metas=metasAtivas.filter(x=>!x.prazo||x.prazo.slice(0,7)>=m).reduce((a,x)=>a+metaInfo(x).porMes,0);
+    const guardar=Math.max(+cfg().guardar||0,metas);
+    const sai=contas+parcelas+variavel+dividas+guardar;
+    const sobra=renda-sai; acum+=sobra;
+    meses.push({m,entrada:renda,contas,parcelas,variavel,dividas,guardar,sai,sobra,acum});
+  }
+  const eventos=[];
+  for(const r of S.fin.recorrentes){ if(r.tipo!=='parcela'||!r.total) continue; const fimK=monthsBetween(cur,addMonth(r.inicioMes||cur,(+r.total-(+r.pagasAntes||0))-1)); if(fimK>=1&&fimK<=n) eventos.push({k:fimK,txt:`Última parcela de ${r.nome} em ${fmtMc(addMonth(cur,fimK))}. Depois sobram mais ${brl0(r.valor)} por mês.`}); }
+  if(sim&&sim.meses) for(const d of sim.ordem) if(d.fim&&d.fim<=n) eventos.push({k:d.fim,txt:`${d.nome} quitada em ${mesDaqui(d.fim)}.`});
+  for(const x of metasAtivas){ if(!x.prazo) continue; const k=monthsBetween(cur,x.prazo.slice(0,7)); if(k>=1&&k<=n) eventos.push({k,txt:`Prazo da meta ${x.nome}: ${fmtMc(x.prazo.slice(0,7))}.`}); }
+  eventos.sort((a,b)=>a.k-b.k);
+  return {meses,eventos,hist:hist.length,renda,rendaFonte:+cfg().renda?'plano':'media',variavel};
+}
+function dPrevisao(){
+  const n=UI.prevN||6, P=previsao(n), tot=P.meses.reduce((a,x)=>a+x.sobra,0), fim=P.meses[P.meses.length-1];
+  if(!P.renda) return `<section class="card flat"><b>Falta saber quanto entra.</b><span class="muted small">Coloque sua renda prevista em Orçamento › Editar plano, ou lance as entradas dos últimos meses, que eu monto a previsão.</span><button class="btn pri" data-a="planoEdit" style="align-self:flex-start">Editar plano</button></section>`;
+  const mx=Math.max(1,...P.meses.map(x=>Math.abs(x.sobra))); const W=320,H=130,mid=H/2,bw=W/n;
+  let out=`<div class="chips">${[3,6,12].map(k=>`<button class="chip ${n===k?'on':''}" data-a="prevN" data-n="${k}">${k} meses</button>`).join('')}</div>
+  <section class="card hero"><span class="small"><b>Nos próximos ${n} meses</b></span><div class="big num" style="color:${tot<0?'var(--bad)':'inherit'}">${brlBig(tot)}</div>
+   <span class="small">${tot>=0?'devem sobrar, além do que você já separa pra guardar':'devem faltar. Vale rever o plano antes'}.</span>
+   <svg viewBox="0 0 ${W} ${H+18}" style="width:100%;height:auto;display:block" role="img" aria-label="Sobra prevista por mês"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--muted)" stroke-width="1" opacity=".5"/>
+   ${P.meses.map((x,i)=>{const hh=Math.abs(x.sobra)/mx*(mid-6);const y=x.sobra>=0?mid-hh:mid;return `<rect x="${i*bw+bw*.2}" y="${y.toFixed(1)}" width="${(bw*.6).toFixed(1)}" height="${Math.max(1.5,hh).toFixed(1)}" rx="4" fill="${x.sobra>=0?'var(--good)':'var(--bad)'}"/><text x="${i*bw+bw/2}" y="${H+14}" text-anchor="middle" font-size="10" fill="var(--muted)">${MESC[+x.m.slice(5)-1]}</text>`}).join('')}</svg>
+   <div class="two"><div class="mini"><span class="tiny">Sobra média por mês</span><b class="num">${brl0(tot/n)}</b></div><div class="mini"><span class="tiny">Guardando no período</span><b class="num">${brl0(P.meses.reduce((a,x)=>a+x.guardar,0))}</b></div></div></section>`;
+  if(P.eventos.length) out+=`<section class="card"><h2>O que muda pela frente</h2>${P.eventos.map(e=>`<div class="lrow small"><span class="pill acc num">${fmtMc(addMonth(TODAY().slice(0,7),e.k))}</span><span class="grow">${esc(e.txt)}</span></div>`).join('')}</section>`;
+  out+=`<section class="card"><h2>Mês a mês</h2><p class="muted tiny">Toque num mês pra ver de onde vem cada número.</p>${P.meses.map(x=>{const ab=UI.prevAberto===x.m;
+    return `<button class="tx" data-a="prevAbre" data-m="${x.m}"><span class="grow"><b>${cap(fmtM(x.m))}</b><span class="muted tiny" style="display:block">entra ${brl0(x.entrada)} · sai ${brl0(x.sai)}</span></span><span class="v num" style="color:${x.sobra>=0?'var(--good)':'var(--bad)'}">${x.sobra>=0?'+':'−'} ${brl0(Math.abs(x.sobra)).replace('R$ ','R$ ')}</span></button>
+    ${ab?`<div class="stack small" style="padding:4px 0 12px 4px">${[['Entrada prevista',x.entrada,1],['Contas e assinaturas',x.contas],['Parcelas',x.parcelas],['Gastos do dia a dia',x.variavel],['Dívidas',x.dividas],['Guardar e metas',x.guardar]].filter(r=>r[1]).map(([l,v,pos])=>`<div class="row between"><span class="muted">${l}</span><b class="num">${pos?'':'−'} ${brl0(v)}</b></div>`).join('')}<div class="row between"><span class="muted">Acumulado até aqui</span><b class="num">${brl0(x.acum)}</b></div></div>`:''}`}).join('')}</section>
+  <section class="card flat"><b>Como eu calculo</b><span class="muted small">Entrada: ${P.rendaFonte==='plano'?'a renda prevista do seu plano':'a média do que entrou nos últimos meses'}. Gastos do dia a dia: ${P.hist?`a média dos últimos ${P.hist} ${plural(P.hist,'mês','meses')} lançados, sem as contas fixas`:'o seu plano por categoria, porque ainda não tem meses lançados'}. Contas, parcelas, dívidas e metas vêm do que você cadastrou, e parcelas somem no mês em que acabam. É uma estimativa: quanto mais meses lançados, melhor ela fica.</span></section>`;
+  return out;
+}
+
 function dResumo(){
   const m=UI.mes, pm=addMonth(m,-1), ppm=addMonth(m,-2), cur=TODAY().slice(0,7), f=fin(m);
   const ate=m===cur?new Date().getDate():daysInMonth(m), ateP=Math.min(ate,daysInMonth(pm));
@@ -1475,7 +1527,7 @@ function demoData(){
     return tx;};
   D.__M={[ppm]:{tx:gen(ppm,daysInMonth(ppm),1)},[pm]:{tx:gen(pm,daysInMonth(pm),1.05)},[m]:{tx:gen(m,today,1.1)}};
   D.__M[m].tx.push({id:uid(),data:addDays(t,-1),desc:'PIX ENV MARIA S',valor:150,tipo:'saida',cat:'Outros',ok:false},{id:uid(),data:addDays(t,-3),desc:'ATELIE DA BIA',valor:89.9,tipo:'saida',cat:'Outros',ok:false},{id:uid(),data:addDays(t,-2),desc:'Drogasil',valor:260,tipo:'saida',cat:'Saúde',ok:true});
-  D.fin.metas=[{id:uid(),nome:'Viagem pra Europa',valor:20000,guardado:2400,prazo:addMonth(m,13)+'-01',criado:addDays(t,-200),foto:''},{id:uid(),nome:'Câmera nova',valor:4500,guardado:2700,prazo:addMonth(m,4)+'-01',criado:addDays(t,-120),foto:''}];
+  D.fin.metas=[{id:uid(),nome:'Viagem pra Europa',valor:20000,guardado:2400,prazo:addMonth(m,22)+'-01',criado:addDays(t,-200),foto:''},{id:uid(),nome:'Câmera nova',valor:4500,guardado:2700,prazo:addMonth(m,4)+'-01',criado:addDays(t,-120),foto:''}];
   D.fin.reserva={meses:6,guardado:4200,foto:''};
   D.fin.dividas=[{id:uid(),nome:'Nubank · fatura',saldo:1800,juros:13,parcela:350},{id:uid(),nome:'Empréstimo',saldo:6000,juros:2.4,parcela:420},{id:uid(),nome:'Financiamento do carro',saldo:28000,juros:1.3,parcela:980,saudavel:true}];
   c.extraDivida=200;
@@ -1573,6 +1625,8 @@ const ACT={
  delDiv:d=>{S.fin.dividas=S.fin.dividas.filter(x=>x.id!==d.id);save('fin');closeSheet();render()},
  verPlanoDiv:()=>openSheet(planoDivHtml()),
  calcGrupo:d=>{UI.calc=d.g;render()},
+ prevN:d=>{UI.prevN=+d.n;render()},
+ prevAbre:d=>{UI.prevAberto=UI.prevAberto===d.m?null:d.m;render()},
  calc:d=>{const c=CALCS.find(x=>x.id===d.id);if(c)openSheet(calcHtml(c))},
  novaMeta:()=>openSheet(formMeta()),
  editMeta:d=>openSheet(formMeta(S.metas.items.find(g=>g.id===d.id))),
