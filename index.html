@@ -523,6 +523,8 @@ const LS='rumo-cache-v1', LSTS='rumo-ts-v1', LSCFG='rumo-sync-v1';
 let TS={}; try{TS=JSON.parse(localStorage.getItem(LSTS)||'{}')||{}}catch(e){}
 const SB={client:null,user:null,cfg:null,timers:{},estado:'off',ultima:null,canal:null};
 try{SB.cfg=JSON.parse(localStorage.getItem(LSCFG)||'null')}catch(e){}
+const SB_PADRAO={url:'https://ekrpaspjjbdjmoxsblzq.supabase.co',key:'sb_publishable_YESqYBtxIovGLU5XpIlChQ_tPCGsFeR'}; // chave pública (os dados ficam protegidos por conta)
+if(!SB.cfg) SB.cfg=SB_PADRAO;
 let avisouCheio=false;
 function cacheLocal(){ if(REAL) return; try{localStorage.setItem(LS,JSON.stringify({S,M}));localStorage.setItem(LSTS,JSON.stringify(TS))}catch(e){ if(!avisouCheio){avisouCheio=true;toast('A memória do navegador encheu. Apague fotos de metas ou lançamentos antigos.')} } }
 function loadLocal(){try{const raw=localStorage.getItem(LS);if(raw){const o=JSON.parse(raw);for(const k of KEYS)S[k]=fill(DEF[k],o.S?.[k]);M=o.M||{}}}catch(e){}}
@@ -584,7 +586,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.3';
+const VERSAO='2026-10-21.4';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
