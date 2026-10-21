@@ -368,7 +368,6 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .sstats b{display:block;font-family:var(--display);font-size:20px}
 .sstats small{font-size:11px;color:var(--muted)}
 .novaversao{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 12px);z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px 10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-weight:600;font-size:14px;max-width:520px;margin:0 auto}
-.codigo{white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.4;background:var(--sunk);border-radius:10px;padding:10px;max-height:180px;overflow:auto;margin:0;user-select:text;-webkit-user-select:text}
 .dgrupos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
 .dgrupos button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:10px 2px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -585,7 +584,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.2';
+const VERSAO='2026-10-21.3';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1541,7 +1540,7 @@ function notifCard(){
   else if(!SB.user) topo=`<p class="small">Pra receber avisos, entre na sincronização primeiro (logo acima).</p>`;
   else if(PUSH.estado==='on') topo=`<p class="small">Ligadas neste aparelho. Os avisos chegam mesmo com o app fechado.</p><div class="row wrap"><button class="btn sm" data-a="testePush">Mandar um teste</button><button class="btn ghost sm" data-a="desativarPush">Desligar neste aparelho</button></div>`;
   else topo=`<p class="small">Receba aviso das tarefas e compromissos com horário, da injeção e das contas.</p><button class="btn pri" data-a="ativarPush" style="align-self:flex-start">Ligar notificações neste aparelho</button>`;
-  const err=PUSH.erro==='servidor'||PUSH.erro==='tabela'?`<div class="banner" style="margin:0"><span>Falta configurar o carteiro no Supabase (uma vez só).</span><button class="btn sm" data-a="pushSetup">Ver passo a passo</button></div>`:PUSH.erro==='lembretes'?`<p class="small" style="color:var(--bad)">Não consegui guardar os lembretes. Confira o passo a passo.</p><button class="btn sm" data-a="pushSetup" style="align-self:flex-start">Ver passo a passo</button>`:'';
+  const err=PUSH.erro==='servidor'||PUSH.erro==='tabela'?`<div class="banner" style="margin:0"><span>Falta terminar a configuração no Supabase.</span></div>`:PUSH.erro==='lembretes'?`<p class="small" style="color:var(--bad)">Não consegui guardar os lembretes. Confira a configuração no Supabase.</p>`:'';
   const sel=(id,c,opts,v)=>`<select id="${id}" data-c="${c}">${opts.map(([k,l])=>`<option value="${k}" ${String(v)===String(k)?'selected':''}>${l}</option>`).join('')}</select>`;
   return `<section class="card"><h2>Notificações</h2>${topo}${err}
    <div class="flist">
@@ -1549,20 +1548,7 @@ function notifCard(){
     <div class="frow"><span>Resumo do dia</span>${sel('nRes','notifResumo',[['','Não mandar'],['06:00','Às 6h'],['07:00','Às 7h'],['08:00','Às 8h'],['09:00','Às 9h'],['10:00','Às 10h']],N.resumo)}</div>
     <div class="frow"><span>Injeção (véspera 20h e no dia 9h)</span>${sel('nInj','notifInj',[['1','Avisar'],['0','Não avisar']],N.inj?1:0)}</div>
     <div class="frow"><span>Contas fixas (2 dias antes e no dia, 9h)</span>${sel('nCon','notifContas',[['1','Avisar'],['0','Não avisar']],N.contas?1:0)}</div>
-   </div>${!SB.cfg?'':`<button class="linkbtn" data-a="pushSetup" style="align-self:flex-start">Configuração no Supabase ›</button>`}</section>`;
-}
-async function pushSetup(){
-  let sql='',ts='';
-  try{ sql=await (await fetch('supabase/notificacoes.sql',{cache:'no-store'})).text(); ts=await (await fetch('supabase/rumo-push.ts',{cache:'no-store'})).text(); }catch(e){}
-  sql=sql.replace('__URL__',(SB.cfg&&SB.cfg.url||'').replace(/\/$/,''));
-  UI.copia={sql,ts};
-  openSheet(`${sheetHead('Ligar o carteiro das notificações','Uma vez só, no computador fica mais fácil. Leva uns 5 minutos.')}
-  <div class="stack">
-   <div class="card" style="gap:8px"><b>1. Criar as tabelas</b><p class="small">No Supabase, abra <b>SQL Editor</b> › <b>New query</b>, cole o texto abaixo e toque em <b>Run</b>.</p><button class="btn sm" data-a="copiar" data-k="sql" style="align-self:flex-start">Copiar o SQL</button><pre class="codigo">${esc(sql)}</pre></div>
-   <div class="card" style="gap:8px"><b>2. Criar o carteiro</b><p class="small">Vá em <b>Edge Functions</b> › <b>Deploy a new function</b> › <b>Via Editor</b>. No nome, escreva exatamente <b>rumo-push</b>. Apague o código que vem pronto, cole este e toque em <b>Deploy</b>.</p><button class="btn sm" data-a="copiar" data-k="ts" style="align-self:flex-start">Copiar o código</button><pre class="codigo">${esc(ts)}</pre></div>
-   <div class="card" style="gap:8px"><b>3. Deixar o carteiro entrar</b><p class="small">Ainda na função <b>rumo-push</b>, abra <b>Details</b> (ou Settings), desligue <b>Verify JWT with legacy secret</b> / <b>Enforce JWT verification</b> e salve.</p></div>
-   <div class="card" style="gap:8px"><b>4. Ligar no iPhone</b><p class="small">Abra o Rumo pelo ícone da Tela de Início › Ajustes › <b>Ligar notificações neste aparelho</b> › Permitir. Chega uma notificação de teste.</p></div>
-  </div>`);
+   </div></section>`;
 }
 /* ================= VIEW: Estudos / Casa / Mais / Ajustes ================= */
 function vEstudos(){
@@ -1833,9 +1819,8 @@ const ACT={
  backup:()=>{ const src=REAL||{S,M}; const blob=new Blob([JSON.stringify({versao:2,S:src.S,M:src.M},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rumo-backup-'+TODAY()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Cópia baixada'); },
  syncAgora:()=>pull(),
  checaVersao:()=>checaVersao(true),
- ativarPush:()=>ativarPush(), desativarPush:()=>desativarPush(), pushSetup:()=>pushSetup(),
- testePush:()=>{ if(PUSH.sub) fetch(fnURL('acao=teste&endpoint='+encodeURIComponent(PUSH.sub.endpoint))).then(r=>r.json()).then(o=>toast(o.enviados?'Teste enviado':'Não chegou ao aparelho. Desligue e ligue de novo.')).catch(()=>toast('O carteiro não respondeu. Veja o passo a passo.')); },
- copiar:d=>{ const t=(UI.copia||{})[d.k]||''; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copiado')).catch(()=>toast('Selecione o texto e copie')); },
+ ativarPush:()=>ativarPush(), desativarPush:()=>desativarPush(),
+ testePush:()=>{ if(PUSH.sub) fetch(fnURL('acao=teste&endpoint='+encodeURIComponent(PUSH.sub.endpoint))).then(r=>r.json()).then(o=>toast(o.enviados?'Teste enviado':'Não chegou ao aparelho. Desligue e ligue de novo.')).catch(()=>toast('O carteiro não respondeu. Confira a configuração no Supabase.')); },
  atualizarApp:()=>{ try{flushAll()}catch(e){} setTimeout(()=>location.replace(location.pathname+'?v='+Date.now()+location.hash),400)},
  sonoQ:d=>{UI.sono.q=+d.q;render()},
  sonoDia:d=>{const r=S.saude.sono.find(s=>s.data===d.d), st=UI.sono; st.data=d.d; if(r){st.bed=toMin(r.deitou);st.wake=toMin(r.acordou);st.q=+r.q||3} render()},

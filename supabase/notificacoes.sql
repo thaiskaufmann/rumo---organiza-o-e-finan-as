@@ -28,8 +28,8 @@ create policy "lembretes da dona" on public.rumo_lembretes for all using (auth.u
 create table if not exists public.rumo_push_cfg (id int primary key, publica text, privada text);
 alter table public.rumo_push_cfg enable row level security;
 
--- chama o carteiro a cada minuto
+-- chama o carteiro a cada minuto (TROQUE o endereço abaixo pela URL do seu projeto)
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 select cron.schedule('rumo-push', '* * * * *',
-  $$ select net.http_post(url := '__URL__/functions/v1/rumo-push', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb) $$);
+  $$ select net.http_post(url := 'https://SEU-PROJETO.supabase.co/functions/v1/rumo-push', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb) $$);
