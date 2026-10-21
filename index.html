@@ -586,7 +586,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.6';
+const VERSAO='2026-10-21.7';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -595,6 +595,8 @@ async function checaVersao(manual){
 }
 setTimeout(checaVersao,3000);
 window.addEventListener('online',()=>{ if(SB.user) pull(); });
+window.addEventListener('focus',()=>{ if(SB.user&&Date.now()-(SB.ultima||0)>15000) pull(); });
+setInterval(()=>{ if(SB.user&&document.visibilityState==='visible'&&Date.now()-(SB.ultima||0)>45000) pull(); },60000);
 async function initStore(){ loadLocal(); migrar(); if(UI.wantDemo) entrarDemo(); render(); initSync(); checaPush(); if(temPush()) navigator.serviceWorker.getRegistration().then(r=>{ if(r) r.update(); }).catch(()=>{}); }
 function drawBanner(){
   let h='';

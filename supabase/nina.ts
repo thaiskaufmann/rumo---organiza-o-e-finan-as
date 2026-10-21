@@ -37,9 +37,9 @@ const KW = {
   "Moradia": ["aluguel", "imobiliaria", "condominio", "iptu"],
   "Contas da casa": ["light", "luz", "enel", "cedae", "agua", "aguas do rio", "naturgy", "gas", "internet", "claro", "vivo", "tim", "oi fibra", "sky", "celular"],
   "Transporte": ["uber", "99", "posto", "combustivel", "gasolina", "shell", "ipiranga", "metro", "metrorio", "riocard", "onibus", "estacionamento", "sem parar", "supervia", "taxi"],
-  "Saúde": ["farmacia", "drogasil", "droga raia", "raia", "pacheco", "venancio", "drogaria", "remedio", "consulta", "clinica", "laboratorio", "exame", "unimed", "amil", "sulamerica", "academia", "smartfit", "smart fit", "dentista", "medico", "psicologa", "terapia"],
+  "Saúde": ["farmacia", "drogasil", "droga raia", "raia", "pacheco", "venancio", "drogaria", "remedio", "consulta", "clinica", "laboratorio", "exame", "unimed", "amil", "sulamerica", "academia", "smartfit", "smart fit", "dentista", "medico", "psicologa", "terapia", "plano de saude", "convenio", "odonto"],
   "Beleza": ["salao", "manicure", "unha", "cabelo", "sephora", "boticario", "natura", "beleza", "estetica", "sobrancelha", "maquiagem", "depilacao"],
-  "Lazer": ["cinema", "cinemark", "ingresso", "sympla", "bar", "show", "teatro", "viagem", "hotel", "airbnb", "booking", "praia"],
+  "Lazer": ["cinema", "cinemark", "ingresso", "sympla", "bar", "show", "teatro", "viagem", "hotel", "airbnb", "booking", "praia", "socio", "fluminense", "flamengo", "botafogo", "vasco", "clube"],
   "Assinaturas": ["netflix", "spotify", "prime video", "amazon prime", "disney", "hbo", "max", "youtube", "icloud", "google one", "canva", "chatgpt", "claude", "capcut", "deezer", "globoplay", "paramount", "assinatura"],
   "Compras": ["shopee", "mercadolivre", "mercado livre", "amazon", "shein", "magalu", "renner", "riachuelo", "americanas", "aliexpress", "temu", "roupa", "sapato", "tenis"],
   "Educação": ["curso", "escola", "faculdade", "livraria", "livro", "hotmart", "udemy", "kiwify", "eduzz"],
@@ -173,10 +173,17 @@ function parseItem(txt) {
   return { tipo: comp ? "compromisso" : "tarefa", titulo: cap(titulo) || cap(txt), data, hora, rep: "nao", dur: comp ? 60 : 30 };
 }
 function parseLinha(l) {
-  const x = l.replace(/^\s*[-•*·]\s*/, "").replace(/^\s*\d+[.)]\s+/, "").trim();
-  const m = x.match(/^(.+?)[\s:=–-]+(?:r\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(?:reais)?(?:[\s,;–-]+(?:todo\s+)?(?:dia|vence(?:\s+(?:dia|em))?|vencimento)\s*(\d{1,2}))?\s*$/i);
-  if (!m) return null;
-  return { n: cap(m[1].trim().replace(/[:\-–]+$/, "").trim()), v: r2(parseNum(m[2])), d: m[3] ? Math.min(31, +m[3]) : null };
+  let x = l.replace(/^\s*[-•*·]\s*/, "").replace(/^\s*\d+[.)]\s+/, "").trim();
+  let d = null;
+  const md = x.match(/(?:^|[\s,;(–-])(?:todo\s+)?(?:dia|vence(?:\s+(?:dia|em|no dia))?|vencimento(?:\s+dia)?|venc\.?)\s*(\d{1,2})\b/i);
+  if (md) { d = Math.min(31, +md[1]); x = (x.slice(0, md.index) + " " + x.slice(md.index + md[0].length)).trim(); }
+  const mv = x.match(/(?:r\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(?:reais)?/i);
+  if (!mv) return null;
+  const limpa = (s) => s.replace(/[()[\]]/g, " ").replace(/^[\s:=–\-,;]+|[\s:=–\-,;]+$/g, "").replace(/\s+/g, " ").trim();
+  const antes = limpa(x.slice(0, mv.index)), depois = limpa(x.slice(mv.index + mv[0].length));
+  const n = antes ? antes + (depois ? ` (${depois})` : "") : depois;
+  if (!n) return null;
+  return { n: cap(n), v: r2(parseNum(mv[1])), d };
 }
 
 /* ====================== respostas ====================== */
