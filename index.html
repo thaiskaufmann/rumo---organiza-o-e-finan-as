@@ -509,7 +509,7 @@ const DEF={
  agenda:{eventos:[]},
  metas:{items:[]},
  fin:{config:{renda:0,guardar:0,limite:90,cats:CATS0,regras:{},ignorarRep:[],extraDivida:0,metodo:'avalanche',ack:{}},recorrentes:[],compras:[],metas:[],reserva:{meses:6,guardado:0,foto:''},dividas:[],decisoes:{puladas:{},feitas:{}}},
- saude:{ciclo:{registros:[]},injecao:{intervalo:30,ultima:'',historico:[],nome:''},sono:[]},
+ saude:{ciclo:{registros:[]},injecao:{intervalo:30,ultima:'',historico:[],nome:'',hora:''},sono:[]},
  estudos:{materias:[]},
  casa:{compras:[],rotina:[]},
  fotos:{}
@@ -586,7 +586,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.4';
+const VERSAO='2026-10-21.5';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -668,7 +668,14 @@ function ocorre(i,d){
   if(r==='mensal') return parseD(d).getDate()===parseD(ini).getDate();
   return false;
 }
-const itensDoDia=d=>S.tarefas.items.filter(i=>ocorre(i,d)).sort((a,b)=>(a.hora||'99')<(b.hora||'99')?-1:1);
+function injItem(d){
+  const j=S.saude.injecao, st=injStatus(); if(!st) return null;
+  const feita=j.historico.includes(d);
+  const t=TODAY(), mostra=feita||d===st.prox||(st.prox<t&&d===t);
+  if(!mostra) return null;
+  return {id:'inj',virt:'inj',tipo:'tarefa',titulo:'Tomar a '+(j.nome||'injeção'),data:d,hora:j.hora||'',dur:15,rep:'nao',prioridade:'alta',feito:feita,feitos:{},passos:[],etiqueta:st.prox<t&&!feita?'atrasada '+(-st.falta)+' '+plural(-st.falta,'dia','dias'):'Bem-estar'};
+}
+const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); return l.sort((a,b)=>(a.hora||'99')<(b.hora||'99')?-1:1); };
 const isDone=(i,d)=>isRep(i)?i.feitos?.[d]===true:!!i.feito;
 const isSkip=(i,d)=>isRep(i)&&i.feitos?.[d]==='pulou';
 function streak(i,d){ let n=0,x=d; if(!isDone(i,x)) x=addDays(x,-1); for(let k=0;k<400;k++){ if(x<(i.data||i.inicio||'0000')) break; if(ocorre(i,x)){ if(isDone(i,x)) n++; else if(!isSkip(i,x)) break; } x=addDays(x,-1);} return n; }
@@ -1400,7 +1407,8 @@ function sInj(){
   else out+=`<h2>Quando foi a última injeção?</h2><p class="muted small">Com a data eu calculo a próxima, te cobro na tela Hoje alguns dias antes e gero o lembrete pro calendário.</p>`;
   out+=`<form data-f="inj" class="fgrid"><label class="f">Data da última dose<input type="date" name="ultima" id="iUlt" value="${esc(j.ultima||'')}" required></label>
    <label class="f">Intervalo<select name="intervalo" id="iInt"><option value="30" ${+j.intervalo===30?'selected':''}>Mensal</option><option value="84" ${+j.intervalo===84?'selected':''}>A cada 12 semanas</option><option value="90" ${+j.intervalo===90?'selected':''}>A cada 90 dias</option></select></label>
-   <label class="f full">Nome do anticoncepcional (opcional)<input type="text" name="nome" id="iNome" value="${esc(j.nome||'')}"></label><button class="btn full">Salvar</button></form>
+   <label class="f">Nome do anticoncepcional (opcional)<input type="text" name="nome" id="iNome" value="${esc(j.nome||'')}"></label>
+   <label class="f">Horário na agenda (opcional)<input type="time" name="hora" id="iHora" value="${esc(j.hora||'')}"></label><button class="btn full">Salvar</button></form>
    <p class="muted tiny">O intervalo e a janela de tolerância dependem do produto. Confira na bula ou com a sua médica; aqui é só lembrete.</p></section>`;
   if(j.historico.length) out+=`<section class="card"><h2>Histórico</h2>${[...j.historico].sort().reverse().slice(0,12).map((d,i,a)=>`<div class="lrow small"><span class="grow">${fmtD(d)} de ${d.slice(0,4)}</span>${a[i+1]?`<span class="muted">${diffDays(a[i+1],d)} dias depois</span>`:''}<button class="iconbtn" data-a="delInj" data-d="${d}" aria-label="Apagar">${svg('trash')}</button></div>`).join('')}</section>`;
   return out;
@@ -1485,7 +1493,7 @@ function geraLembretes(){
   const add=(chave,q,titulo,corpo)=>{ if(q.getTime()>agora+30000) out.push({chave,quando:q.toISOString(),titulo,corpo:corpo||''}); };
   for(let k=0;k<14;k++){
     const d=addDays(t,k), its=itensDoDia(d);
-    for(const i of its){ if(!i.hora||isDone(i,d)||isSkip(i,d)) continue;
+    for(const i of its){ if(i.virt||!i.hora||isDone(i,d)||isSkip(i,d)) continue;
       const q=new Date(em(d,i.hora).getTime()-(+N.antes||0)*60000);
       const quando=+N.antes?`em ${N.antes} min (${i.hora})`:`agora, ${i.hora}`;
       add('i:'+i.id+':'+d,q,i.titulo,(i.tipo==='compromisso'?'Compromisso ':i.tipo==='habito'?'Hábito ':'')+quando+(i.local?' · '+i.local:'')); }
@@ -1737,10 +1745,11 @@ const ACT={
  agMes:d=>{UI.ag.mes=addMonth(UI.ag.mes,+d.n);render()},
  addMenu:d=>openSheet(addMenuHtml(d.d||(UI.view==='agenda'?UI.ag.dia:UI.dia))),
  novoItem:d=>openSheet(formItem({tipo:d.tipo,data:d.d||TODAY(),rep:d.tipo==='habito'?'diario':'nao',dur:d.tipo==='compromisso'?60:30})),
- editT:d=>{const i=getT(d.id);if(i)openSheet(formItem(i))},
+ editT:d=>{ if(d.id==='inj'){ UI.view='saude'; UI.sub.saude='injecao'; render(); window.scrollTo(0,0); return; } const i=getT(d.id);if(i)openSheet(formItem(i))},
  agendar:d=>{const i=getT(d.id);if(i)openSheet(formItem(i,'hora'))},
  delT:d=>{const i=getT(d.id);S.tarefas.items=S.tarefas.items.filter(x=>x.id!==d.id);save('tarefas');closeSheet();render();toast('Apagado',()=>{S.tarefas.items.push(i);save('tarefas');render()})},
- toggleT:d=>{const i=getT(d.id);if(!i)return;toggleItem(i,d.d||UI.dia);render()},
+ toggleT:d=>{ if(d.id==='inj'){ const dia=d.d||UI.dia, j=S.saude.injecao; if(j.historico.includes(dia)){ j.historico=j.historico.filter(x=>x!==dia); j.ultima=j.historico[j.historico.length-1]||''; save('saude'); render(); toast('Injeção desmarcada'); } else { registraInj(dia); render(); toast('Injeção registrada. Próxima em '+fmtD(injStatus().prox)); } return; }
+   const i=getT(d.id);if(!i)return;toggleItem(i,d.d||UI.dia);render()},
  pularH:d=>{const i=getT(d.id);i.feitos=i.feitos||{};const k=d.d||UI.dia; if(i.feitos[k]==='pulou') delete i.feitos[k]; else i.feitos[k]='pulou'; save('tarefas');render()},
  trazerHoje:()=>{const t=TODAY();const a=atrasadas();a.forEach(i=>i.data=t);save('tarefas');UI.dia=t;render();toast(`${a.length} ${plural(a.length,'tarefa veio','tarefas vieram')} pra hoje`)},
  tomeiInj:()=>{registraInj(TODAY());render();toast('Injeção registrada. Próxima em '+fmtD(injStatus().prox))},
@@ -1877,7 +1886,7 @@ const FORMS={
  calc:()=>{},
  meta:(o,f)=>{const id=f.dataset.id;const b={titulo:String(o.titulo).trim(),motivo:o.motivo||'',prazo:o.prazo||''};if(id)Object.assign(S.metas.items.find(g=>g.id===id),b);else S.metas.items.push({id:uid(),...b,etapas:[]});save('metas');closeSheet();render()},
  etapa:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;S.metas.items.find(g=>g.id===f.dataset.g).etapas.push({id:uid(),t,ok:false});save('metas');render();setTimeout(()=>{const i=$('#et-'+f.dataset.g);if(i)i.focus()},30)},
- inj:o=>{const j=S.saude.injecao;j.intervalo=+o.intervalo||30;j.nome=o.nome||'';if(o.ultima)registraInj(o.ultima);save('saude');render();toast('Salvo')},
+ inj:o=>{const j=S.saude.injecao;j.intervalo=+o.intervalo||30;j.nome=o.nome||'';j.hora=o.hora||'';if(o.ultima)registraInj(o.ultima);save('saude');render();toast('Salvo')},
  menst:o=>{S.saude.ciclo.registros.push({inicio:o.inicio,...(o.fim?{fim:o.fim}:{})});save('saude');closeSheet();render()},
  sono:o=>{const d=o.data||TODAY();S.saude.sono=S.saude.sono.filter(s=>s.data!==d);S.saude.sono.push({data:d,deitou:o.deitou,acordou:o.acordou,q:+o.q||3});S.saude.sono.sort((a,b)=>a.data<b.data?-1:1);if(S.saude.sono.length>400)S.saude.sono=S.saude.sono.slice(-400);save('saude');render();toast('Noite registrada')},
  mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),meta:+o.meta||0};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
