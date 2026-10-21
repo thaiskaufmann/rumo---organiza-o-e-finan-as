@@ -582,7 +582,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-20.3';
+const VERSAO='2026-10-21.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -596,7 +596,6 @@ function drawBanner(){
   let h='';
   if(REAL) h=`<div class="banner demo"><span>Demonstração: dados de exemplo. Nada aqui é seu e nada é salvo.</span><button class="btn sm" data-a="sairDemo">Sair da demonstração</button></div>`;
   else if(SB.user&&SB.estado==='erro') h=`<div class="banner"><span>Sem conexão com a sincronização. Fica salvo neste aparelho e sobe quando a internet voltar.</span></div>`;
-  else if(!SB.user&&UI.view==='hoje') h=`<div class="banner" style="background:var(--sunk);color:var(--muted)"><span>Seus dados estão só neste aparelho.</span><button class="btn sm" data-a="go" data-v="ajustes">Sincronizar celular e computador</button></div>`;
   $('#banner').innerHTML=h;
 }
 function migrar(){
