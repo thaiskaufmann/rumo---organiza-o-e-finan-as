@@ -504,7 +504,7 @@ const KW={
 };
 const KWLIST=Object.entries(KW).flatMap(([c,ks])=>ks.map(k=>[k,c])).sort((a,b)=>b[0].length-a[0].length);
 const DEF={
- perfil:{nome:'Thais',onboard:false,tema:'auto',menu:['hoje','agenda','dinheiro','saude'],notif:{on:false,antes:10,resumo:'08:00',inj:true,contas:true}},
+ perfil:{nome:'Thais',onboard:false,tema:'auto',menu:['hoje','agenda','dinheiro','saude'],notif:{on:false,antes:10,resumo:'08:00',inj:true,contas:true},telegram:false},
  tarefas:{items:[],mente:[]},
  agenda:{eventos:[]},
  metas:{items:[]},
@@ -586,7 +586,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.5';
+const VERSAO='2026-10-21.6';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1511,7 +1511,7 @@ function geraLembretes(){
 let lembT=null;
 function agendaLembretes(){ clearTimeout(lembT); lembT=setTimeout(syncLembretes,2500); }
 async function syncLembretes(){
-  if(REAL||!SB.user||!NC().on) return;
+  if(REAL||!SB.user||!(NC().on||S.perfil.telegram)) return;
   try{
     const novos=geraLembretes().map(x=>({...x,user_id:SB.user.id}));
     const {data:ex,error}=await SB.client.from('rumo_lembretes').select('id,chave').eq('enviado',false).gt('quando',new Date().toISOString()); if(error) throw error;
@@ -1541,6 +1541,32 @@ async function desativarPush(){
   try{ const reg=await navigator.serviceWorker.getRegistration(); const sub=reg&&await reg.pushManager.getSubscription();
     if(sub){ await SB.client.from('rumo_push_subs').delete().eq('endpoint',sub.endpoint); await sub.unsubscribe(); } }catch(e){}
   PUSH.sub=null; PUSH.estado='off'; render(); toast('Notificações desligadas neste aparelho');
+}
+const NINA={usuario:null};
+const ninaURL=q=>SB.cfg.url.replace(/\/$/,'')+'/functions/v1/nina'+(q?'?'+q:'');
+async function ninaUsuario(){ if(NINA.usuario) return NINA.usuario; try{ const r=await fetch(ninaURL('acao=info')); const o=await r.json(); NINA.usuario=o.usuario||null; }catch(e){} return NINA.usuario; }
+async function ligarNina(){
+  if(!SB.user){ toast('Entre na sincronização primeiro'); return; }
+  const janela=window.open('about:blank','_blank');
+  const u=await ninaUsuario(); if(!u){ try{janela&&janela.close()}catch(e){} toast('A Nina ainda não está pronta no servidor'); return; }
+  const cod=(crypto.getRandomValues(new Uint32Array(2))).reduce((a,x)=>a+x.toString(36),'').slice(0,12);
+  const {error}=await SB.client.from('rumo_telegram').upsert({user_id:SB.user.id,codigo:cod});
+  if(error){ try{janela&&janela.close()}catch(e){} toast('Não deu pra ligar agora. Tenta de novo?'); return; }
+  const link='https://t.me/'+u+'?start='+cod;
+  if(janela) janela.location=link; else location.href=link;
+  toast('No Telegram, toque em Iniciar');
+}
+async function desligarNina(){
+  try{ await SB.client.from('rumo_telegram').update({chat_id:null,codigo:null}).eq('user_id',SB.user.id); }catch(e){}
+  S.perfil.telegram=false; save('perfil'); render(); toast('Nina desligada do Telegram');
+}
+function ninaCard(){
+  const foto=`<img src="nina.png" alt="" style="width:52px;height:52px;border-radius:50%;flex:none">`;
+  let corpo;
+  if(!SB.user) corpo=`<p class="small">Entre na sincronização (logo acima) pra ligar a Nina.</p>`;
+  else if(S.perfil.telegram) corpo=`<p class="small">Ligada ✓ Ela te manda o resumo do dia, os lembretes, a injeção e as contas pelo Telegram, e anota o que você mandar pra ela.</p><div class="row wrap"><button class="btn sm" data-a="abrirNina">Abrir conversa</button><button class="btn ghost sm" data-a="desligarNina">Desligar</button></div>`;
+  else corpo=`<p class="small">Sua assistente no Telegram: você manda “gastei 45 mercado” ou “dentista sexta 10h” e ela coloca no Rumo. Ela também te avisa do que importa.</p><button class="btn pri" data-a="ligarNina" style="align-self:flex-start">Ligar a Nina</button>`;
+  return `<section class="card"><div class="row" style="gap:12px">${foto}<div><h2>Nina no Telegram</h2><span class="small muted">Sua assistente do Rumo 💜</span></div></div>${corpo}</section>`;
 }
 function notifCard(){
   const N=NC();
@@ -1630,6 +1656,7 @@ function vAjustes(){
   <section class="card"><h2>Menu de baixo</h2><p class="small muted">Escolha as 4 telas que ficam na barra. O resto fica em Mais.</p><div class="flist">${menuAtual().map((v,i)=>`<div class="frow"><span>Posição ${i+1}</span><select data-c="menuPos" data-i="${i}" id="menu-${i}">${Object.entries(NOMEMENU).map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}<div class="frow"><span>Posição 5</span><span class="muted small" style="flex:none">Mais (fixo)</span></div></div></section>
   <section class="card"><h2>Ver como funciona</h2><p class="small">Abre o app cheio de dados de exemplo pra você testar tudo à vontade. Seus dados ficam guardados e voltam quando você sair.</p><button class="btn pri" style="align-self:flex-start" data-a="${REAL?'sairDemo':'entrarDemo'}">${REAL?'Sair da demonstração':'Abrir demonstração'}</button></section>
   ${syncCard()}
+  ${ninaCard()}
   ${notifCard()}
   <section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
    <div class="row wrap"><button class="btn" data-a="backup">Baixar cópia de segurança</button><label class="btn" for="restFile">Restaurar cópia</label><input type="file" id="restFile" accept=".json,application/json" data-c="restaurar" hidden></div>
@@ -1831,6 +1858,7 @@ const ACT={
  syncAgora:()=>pull(),
  checaVersao:()=>checaVersao(true),
  ativarPush:()=>ativarPush(), desativarPush:()=>desativarPush(),
+ ligarNina:()=>ligarNina(), desligarNina:()=>desligarNina(), abrirNina:async()=>{ const u=await ninaUsuario(); if(u) window.open('https://t.me/'+u,'_blank'); },
  testePush:()=>{ if(PUSH.sub) fetch(fnURL('acao=teste&endpoint='+encodeURIComponent(PUSH.sub.endpoint))).then(r=>r.json()).then(o=>toast(o.enviados?'Teste enviado':'Não chegou ao aparelho. Desligue e ligue de novo.')).catch(()=>toast('O carteiro não respondeu. Confira a configuração no Supabase.')); },
  atualizarApp:()=>{ try{flushAll()}catch(e){} setTimeout(()=>location.replace(location.pathname+'?v='+Date.now()+location.hash),400)},
  sonoQ:d=>{UI.sono.q=+d.q;render()},
