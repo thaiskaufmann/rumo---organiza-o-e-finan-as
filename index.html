@@ -586,7 +586,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.7';
+const VERSAO='2026-10-21.8';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1037,6 +1037,20 @@ function dPrevisao(){
   return out;
 }
 
+function contasMesCard(m){
+  const rs=S.fin.recorrentes.filter(r=>recAtivo(r,m)); if(!rs.length) return '';
+  const t=TODAY(), cur=t.slice(0,7), pagas=rs.filter(r=>(r.pagos||{})[m]), falta=rs.filter(r=>!(r.pagos||{})[m]);
+  const tot=rs.reduce((a,r)=>a+(+r.valor||0),0), totF=falta.reduce((a,r)=>a+(+r.valor||0),0), pct=tot?Math.round((tot-totF)/tot*100):0;
+  const venc=r=>r.dia?m+'-'+pad(Math.min(+r.dia,daysInMonth(m))):null;
+  const ord=[...falta].sort((a,b)=>(venc(a)||'9')<(venc(b)||'9')?-1:1);
+  const quando=r=>{ const v=venc(r); if(!v) return '<span class="muted">sem dia</span>'; if(m!==cur) return 'dia '+r.dia; const d=diffDays(t,v);
+    return d<0?`<b style="color:var(--bad)">atrasada ${-d} ${plural(-d,'dia','dias')}</b>`:d===0?'<b style="color:var(--warn)">vence hoje</b>':d<=3?`<b style="color:var(--warn)">em ${d} ${plural(d,'dia','dias')}</b>`:`dia ${r.dia}`; };
+  const lst=ord.slice(0,4).map(r=>`<div class="lrow"><span class="dot" style="background:${catCor(r.cat)}"></span><span class="grow"><b>${esc(r.nome)}</b><div class="tiny">${quando(r)}</div></span><b class="num">${brl0(r.valor)}</b>${m===cur?`<button class="btn sm" data-a="pagarRec" data-id="${r.id}">Paguei</button>`:''}</div>`).join('');
+  return `<section class="card"><div class="row between"><h2>Contas do mês</h2><button class="linkbtn" data-a="dsub" data-s="recorrentes">Ver todas ›</button></div>
+   <div class="row between" style="align-items:flex-end"><div><span class="tiny muted">${falta.length?'Falta pagar':'Tudo pago 🎉'}</span><div class="bigstat num">${brl0(totF)}</div></div><span class="small muted">${pagas.length} de ${rs.length} ${plural(rs.length,'paga','pagas')}</span></div>
+   <div class="bar good"><i style="width:${pct}%"></i></div>
+   ${lst}${falta.length>4?`<button class="linkbtn" data-a="dsub" data-s="recorrentes" style="align-self:flex-start">+ ${falta.length-4} ${plural(falta.length-4,'conta','contas')} ›</button>`:''}</section>`;
+}
 function dResumo(){
   const m=UI.mes, pm=addMonth(m,-1), ppm=addMonth(m,-2), cur=TODAY().slice(0,7), f=fin(m);
   const ate=m===cur?new Date().getDate():daysInMonth(m), ateP=Math.min(ate,daysInMonth(pm));
@@ -1052,6 +1066,7 @@ function dResumo(){
    ${chartMes(m)}
    <div class="two"><div class="mini"><span class="tiny">Em ${nomeMes(pm)}, sobrou</span><b class="num">${brl0(sob)}</b><span class="tiny muted">${fpp.ent||fpp.sai?`${brl0(Math.abs(sob-sob2))} ${sob>=sob2?'melhor':'pior'} que ${nomeMes(ppm)}`:'sem dados do mês anterior'}</span></div>
    <div class="mini"><span class="tiny">Guardado em ${y}</span><b class="num">${brl0(gy)}</b><span class="tiny muted">${ey?Math.round(gy/ey*100)+'% do que entrou':'—'}</span></div></div></section>`;
+  out+=contasMesCard(m);
   if(m===cur&&f.base>0) out+=`<section class="card"><div class="row between"><span class="muted small">Livre até o fim do mês</span><b class="num">${brl(f.livre)}</b></div><div class="bar ${f.comprom>(+cfg().limite||90)/100?'warn':''}"><i style="width:${Math.min(100,Math.round(f.comprom*100))}%"></i></div><p class="small muted">${brl(f.porDia)} por dia · ${brl0(f.ateDom)} até domingo · ${Math.round(f.comprom*100)}% da renda já tem destino</p></section>`;
   if(m===cur){ const rep=repetidos(); const nd=decisoes().length;
     if(rep.length){ const r=rep[0]; out+=`<section class="card"><div class="row top">${ic('assistente')}<div class="grow"><b>Achei um gasto que se repete: ${brl(r.med)} por mês em ${esc(cap(r.k))}.</b><p class="muted small">${brl0(r.anual)} por ano. É assinatura ou conta fixa?</p></div></div><div class="row"><button class="btn acc sm" data-a="repVer">Ver</button><button class="btn ghost sm" data-a="repIgn" data-k="${esc(r.k)}">Agora não</button></div></section>`; }
