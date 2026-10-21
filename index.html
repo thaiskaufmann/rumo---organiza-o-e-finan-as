@@ -586,7 +586,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-21.8';
+const VERSAO='2026-10-21.9';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1132,8 +1132,9 @@ function formTx(t){
   <form data-f="tx" class="stack" data-id="${t.id||''}">
    <div class="seg"><label><input type="radio" name="tipo" value="saida" ${t.tipo!=='entrada'?'checked':''} data-c="tipoTx"><span>Gasto</span></label><label><input type="radio" name="tipo" value="entrada" ${t.tipo==='entrada'?'checked':''} data-c="tipoTx"><span>Entrada</span></label></div>
    <div class="fgrid"><label class="f full">Descrição<input type="text" name="desc" id="txDesc" value="${esc(t.desc||'')}" required></label>
-   <label class="f">Valor<input type="number" inputmode="decimal" step="0.01" min="0" name="valor" id="txValor" value="${t.valor??''}" required></label>
-   <label class="f">Dia<input type="date" name="data" id="txData" value="${esc(t.data)}" required></label>
+   <label class="f">Valor${t.id?'':' (total)'}<input type="number" inputmode="decimal" step="0.01" min="0" name="valor" id="txValor" value="${t.valor??''}" required data-c="txValor"></label>
+   <label class="f">Dia${t.id?'':' da compra'}<input type="date" name="data" id="txData" value="${esc(t.data)}" required></label>
+   ${t.id?'':`<label class="f full ${t.tipo==='entrada'?'hide':''}" id="fPag">Pagamento<select name="parc" id="txParc" data-c="txParc">${[1,2,3,4,5,6,7,8,9,10,11,12,18,24].map(n=>`<option value="${n}">${n===1?'À vista':'Parcelado em '+n+'x'}</option>`).join('')}</select></label><p class="tiny muted full hide" id="txParcInfo"></p>`}
    <label class="f full">Categoria<select name="cat" id="txCat">${cats.map(c=>`<option ${c===t.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
    <div class="row between"><button class="btn pri">Salvar</button>${t.id?`<button type="button" class="btn danger ghost" data-a="delTx" data-id="${t.id}">Apagar</button>`:''}</div></form>`;
 }
@@ -1192,6 +1193,9 @@ function formRec(r){
   <label class="f full">Categoria<select name="cat" id="rCat">${catNames().map(c=>`<option ${c===r.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
   <div class="row between wrap"><button class="btn pri">Salvar</button>${det}${r.id?`<button type="button" class="btn danger ghost" data-a="delRec" data-id="${r.id}">Apagar</button>`:''}</div></form>`;
 }
+function parcInfo(){ const s=$('#txParc'), pi=$('#txParcInfo'); if(!s||!pi) return; const n=+s.value||1, v=+($('#txValor')||{}).value||0;
+  if(n<=1){ pi.classList.add('hide'); return; } pi.classList.remove('hide');
+  pi.innerHTML=v>0?`<b>${n}x de ${brl(r2(v/n))}</b>. A 1ª entra no mês da compra e as outras ${n-1} aparecem sozinhas nas Contas fixas, uma por mês.`:`Coloque o valor total da compra que eu divido em ${n}x.`; }
 function proxVenc(dia){ const t=TODAY(); let m=t.slice(0,7); let d=m+'-'+pad(Math.min(dia,daysInMonth(m))); if(d<t){ m=addMonth(m,1); d=m+'-'+pad(Math.min(dia,daysInMonth(m))); } return d; }
 
 /* ---------- Decidir ---------- */
@@ -1916,7 +1920,11 @@ const FORMS={
    const cat=p.tipo==='entrada'?(/afiliad|shopee|comiss/i.test(o.txt)?'Afiliados':/cliente|job|ugc|campanha/i.test(o.txt)?'Clientes':'Outras entradas'):(/guardei|reserva|poupan/i.test(o.txt)?GUARD:categorizar(p.desc));
    const t=addTx({id:uid(),data:p.data,desc:p.desc,valor:r2(p.valor),tipo:p.tipo,cat,origem:'rapido',ok:cat!=='Outros'});UI.mes=p.data.slice(0,7);closeSheet();render();
    toast(`${p.tipo==='entrada'?'+':'−'} ${brl(t.valor)} · ${t.desc} · ${t.cat}`,()=>{delTx(t.id,t.data.slice(0,7));render()})},
- tx:(o,f)=>{const id=f.dataset.id;const b={desc:String(o.desc).trim(),valor:r2(Math.abs(+o.valor||0)),tipo:o.tipo,cat:o.cat,data:o.data,ok:true};
+ tx:(o,f)=>{const id=f.dataset.id; const np=+o.parc||1;
+   if(!id&&o.tipo!=='entrada'&&np>1){ const tot=r2(Math.abs(+o.valor||0)), p=r2(tot/np), mes=o.data.slice(0,7), nome=String(o.desc).trim();
+     addTx({id:uid(),data:o.data,desc:`${nome} (1/${np})`,valor:p,tipo:'saida',cat:o.cat,origem:'compra',ok:true});
+     S.fin.recorrentes.push({id:uid(),nome,valor:p,dia:Math.min(28,+o.data.slice(8)),cat:o.cat,tipo:'parcela',total:np,pagasAntes:0,inicioMes:mes,pagos:{[mes]:true}}); save('fin');
+     closeSheet(); render(); toast(`${nome}: ${np}x de ${brl(p)}. As próximas estão nas Contas fixas.`); return; }const b={desc:String(o.desc).trim(),valor:r2(Math.abs(+o.valor||0)),tipo:o.tipo,cat:o.cat,data:o.data,ok:true};
    if(id){const [t,m]=findTx(id);if(m!==b.data.slice(0,7)){delTx(id,m);addTx({...t,...b})}else{Object.assign(t,b);save('m:'+m)}} else addTx({id:uid(),...b,origem:'manual'});closeSheet();render()},
  rec:(o,f)=>{const id=f.dataset.id;const tipo=o.tipo||'conta';const b={nome:String(o.nome).trim(),valor:r2(+o.valor||0),dia:+o.dia||null,cat:o.cat,tipo,total:tipo==='parcela'?(+o.total||0):0,pagasAntes:tipo==='parcela'?(+o.pagasAntes||0):0};
    if(id){const r=S.fin.recorrentes.find(x=>x.id===id);Object.assign(r,b);if(!r.inicioMes)r.inicioMes=TODAY().slice(0,7)}else S.fin.recorrentes.push({id:uid(),...b,inicioMes:TODAY().slice(0,7),pagos:{}});save('fin');closeSheet();render()},
@@ -1956,12 +1964,14 @@ document.addEventListener('pointerdown',e=>{ const dial=e.target.closest('#sonoD
 document.addEventListener('pointermove',e=>{ if(!sonoArr||!UI.sono||!$('#sonoDial')) return; UI.sono[sonoArr]=sonoMin(e); sonoAtualizaDial(); });
 document.addEventListener('pointerup',()=>{sonoArr=null}); document.addEventListener('pointercancel',()=>{sonoArr=null});
 let buscaT=null;
-document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c;
+document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c; if(c==='txValor') parcInfo();
   if(c==='agBusca'||c==='txBusca'){clearTimeout(buscaT);buscaT=setTimeout(()=>{if(c==='agBusca')UI.ag.q=el.value;else UI.txq=el.value;const pos=el.selectionStart;render();const n=document.getElementById(el.id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}},250)}
   if(c==='calcIn'){const f=el.form;const cc=CALCS.find(x=>x.id===f.dataset.id);const v={};new FormData(f).forEach((val,k)=>v[k]=+val||0);let r;try{r=cc.calc(v)}catch(x){r='Confira os números.'}$('#calcRes').textContent=r}});
 document.addEventListener('change',async e=>{const el=e.target;const c=el.dataset&&el.dataset.c;if(!c)return;
   if(c==='tipoItem'){const t=el.value;$('#fLocal').classList.toggle('hide',t!=='compromisso');const rep=$('#iRep');const o=rep.querySelector('option[value=nao]');if(t==='habito'){if(rep.value==='nao')rep.value='diario';if(o)o.remove()}else if(!o){rep.insertAdjacentHTML('afterbegin','<option value="nao">Não repetir</option>')}$('#fDias').classList.toggle('hide',rep.value!=='dias');$('#lData').textContent=rep.value==='nao'?'Data':'Começa em'}
   if(c==='repItem'){$('#fDias').classList.toggle('hide',el.value!=='dias');$('#lData').textContent=el.value==='nao'?'Data':'Começa em'}
+  if(c==='tipoTx'){const fp=$('#fPag'); if(fp) fp.classList.toggle('hide',el.value==='entrada'); const pi=$('#txParcInfo'); if(pi&&el.value==='entrada') pi.classList.add('hide');}
+  if(c==='txParc') parcInfo();
   if(c==='tipoTx'){const sel=$('#txCat');const cats=el.value==='entrada'?ENTCATS:[...catNames(),GUARD];sel.innerHTML=cats.map(x=>`<option>${esc(x)}</option>`).join('')}
   if(c==='menuPos'){ const m=menuAtual(), i=+el.dataset.i, v=el.value, j=m.indexOf(v); if(j>-1&&j!==i) m[j]=m[i]; m[i]=v; S.perfil.menu=m; save('perfil'); render(); }
   if(c==='notifAntes'){ NC().antes=+el.value; save('perfil'); }
