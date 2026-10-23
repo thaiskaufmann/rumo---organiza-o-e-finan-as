@@ -119,7 +119,10 @@ function ocorre(i, d) {
   return false;
 }
 const isDone = (i, d) => (isRep(i) ? i.feitos?.[d] === true : !!i.feito);
-const isSkip = (i, d) => isRep(i) && i.feitos?.[d] === "pulou";
+const ESTADOS = { pulou: "➖", naofiz: "✖", cancelado: "🚫" };
+const estadoDe = (i, d) => (isDone(i, d) ? "feito" : isRep(i) ? (ESTADOS[i.feitos?.[d]] ? i.feitos[d] : "") : (ESTADOS[i.estado] ? i.estado : ""));
+const isSkip = (i, d) => ["pulou", "cancelado"].includes(estadoDe(i, d));
+const isFechado = (i, d) => !!estadoDe(i, d);
 function injStatus(sa) { const j = sa.injecao; if (!j.ultima) return null; const prox = addDays(j.ultima, +j.intervalo || 30); return { prox, falta: diffDays(TODAY(), prox) }; }
 function recAtivo(r, m) { if (r.tipo !== "parcela" || !r.total) return true; const k = monthsBetween(r.inicioMes || m, m); return k >= 0 && k < (+r.total - (+r.pagasAntes || 0)); }
 function fin(F, tx, m) {
@@ -188,7 +191,7 @@ function parseLinha(l) {
 
 /* ====================== respostas ====================== */
 function ajudaTxt(nome) {
-  return `Oi, ${esc(nome)}! Eu sou a <b>Nina</b>, sua assistente do Rumo 💜\nMe manda o que precisar que eu anoto tudo pra você:\n\n<b>Pra anotar</b>\n• gastei 45 mercado\n• recebi 1200 cliente\n• dentista amanhã 15h\n• comprar ração sábado\n• tomei a injeção\n• feito academia\n• paguei a luz\n\n<b>Lista (uma coisa por linha)</b>\n<code>contas fixas\nAluguel 1700 dia 5\nInternet 119,90 dia 10</code>\n\n<b>Pra perguntar</b>\n• hoje  ·  amanhã\n• contas\n• quanto posso gastar\n• posso comprar tênis 300\n\nTudo que você manda aqui aparece no app na hora ✨`;
+  return `Oi, ${esc(nome)}! Eu sou a <b>Nina</b>, sua assistente do Rumo 💜\nMe manda o que precisar que eu anoto tudo pra você:\n\n<b>Pra anotar</b>\n• gastei 45 mercado\n• recebi 1200 cliente\n• dentista amanhã 15h\n• comprar ração sábado\n• tomei a injeção\n• feito academia\n• paguei a luz  ·  paguei a luz 152 (se o valor muda)\n\n<b>Lista (uma coisa por linha)</b>\n<code>contas fixas\nAluguel 1700 dia 5\nInternet 119,90 dia 10</code>\n\n<b>Pra perguntar</b>\n• hoje  ·  amanhã\n• contas\n• quanto posso gastar\n• posso comprar tênis 300\n\nTudo que você manda aqui aparece no app na hora ✨`;
 }
 const naoEntendi = () => `Ops, essa eu não entendi 🙈 Me manda assim que eu consigo:\n\n• <b>gastei 45 mercado</b>\n• <b>dentista amanhã 15h</b>\n• <b>feito academia</b>\n• <b>hoje</b>  ·  <b>contas</b>  ·  <b>quanto posso gastar</b>\n\nOu manda <b>ajuda</b> pra ver tudo.`;
 
@@ -197,7 +200,7 @@ async function resumoDia(uid, d, manha) {
   const D = await carregar(uid, ["perfil", "tarefas", "saude", "fin", "m:" + m]);
   const its = D.tarefas.items.filter((i) => ocorre(i, d)).sort((a, b) => (a.hora || "99") < (b.hora || "99") ? -1 : 1);
   const st = injStatus(D.saude);
-  const linhas = its.map((i) => `${isDone(i, d) ? "✅" : isSkip(i, d) ? "➖" : "⬜️"} ${i.hora || "—"}  ${esc(i.titulo)}`);
+  const linhas = its.map((i) => { const e = estadoDe(i, d); return `${e === "feito" ? "✅" : ESTADOS[e] || "⬜️"} ${i.hora || "—"}  ${e === "cancelado" ? "<s>" + esc(i.titulo) + "</s>" : esc(i.titulo)}`; });
   if (st && (st.prox === d || (st.prox < d && d === TODAY()))) linhas.push(`💉 ${D.saude.injecao.hora || "—"}  Tomar a ${esc(D.saude.injecao.nome || "injeção")}${st.prox < d ? " (atrasada)" : ""}`);
   const contas = D.fin.recorrentes.filter((r) => r.dia && recAtivo(r, m) && !(r.pagos || {})[m] && vence(r, m) === d);
   const f = fin(D.fin, D["m:" + m].tx || [], m);
@@ -248,7 +251,7 @@ async function processar(conta, texto) {
     const it = D.tarefas.items.filter((i) => ocorre(i, t)).find((i) => norm(i.titulo).includes(alvo)) || D.tarefas.items.filter((i) => !isRep(i) && !i.feito).find((i) => norm(i.titulo).includes(alvo));
     if (!it) return falar(chat, `Não achei “${esc(mm[2])}” no seu dia 🤔 Manda <b>hoje</b> pra ver a lista.`);
     marcarFeito(it, it.data && !isRep(it) ? it.data : t); await gravar(uid, "tarefas", D.tarefas);
-    const faltam = D.tarefas.items.filter((i) => ocorre(i, t) && !isDone(i, t) && !isSkip(i, t)).length;
+    const faltam = D.tarefas.items.filter((i) => ocorre(i, t) && !isFechado(i, t)).length;
     return falar(chat, `Uhuul! ✅ <b>${esc(it.titulo)}</b> feito.\n${faltam ? `${plural(faltam, "Falta", "Faltam")} só ${faltam} ${plural(faltam, "coisinha", "coisinhas")} hoje.` : "Você zerou o dia! 🎉"}`);
   }
 
@@ -282,10 +285,12 @@ async function processar(conta, texto) {
   }
 
   // pagar conta fixa pelo nome: "paguei a luz"
-  if ((mm = n.match(/^(paguei|pago|ja paguei)\s+(?:a |o |as |os )?([a-z ]+)$/)) && !NUM.test(s)) {
+  if ((mm = n.match(/^(paguei|pago|ja paguei)\s+(.+)$/))) {
     const D = await carregar(uid, ["fin"]);
-    const r = D.fin.recorrentes.find((x) => norm(x.nome).includes(mm[2].trim()) || mm[2].includes(norm(x.nome)));
-    if (r) return pagarConta(conta, r.id, m);
+    const vm = s.match(NUM); const valor = vm ? parseNum(vm[1]) : null;
+    const resto = " " + norm(s.replace(vm ? vm[0] : "", " ")).replace(/^(ja )?(paguei|pago)\s+/, "").replace(/\b(a|o|as|os|conta|de|da|do|reais|r)\b/g, " ").replace(/\s+/g, " ").trim() + " ";
+    const r = D.fin.recorrentes.filter((x) => recAtivo(x, m)).find((x) => { const nn = norm(x.nome); return nn && (resto.includes(" " + nn + " ") || (nn.length > 2 && resto.trim() === nn) || resto.trim().split(" ").some((w) => w.length > 2 && nn.split(" ")[0] === w)); });
+    if (r) return pagarConta(conta, r.id, m, valor);
   }
 
   if ((mm = n.match(/^(gastei|paguei|comprei|gasto|recebi|ganhei|entrou|caiu|vendi)\b/))) {
@@ -305,7 +310,7 @@ async function processar(conta, texto) {
   return falar(chat, naoEntendi());
 }
 
-function marcarFeito(i, d) { if (isRep(i)) { i.feitos = i.feitos || {}; i.feitos[d] = true; } else i.feito = true; }
+function marcarFeito(i, d) { if (isRep(i)) { i.feitos = i.feitos || {}; i.feitos[d] = true; } else { i.feito = true; i.estado = ""; } }
 
 async function lancar(conta, p) {
   const uid = conta.user_id, mes = p.data.slice(0, 7);
@@ -331,16 +336,19 @@ async function registrarInjecao(conta, d) {
   return falar(conta.chat_id, `💉 Prontinho, injeção registrada! Orgulho de você 💜\nA próxima é <b>${fmtD(prox)}</b>, e eu te lembro na véspera.`);
 }
 
-async function pagarConta(conta, rid, mes) {
+async function pagarConta(conta, rid, mes, valor) {
   const D = await carregar(conta.user_id, ["fin", "m:" + mes]);
   const r = D.fin.recorrentes.find((x) => x.id === rid);
   if (!r) return falar(conta.chat_id, "Não achei essa conta 🤔");
   if ((r.pagos || {})[mes]) return falar(conta.chat_id, `A ${esc(r.nome)} de ${MES[+mes.slice(5) - 1]} já estava paga ✅`);
+  if (r.variavel && !(valor > 0)) return falar(conta.chat_id, `Quanto veio a conta de <b>${esc(r.nome)}</b> esse mês? 💡\nMe manda assim: <b>paguei ${esc(norm(r.nome))} 152,30</b>${r.valor ? `\n\n(mês passado foi ${brl(r.valor)})` : ""}`);
+  if (valor > 0 && (r.variavel || Math.abs(valor - (+r.valor || 0)) > 0.009)) { r.valores = { ...(r.valores || {}), [mes]: r2(valor) }; if (r.variavel) r.valor = r2(valor); }
+  const pago = valor > 0 ? r2(valor) : +r.valor || 0;
   r.pagos = { ...(r.pagos || {}), [mes]: true };
   const dia = mes === TODAY().slice(0, 7) ? TODAY() : mes + "-" + pad(Math.min(+r.dia || 1, daysInMonth(mes)));
-  D["m:" + mes].tx = [...(D["m:" + mes].tx || []), { id: novoId(), data: dia, desc: r.nome, valor: +r.valor || 0, tipo: "saida", cat: r.cat || "Outros", origem: "recorrente", ok: true }];
+  D["m:" + mes].tx = [...(D["m:" + mes].tx || []), { id: novoId(), data: dia, desc: r.nome, valor: pago, tipo: "saida", cat: r.cat || "Outros", origem: "recorrente", ok: true }];
   await gravar(conta.user_id, "fin", D.fin); await gravar(conta.user_id, "m:" + mes, D["m:" + mes]);
-  return falar(conta.chat_id, `✅ ${esc(r.nome)} paga! ${brl(r.valor)} já entrou nos gastos de ${MES[+mes.slice(5) - 1]}.`);
+  return falar(conta.chat_id, `✅ ${esc(r.nome)} paga! ${brl(pago)} já entrou nos gastos de ${MES[+mes.slice(5) - 1]}.`);
 }
 
 /* ====================== botões ====================== */
@@ -435,7 +443,7 @@ async function enviarAvisos() {
       else if (k.startsWith("i:")) {
         const [, id, d] = k.split(":");
         const D = await carregar(l.user_id, ["tarefas"]); const it = D.tarefas.items.find((x) => x.id === id);
-        if (!it || isDone(it, d) || isSkip(it, d)) continue;
+        if (!it || isFechado(it, d)) continue;
         const denovo = l.chave.startsWith("adiar:");
         await falar(c.chat_id, `⏰ ${denovo ? "Lembrando de novo: " : ""}<b>${esc(it.titulo)}</b>\n${denovo ? (it.hora ? "Era às " + it.hora : "") : esc(l.corpo || "")}`, [[["✅ Feito", `feito:${id}:${d}`], ["⏰ +30 min", `adiar:${l.id}`]]]);
       }
