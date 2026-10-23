@@ -377,6 +377,18 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .sstats b{display:block;font-family:var(--display);font-size:20px}
 .sstats small{font-size:11px;color:var(--muted)}
 .novaversao{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 12px);z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px 10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-weight:600;font-size:14px;max-width:520px;margin:0 auto}
+.ajlist{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ajrow{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;border:0;background:none;font:inherit;font-size:16px;color:var(--ink);text-align:left;cursor:pointer;min-width:0}
+.ajrow+.ajrow{border-top:1px solid var(--line)}
+.ajrow:active,.ajperfil:active{background:var(--sunk)}
+.ajic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:16px;flex:none}
+.ajrow .v{color:var(--muted);font-size:14px;max-width:45%}
+.chev{color:var(--muted);font-size:22px;line-height:1;flex:none}
+.ajperfil{display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;width:100%;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.ajperfil b{display:block;font-size:18px}
+.ajav{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#C2185B,#8E3FA6);color:#fff;font-weight:800;font-size:22px;display:grid;place-items:center;flex:none}
+.voltar{font-size:16px;margin-bottom:6px;padding:0}
+.passos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .dgrupos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
 .dgrupos button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:10px 2px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -595,7 +607,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-23.1';
+const VERSAO='2026-10-23.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1692,20 +1704,45 @@ function vMais(){
   const menu=menuAtual(); const tiles=[...todos.filter(t=>!menu.includes(t[0])),['ajustes','Ajustes','Menu, aparência, sincronizar']];
   return `<section><div class="eyebrow">Mais</div><h1>Tudo do Rumo</h1></section><div class="tiles">${tiles.map(([v,l,s])=>`<button class="tile" data-a="go" data-v="${v}">${ic(v)}<b>${l}</b><span class="muted small">${s}</span></button>`).join('')}</div>`;
 }
+const AJ={
+ perfil:['Perfil','👤','#C2185B'], conta:['Conta e sincronização','☁️','#3D7BD9'],
+ aparencia:['Aparência','🎨','#8E3FA6'], menu:['Menu de baixo','🧭','#E0812B'],
+ notif:['Notificações','🔔','#E5484D'], nina:['Nina no Telegram','💬','#2AABEE'],
+ dados:['Seus dados','🗂️','#2F9E6E'], demo:['Ver como funciona','✨','#D4A017'],
+ iphone:['Instalar no iPhone','📱','#5B6470'], sobre:['Sobre o app','ℹ️','#7A7F87']};
+function ajResumo(k){
+  if(k==='perfil') return esc(S.perfil.nome||'');
+  if(k==='conta') return SB.user?(SB.estado==='erro'?'Sem conexão':'Ligada'):'Desligada';
+  if(k==='aparencia') return ({auto:'Automático',claro:'Claro',escuro:'Escuro'})[S.perfil.tema||'auto'];
+  if(k==='menu') return menuAtual().map(v=>NOMEMENU[v]).join(', ');
+  if(k==='notif') return PUSH.estado==='on'?'Ligadas':'Desligadas';
+  if(k==='nina') return S.perfil.telegram?'Ligada':'Desligada';
+  if(k==='demo') return REAL?'Aberta':'';
+  if(k==='sobre') return VERSAO;
+  return '';
+}
 function vAjustes(){
-  return `<section><div class="eyebrow">Ajustes</div><h1>Do seu jeito</h1></section>
-  <section class="card"><h2>Seu nome</h2><form data-f="perfil" class="row"><input type="text" name="nome" id="pNome" value="${esc(S.perfil.nome||'')}"><button class="btn">Salvar</button></form></section>
-  <section class="card"><h2>Aparência</h2><p class="small muted">Automático segue o claro ou escuro do seu celular.</p><div class="segtabs">${[['auto','Automático'],['claro','Claro'],['escuro','Escuro']].map(([k,l])=>`<button class="${(S.perfil.tema||'auto')===k?'on':''}" data-a="tema" data-t="${k}">${l}</button>`).join('')}</div></section>
-  <section class="card"><h2>Menu de baixo</h2><p class="small muted">Escolha as 4 telas que ficam na barra. O resto fica em Mais.</p><div class="flist">${menuAtual().map((v,i)=>`<div class="frow"><span>Posição ${i+1}</span><select data-c="menuPos" data-i="${i}" id="menu-${i}">${Object.entries(NOMEMENU).map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}<div class="frow"><span>Posição 5</span><span class="muted small" style="flex:none">Mais (fixo)</span></div></div></section>
-  <section class="card"><h2>Ver como funciona</h2><p class="small">Abre o app cheio de dados de exemplo pra você testar tudo à vontade. Seus dados ficam guardados e voltam quando você sair.</p><button class="btn pri" style="align-self:flex-start" data-a="${REAL?'sairDemo':'entrarDemo'}">${REAL?'Sair da demonstração':'Abrir demonstração'}</button></section>
-  ${syncCard()}
-  ${ninaCard()}
-  ${notifCard()}
-  <section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
+  const p=UI.aj;
+  if(p&&AJ[p]){
+    const [t]=AJ[p];
+    const corpo={perfil:()=>`<section class="card"><h2>Seu nome</h2><form data-f="perfil" class="row"><input type="text" name="nome" id="pNome" value="${esc(S.perfil.nome||'')}"><button class="btn">Salvar</button></form></section>`,
+      conta:()=>syncCard(), aparencia:()=>`<section class="card"><h2>Aparência</h2><p class="small muted">Automático segue o claro ou escuro do seu celular.</p><div class="segtabs">${[['auto','Automático'],['claro','Claro'],['escuro','Escuro']].map(([k,l])=>`<button class="${(S.perfil.tema||'auto')===k?'on':''}" data-a="tema" data-t="${k}">${l}</button>`).join('')}</div></section>`, menu:()=>`<section class="card"><h2>Menu de baixo</h2><p class="small muted">Escolha as 4 telas que ficam na barra. O resto fica em Mais.</p><div class="flist">${menuAtual().map((v,i)=>`<div class="frow"><span>Posição ${i+1}</span><select data-c="menuPos" data-i="${i}" id="menu-${i}">${Object.entries(NOMEMENU).map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}<div class="frow"><span>Posição 5</span><span class="muted small" style="flex:none">Mais (fixo)</span></div></div></section>`,
+      notif:()=>notifCard(), nina:()=>ninaCard(), dados:()=>`<section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
    <div class="row wrap"><button class="btn" data-a="backup">Baixar cópia de segurança</button><label class="btn" for="restFile">Restaurar cópia</label><input type="file" id="restFile" accept=".json,application/json" data-c="restaurar" hidden></div>
-   ${UI.confirmApagar?`<div class="stack" style="padding:12px;border-radius:10px;background:var(--bad-soft)"><b style="color:var(--bad)">Apagar tudo mesmo?</b><span class="small">Tarefas, finanças, saúde, tudo. Não dá pra desfazer. Baixe uma cópia antes.</span><div class="row"><button class="btn danger" data-a="apagarTudo">Sim, apagar tudo</button><button class="btn ghost" data-a="cancelApagar">Cancelar</button></div></div>`:`<button class="btn ghost danger" style="align-self:flex-start" data-a="pedeApagar">Apagar todos os dados</button>`}</section>
-  <section class="card"><h2>No iPhone</h2><p class="small">Abra o Rumo no Safari, toque em Compartilhar e em “Adicionar à Tela de Início”. Lembretes que apitam (injeção, contas) saem pelo botão “Google Agenda” de cada um.</p></section>
-  <section class="card"><div class="row between"><span class="small muted">Versão do app: <b>${VERSAO}</b></span><button class="btn sm" data-a="checaVersao">Procurar atualização</button></div></section>`;
+   ${UI.confirmApagar?`<div class="stack" style="padding:12px;border-radius:10px;background:var(--bad-soft)"><b style="color:var(--bad)">Apagar tudo mesmo?</b><span class="small">Tarefas, finanças, saúde, tudo. Não dá pra desfazer. Baixe uma cópia antes.</span><div class="row"><button class="btn danger" data-a="apagarTudo">Sim, apagar tudo</button><button class="btn ghost" data-a="cancelApagar">Cancelar</button></div></div>`:`<button class="btn ghost danger" style="align-self:flex-start" data-a="pedeApagar">Apagar todos os dados</button>`}</section>`, demo:()=>`<section class="card"><h2>Ver como funciona</h2><p class="small">Abre o app cheio de dados de exemplo pra você testar tudo à vontade. Seus dados ficam guardados e voltam quando você sair.</p><button class="btn pri" style="align-self:flex-start" data-a="${REAL?'sairDemo':'entrarDemo'}">${REAL?'Sair da demonstração':'Abrir demonstração'}</button></section>`,
+      iphone:()=>`<section class="card"><h2>Deixar o Rumo como app</h2><ol class="small passos"><li>Abra o Rumo no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b> (o quadrado com a setinha).</li><li>Escolha <b>Adicionar à Tela de Início</b>.</li><li>Abra sempre pelo ícone: é assim que as notificações funcionam.</li></ol></section>`,
+      sobre:()=>`<section class="card"><div class="row between"><span class="small">Versão do app</span><b>${VERSAO}</b></div><button class="btn" data-a="checaVersao" style="align-self:flex-start">Procurar atualização</button><p class="tiny muted">Quando sai versão nova, aparece um aviso no topo com o botão Atualizar.</p></section>`}[p]();
+    return `<section><button class="linkbtn voltar" data-a="ajPag" data-p="">‹ Ajustes</button><h1>${t}</h1></section>${corpo.replace(`<h2>${t}</h2>`,"")}`;
+  }
+  const grupo=(nomeG,ks)=>`<div class="stack" style="gap:6px"><span class="eyebrow" style="padding:0 4px">${nomeG}</span><div class="ajlist">${ks.map(k=>{const [t,ic,cor]=AJ[k],r=ajResumo(k);return `<button class="ajrow" data-a="ajPag" data-p="${k}"><span class="ajic" style="background:${cor}">${ic}</span><span class="grow">${t}</span>${r?`<span class="v trunc">${r}</span>`:''}<span class="chev">›</span></button>`}).join('')}</div></div>`;
+  const ini=(S.perfil.nome||'?').trim().charAt(0).toUpperCase();
+  return `<section><div class="eyebrow">Ajustes</div><h1>Do seu jeito</h1></section>
+  <button class="ajperfil" data-a="ajPag" data-p="perfil"><span class="ajav">${esc(ini)}</span><span class="grow"><b>${esc(S.perfil.nome||'Seu nome')}</b><span class="small muted">${SB.user?esc(SB.user.email||''):'Toque pra mudar seu nome'}</span></span><span class="chev">›</span></button>
+  ${grupo('Conta',['conta'])}
+  ${grupo('Aparência',['aparencia','menu'])}
+  ${grupo('Avisos',['notif','nina'])}
+  ${grupo('Dados',['dados'])}
+  ${grupo('Ajuda',['demo','iphone','sobre'])}`;
 }
 
 /* ================= adicionar rápido na agenda ================= */
@@ -1796,7 +1833,8 @@ function sairDemo(){ if(!REAL) return; S=REAL.S; M=REAL.M; REAL=null; UI.decIdx=
 
 /* ================= ações ================= */
 const ACT={
- go:d=>go(d.v),
+ go:d=>{ if(d.v==='ajustes') UI.aj=''; go(d.v); },
+ ajPag:d=>{ UI.aj=d.p||''; render(); window.scrollTo(0,0); },
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
  dsub:d=>{UI.sub.dinheiro=d.s;UI.dlast=UI.dlast||{};UI.dlast[grupoDe(d.s).k]=d.s;UI.decIdx=0;render();window.scrollTo(0,0)},
  ssub:d=>{UI.sub.saude=d.s;render()},
