@@ -395,6 +395,27 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .ajav{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#C2185B,#8E3FA6);color:#fff;font-weight:800;font-size:22px;display:grid;place-items:center;flex:none}
 .voltar{font-size:16px;margin-bottom:6px;padding:0}
 .passos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.ctiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ctiles div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.ctiles b{display:block;font-family:var(--display);font-size:24px}
+.ctiles span{font-size:12px;color:var(--muted)}
+.ctiles .bad b{color:var(--bad)}
+.clist{display:flex;flex-direction:column}
+.crow{display:flex;align-items:center;gap:10px;padding:10px 0;min-width:0}
+.crow+.crow{border-top:1px solid var(--line)}
+.crow .open{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:none;border:0;padding:0;font:inherit;color:var(--ink);cursor:pointer;min-width:0}
+.crow .open b{overflow-wrap:anywhere}
+.cic{width:38px;height:38px;border-radius:12px;background:var(--sunk);display:grid;place-items:center;font-size:19px;flex:none}
+.crow .pill{white-space:nowrap;flex:none}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--warn-soft,var(--sunk));color:var(--warn)}
+.secpick{position:relative;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;max-width:100%;min-width:0}
+form[data-f=item2],form[data-f=item2] .row{min-width:0;max-width:100%}
+form[data-f=item2] input[type=text]{min-width:0;flex:1}
+.secpick label{flex:none;position:relative}
+.secpick input{position:absolute;opacity:0;pointer-events:none}
+.secpick span{display:block;border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13.5px;cursor:pointer;background:var(--surface);white-space:nowrap}
+.secpick input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .dgrupos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
 .dgrupos button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:10px 2px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -613,7 +634,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-24.1';
+const VERSAO='2026-10-24.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -838,7 +859,7 @@ function cobrancas(){
     for(let k=0;k<14&&falt<3;k++){ if(ocorre(h,x)){ if(h.feitos?.[x]===true) break; if(!['pulou','cancelado'].includes(h.feitos?.[x])) falt++; } x=addDays(x,-1); }
     if(falt>=3) out.push({n:'media',txt:`Faz ${falt} dias sem ${h.titulo}`,sub:'Hoje dá pra voltar, nem que seja numa versão menor.',acts:[]});
   }
-  { const dev=S.casa.rotina.map(r=>({r,f:r.ultima?diffDays(t,addDays(r.ultima,+r.cada||7)):0})).filter(({r,f})=>f<=0&&!(r.adiadoAte&&r.adiadoAte>t)).sort((a,b)=>a.f-b.f);
+  { const dev=S.casa.rotina.map(r=>({r,f:rotF(r,t)})).filter(({r,f})=>f<=0&&!(r.adiadoAte&&r.adiadoAte>t)).sort((a,b)=>a.f-b.f);
     const txtR=({r,f})=>f<0?`${r.nome} está atrasado ${-f} ${plural(-f,'dia','dias')}`:`Hoje: ${r.nome}`;
     if(dev.length&&dev.length<=2) dev.forEach(x=>out.push({n:x.f<0?'media':'info',txt:txtR(x),sub:'Casa'+(x.r.comodo?' · '+x.r.comodo:''),acts:[['rotinaFeita','Feito','pri',{id:x.r.id}],['rotinaAdia','Amanhã','',{id:x.r.id}]]}));
     else if(dev.length) out.push({n:dev.some(x=>x.f<0)?'media':'info',txt:`${dev.length} coisas da casa pra hoje`,sub:dev.slice(0,3).map(x=>x.r.nome+(x.f<0?' (atrasado)':'')).join(' · ')+(dev.length>3?' …':''),acts:[['go','Ver a casa','pri',{v:'casa'}]]}); }
@@ -1670,23 +1691,49 @@ function vEstudos(){
 function formMat(x){ x=x||{}; return `${sheetHead(x.id?'Editar':'Nova matéria ou curso')}<form data-f="mat" class="stack" data-id="${x.id||''}"><label class="f">Nome<input type="text" name="nome" id="matN" value="${esc(x.nome||'')}" required autofocus placeholder="Ex.: curso de edição"></label>
  <label class="f">Meta por semana (minutos)<input type="number" name="meta" id="matM" value="${x.meta||''}" placeholder="Ex.: 120"></label><div class="row between"><button class="btn pri">Salvar</button>${x.id?`<button type="button" class="btn danger ghost" data-a="delMat" data-id="${x.id}">Apagar</button>`:''}</div></form>`; }
 const SECOES=['Mercado','Hortifruti','Limpeza','Higiene','Farmácia','Outros'];
+function rotF(r,t){
+  if(r.modo==='semana'&&(r.dias||[]).length){ const ds=r.dias.map(Number), wd=x=>parseD(x).getDay();
+    const prox=()=>{ for(let k=1;k<=7;k++) if(ds.includes(wd(addDays(t,k)))) return k; return 7; };
+    if(r.ultima===t) return prox();
+    if(!r.ultima) return ds.includes(wd(t))?0:prox();
+    for(let k=0;k<7;k++){ const x=addDays(t,-k); if(ds.includes(wd(x))) return r.ultima<x?-k:prox(); }
+    return prox(); }
+  return r.ultima?diffDays(t,addDays(r.ultima,+r.cada||7)):0;
+}
+const rotQuando=r=>r.modo==='semana'&&(r.dias||[]).length?[1,2,3,4,5,6,0].filter(w=>r.dias.map(Number).includes(w)).map(w=>DOW[w]).join(', '):`a cada ${r.cada} ${plural(+r.cada,'dia','dias')}`;
+const COMODO_IC={'Cozinha':'🍳','Sala':'🛋️','Quarto':'🛏️','Banheiro':'🛁','Área de serviço':'🧺','Varanda':'🪴'};
+const SECAO_IC={'Mercado':'🛒','Hortifruti':'🥦','Limpeza':'🧽','Higiene':'🧴','Farmácia':'💊','Outros':'📦'};
 function vCasa(){
-  const L=S.casa.compras, t=TODAY();
+  const tab=UI.casaTab||'tarefas', t=TODAY(), L=S.casa.compras;
+  const rot=S.casa.rotina.map(r=>({r,f:rotF(r,t),adiada:!!(r.adiadoAte&&r.adiadoAte>t)}));
+  const hoje=rot.filter(x=>x.f<=0), atras=rot.filter(x=>x.f<0), falta=L.filter(x=>!x.ok).length;
   let out=`<section><div class="eyebrow">Casa & compras</div><h1>Um cuidado de cada vez</h1></section>
-  <section class="card"><div class="row between"><h2>Lista de compras</h2>${L.some(x=>x.ok)?`<button class="btn ghost sm" data-a="limpaLista">Tirar os pegos</button>`:''}</div>
-  <form data-f="item2" class="row"><input type="text" name="item" id="itemN" placeholder="Ex.: leite, detergente, café" autocomplete="off"><select name="secao" id="itemS" style="width:auto">${SECOES.map(s=>`<option>${s}</option>`).join('')}</select><button class="btn pri">+</button></form>
-  <p class="muted tiny">Separe por vírgula pra adicionar vários de uma vez.</p>`;
-  if(!L.length) out+=`<p class="empty">Lista vazia.</p>`;
-  for(const s of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===s); if(!it.length) continue;
-    out+=`<div class="daylabel">${s}</div>`+it.map(x=>`<div class="row" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><span class="grow" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${esc(x.item)}</span><button class="iconbtn" data-a="itemDel" data-id="${x.id}" aria-label="Tirar">${svg('x')}</button></div>`).join(''); }
-  out+=`</section><section class="card"><div class="row between"><h2>Rotina da casa</h2><button class="btn pri sm" data-a="novaRot">${svg('plus')}Tarefa</button></div><p class="muted small">O que se repete a cada X dias: trocar roupa de cama, limpar geladeira, regar planta. No dia de fazer, aparece no Te cobrando em Hoje. Se você nunca registrou, conta como pra hoje.</p>`;
-  if(!S.casa.rotina.length) out+=`<p class="empty">Nada cadastrado.</p>`;
-  out+=[...S.casa.rotina].map(r=>{const p=r.ultima?addDays(r.ultima,+r.cada||7):t;return {r,f:diffDays(t,p)}}).sort((a,b)=>a.f-b.f).map(({r,f})=>`<div class="lrow"><button class="open" data-a="editRot" data-id="${r.id}"><b>${esc(r.nome)}</b><div class="muted tiny">${r.comodo?esc(r.comodo)+' · ':''}a cada ${r.cada} dias${r.ultima?' · última '+fmtDs(r.ultima):''}</div></button><span class="pill ${f<0?'bad':f===0?'warn':'mut'}">${!r.ultima?'nunca feito':f<0?`atrasado ${-f}d`:f===0?'hoje':`em ${f}d`}</span><button class="btn sm" data-a="rotinaFeita" data-id="${r.id}">Feito</button></div>`).join('');
-  return out+`</section>`;
+  <div class="segtabs"><button class="${tab==='tarefas'?'on':''}" data-a="casaTab" data-t="tarefas">Tarefas da casa${hoje.length?` <span class="pill acc">${hoje.length}</span>`:''}</button><button class="${tab==='compras'?'on':''}" data-a="casaTab" data-t="compras">Lista de compras${falta?` <span class="pill mut">${falta}</span>`:''}</button></div>`;
+  if(tab==='tarefas'){
+    const linha=({r,f,adiada})=>{ const st=adiada?['amanhã','mut']:f<0?[`atrasado ${-f} ${plural(-f,'dia','dias')}`,'bad']:f===0?['hoje','warn']:f===1?['amanhã','mut']:[`em ${f} dias`,'mut'];
+      return `<div class="crow"><span class="cic">${COMODO_IC[r.comodo]||'🏠'}</span><button class="open grow" data-a="editRot" data-id="${r.id}"><b>${esc(r.nome)}</b><span class="tiny muted">${r.comodo?esc(r.comodo)+' · ':''}${rotQuando(r)}${r.ultima?' · última '+fmtDs(r.ultima):' · nunca registrada'}</span></button><span class="pill ${st[1]}">${st[0]}</span><button class="check" data-a="rotinaFeita" data-id="${r.id}" aria-label="Fiz hoje">${svg('check')}</button></div>`; };
+    const grupo=(tit,arr)=>arr.length?`<div class="daylabel">${tit}</div><div class="clist">${arr.sort((a,b)=>a.f-b.f).map(linha).join('')}</div>`:'';
+    out+=`<div class="ctiles"><div><b>${hoje.length}</b><span>pra hoje</span></div><div class="${atras.length?'bad':''}"><b>${atras.length}</b><span>${plural(atras.length,'atrasada','atrasadas')}</span></div><div><b>${rot.filter(x=>x.f>0).length}</b><span>em dia</span></div></div>
+    <section class="card"><div class="row between"><h2>Rotina da casa</h2><button class="btn pri sm" data-a="novaRot">${svg('plus')}Tarefa</button></div>
+    ${rot.length?grupo('Pra fazer hoje',hoje)+grupo('Próximos 7 dias',rot.filter(x=>x.f>0&&x.f<=7))+grupo('Mais pra frente',rot.filter(x=>x.f>7)):`<p class="empty">O que se repete a cada X dias: trocar roupa de cama, limpar geladeira, regar planta. Cadastre uma vez e o Rumo te lembra no dia.</p>`}
+    <p class="tiny muted">Toque no ✓ quando fizer: o Rumo conta os dias até a próxima. No dia, aparece no Te cobrando em Hoje.</p></section>`;
+  } else {
+    const pegos=L.filter(x=>x.ok).length;
+    out+=`<section class="card"><form data-f="item2" class="stack" style="gap:8px"><div class="row"><input type="text" name="item" id="itemN" placeholder="O que precisa comprar?" autocomplete="off"><button class="btn pri" aria-label="Adicionar">${svg('plus')}</button></div>
+      <div class="secpick">${SECOES.map((s,k)=>`<label><input type="radio" name="secao" value="${s}" ${(UI.secao||'Mercado')===s?'checked':''} data-c="secaoPick"><span>${SECAO_IC[s]} ${s}</span></label>`).join('')}</div></form>
+      <p class="tiny muted">Separe por vírgula pra adicionar vários: leite, café, pão.</p></section>`;
+    if(!L.length) out+=`<section class="card"><p class="empty">Lista vazia. O que você adicionar aparece aqui separado por seção.</p></section>`;
+    else { out+=`<div class="row between" style="padding:0 4px"><span class="small muted"><b style="color:var(--ink)">${pegos} de ${L.length}</b> no carrinho</span>${pegos?`<button class="btn ghost sm" data-a="limpaLista">Tirar os pegos</button>`:''}</div><div class="bar good"><i style="width:${Math.round(pegos/L.length*100)}%"></i></div>`;
+      for(const s of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===s); if(!it.length) continue; const ord=[...it.filter(x=>!x.ok),...it.filter(x=>x.ok)];
+        out+=`<section class="card" style="gap:4px"><div class="row between"><b>${SECAO_IC[s]} ${s}</b><span class="tiny muted">${it.filter(x=>!x.ok).length} ${plural(it.filter(x=>!x.ok).length,'item','itens')}</span></div>${ord.map(x=>`<div class="lrow" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><span class="grow" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${esc(x.item)}</span><button class="iconbtn sm" data-a="itemDel" data-id="${x.id}" aria-label="Tirar da lista">${svg('x')}</button></div>`).join('')}</section>`; } }
+  }
+  return out;
 }
 function formRot(r){ r=r||{cada:7}; return `${sheetHead(r.id?'Editar':'Nova tarefa da casa')}<form data-f="rot" class="stack" data-id="${r.id||''}"><label class="f">Tarefa<input type="text" name="nome" id="rotN" value="${esc(r.nome||'')}" required autofocus placeholder="Ex.: trocar roupa de cama"></label>
  <label class="f">Cômodo<select name="comodo" id="rotCo"><option value="">Nenhum</option>${['Cozinha','Sala','Quarto','Banheiro','Área de serviço','Varanda'].map(c=>`<option ${r.comodo===c?'selected':''}>${c}</option>`).join('')}</select></label>
- <label class="f">Repetir a cada (dias)<input type="number" min="1" name="cada" id="rotC" value="${r.cada||7}" required></label><label class="f">Última vez que fez<input type="date" name="ultima" id="rotU" value="${esc(r.ultima||'')}"></label>
+ <div class="seg"><label><input type="radio" name="modo" value="cada" ${r.modo!=='semana'?'checked':''} data-c="rotModo"><span>A cada X dias</span></label><label><input type="radio" name="modo" value="semana" ${r.modo==='semana'?'checked':''} data-c="rotModo"><span>Dias da semana</span></label></div>
+ <label class="f ${r.modo==='semana'?'hide':''}" id="fRotCada">Repetir a cada (dias)<input type="number" min="1" name="cada" id="rotC" value="${r.cada||7}"></label>
+ <div class="f ${r.modo==='semana'?'':'hide'}" id="fRotDias"><span>Quais dias</span><div class="daypick">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}" ${(r.dias||[]).map(Number).includes(w)?'checked':''}><span>${DOW[w]}</span></label>`).join('')}</div></div><label class="f">Última vez que fez<input type="date" name="ultima" id="rotU" value="${esc(r.ultima||'')}"></label>
  <div class="row between"><button class="btn pri">Salvar</button>${r.id?`<button type="button" class="btn danger ghost" data-a="delRot" data-id="${r.id}">Apagar</button>`:''}</div></form>`; }
 function syncCard(){
   if(!SB.cfg) return `<section class="card"><h2>Sincronizar celular e computador</h2><p class="small">Cole aqui os dados do seu projeto no Supabase. Você só faz isso uma vez em cada aparelho.</p>
@@ -1943,13 +1990,14 @@ const ACT={
  timer:d=>{UI.timer={id:d.id,ini:Date.now(),fim:Date.now()+(+d.m)*60000};render();tick()},
  pararTimer:()=>fimTimer(true),
  cancelaTimer:()=>{UI.timer=null;render()},
+ casaTab:d=>{UI.casaTab=d.t;render();window.scrollTo(0,0)},
  itemOk:d=>{const x=S.casa.compras.find(y=>y.id===d.id);x.ok=!x.ok;save('casa');render()},
  itemDel:d=>{S.casa.compras=S.casa.compras.filter(y=>y.id!==d.id);save('casa');render()},
  limpaLista:()=>{S.casa.compras=S.casa.compras.filter(x=>!x.ok);save('casa');render()},
  novaRot:()=>openSheet(formRot()),
  editRot:d=>openSheet(formRot(S.casa.rotina.find(r=>r.id===d.id))),
  delRot:d=>{S.casa.rotina=S.casa.rotina.filter(r=>r.id!==d.id);save('casa');closeSheet();render()},
- rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();delete r.adiadoAte;save('casa');render();toast(r.nome+': feito. Próxima em '+fmtD(addDays(TODAY(),+r.cada||7)))},
+ rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();delete r.adiadoAte;save('casa');render();toast(r.nome+': feito. Próxima em '+fmtD(addDays(TODAY(),rotF(r,TODAY()))))},
  rotinaAdia:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.adiadoAte=addDays(TODAY(),1);save('casa');render();toast(r.nome+': fica pra amanhã')},
  backup:()=>{ const src=REAL||{S,M}; const blob=new Blob([JSON.stringify({versao:2,S:src.S,M:src.M},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rumo-backup-'+TODAY()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Cópia baixada'); },
  syncAgora:()=>pull(),
@@ -2026,8 +2074,8 @@ const FORMS={
  sono:o=>{const d=o.data||TODAY();S.saude.sono=S.saude.sono.filter(s=>s.data!==d);S.saude.sono.push({data:d,deitou:o.deitou,acordou:o.acordou,q:+o.q||3});S.saude.sono.sort((a,b)=>a.data<b.data?-1:1);if(S.saude.sono.length>400)S.saude.sono=S.saude.sono.slice(-400);save('saude');render();toast('Noite registrada')},
  mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),meta:+o.meta||0};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
  sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes.push({data:TODAY(),min});save('estudos');render();toast(`${min} min registrados`)},
- item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>S.casa.compras.push({id:uid(),item:cap(x),secao:o.secao||'Mercado',ok:false}));save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
- rot:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),cada:+o.cada||7,ultima:o.ultima||'',comodo:o.comodo||''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
+ item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>S.casa.compras.push({id:uid(),item:cap(x),secao:o.secao||UI.secao||'Mercado',ok:false}));save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
+ rot:(o,f)=>{const id=f.dataset.id;const modo=o.modo==='semana'?'semana':'cada';const dias=arr(o.dias).map(Number);if(modo==='semana'&&!dias.length){toast('Escolha pelo menos um dia da semana');return}const b={nome:String(o.nome).trim(),modo,dias:modo==='semana'?dias:[],cada:+o.cada||7,ultima:o.ultima||'',comodo:o.comodo||''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
  sbcfg:o=>{ const url=String(o.url||'').trim().replace(/\/+$/,''), key=String(o.key||'').trim(); if(!/^https:\/\/.+/.test(url)||key.length<20){toast('Confira a URL e a chave.');return} SB.cfg={url,key}; try{localStorage.setItem(LSCFG,JSON.stringify(SB.cfg))}catch(e){} initSync(); render(); },
  login:async o=>{ const {error}=await SB.client.auth.signInWithPassword({email:String(o.email).trim(),password:String(o.senha)}); if(error) toast(erroSB(error)); else toast('Entrou. Sincronizando…'); },
  perfil:o=>{S.perfil.nome=String(o.nome||'').trim();save('perfil');render();toast('Salvo')},
@@ -2052,6 +2100,8 @@ document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.d
 document.addEventListener('change',async e=>{const el=e.target;const c=el.dataset&&el.dataset.c;if(!c)return;
   if(c==='tipoItem'){const t=el.value;$('#fLocal').classList.toggle('hide',t!=='compromisso');const rep=$('#iRep');const o=rep.querySelector('option[value=nao]');if(t==='habito'){if(rep.value==='nao')rep.value='diario';if(o)o.remove()}else if(!o){rep.insertAdjacentHTML('afterbegin','<option value="nao">Não repetir</option>')}$('#fDias').classList.toggle('hide',rep.value!=='dias');$('#lData').textContent=rep.value==='nao'?'Data':'Começa em'}
   if(c==='repItem'){$('#fDias').classList.toggle('hide',el.value!=='dias');$('#lData').textContent=el.value==='nao'?'Data':'Começa em'}
+  if(c==='secaoPick'){UI.secao=el.value;}
+  if(c==='rotModo'){const s=el.value==='semana';$('#fRotCada').classList.toggle('hide',s);$('#fRotDias').classList.toggle('hide',!s);}
   if(c==='tipoTx'){const fp=$('#fPag'); if(fp) fp.classList.toggle('hide',el.value==='entrada'); const pi=$('#txParcInfo'); if(pi&&el.value==='entrada') pi.classList.add('hide');}
   if(c==='txParc') parcInfo();
   if(c==='tipoTx'){const sel=$('#txCat');const cats=el.value==='entrada'?ENTCATS:[...catNames(),GUARD];sel.innerHTML=cats.map(x=>`<option>${esc(x)}</option>`).join('')}
