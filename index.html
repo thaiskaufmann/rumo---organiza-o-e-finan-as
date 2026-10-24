@@ -613,7 +613,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-23.3';
+const VERSAO='2026-10-24.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -838,7 +838,10 @@ function cobrancas(){
     for(let k=0;k<14&&falt<3;k++){ if(ocorre(h,x)){ if(h.feitos?.[x]===true) break; if(!['pulou','cancelado'].includes(h.feitos?.[x])) falt++; } x=addDays(x,-1); }
     if(falt>=3) out.push({n:'media',txt:`Faz ${falt} dias sem ${h.titulo}`,sub:'Hoje dá pra voltar, nem que seja numa versão menor.',acts:[]});
   }
-  for(const r of S.casa.rotina){ if(!r.ultima) continue; const f2=diffDays(t,addDays(r.ultima,+r.cada||7)); if(f2<0) out.push({n:'info',txt:`${r.nome} está atrasado ${-f2} ${plural(-f2,'dia','dias')}`,sub:r.comodo||'Casa',acts:[['rotinaFeita','Feito','',{id:r.id}]]}); }
+  { const dev=S.casa.rotina.map(r=>({r,f:r.ultima?diffDays(t,addDays(r.ultima,+r.cada||7)):0})).filter(({r,f})=>f<=0&&!(r.adiadoAte&&r.adiadoAte>t)).sort((a,b)=>a.f-b.f);
+    const txtR=({r,f})=>f<0?`${r.nome} está atrasado ${-f} ${plural(-f,'dia','dias')}`:`Hoje: ${r.nome}`;
+    if(dev.length&&dev.length<=2) dev.forEach(x=>out.push({n:x.f<0?'media':'info',txt:txtR(x),sub:'Casa'+(x.r.comodo?' · '+x.r.comodo:''),acts:[['rotinaFeita','Feito','pri',{id:x.r.id}],['rotinaAdia','Amanhã','',{id:x.r.id}]]}));
+    else if(dev.length) out.push({n:dev.some(x=>x.f<0)?'media':'info',txt:`${dev.length} coisas da casa pra hoje`,sub:dev.slice(0,3).map(x=>x.r.nome+(x.f<0?' (atrasado)':'')).join(' · ')+(dev.length>3?' …':''),acts:[['go','Ver a casa','pri',{v:'casa'}]]}); }
   for(const e of S.estudos.materias){ if(!+e.meta) continue; const ult=(e.sessoes||[]).map(s=>s.data).sort().pop(); if(!ult||diffDays(ult,t)>=4) out.push({n:'info',txt:`${e.nome}: ${ult?`${diffDays(ult,t)} dias sem estudar`:'nenhuma sessão ainda'}`,sub:'Estudos',acts:[['go','Estudar','',{v:'estudos'}]]}); }
   for(const g of S.metas.items){ if(!g.prazo) continue; const tot=(g.etapas||[]).length,ok=(g.etapas||[]).filter(e=>e.ok).length; const f3=diffDays(t,g.prazo); if(f3>=0&&f3<=14&&(!tot||ok<tot)) out.push({n:'media',txt:`“${g.titulo}” vence em ${f3} ${plural(f3,'dia','dias')}`,sub:tot?`${ok} de ${tot} etapas feitas`:'Ainda sem etapas',acts:[['go','Ver','',{v:'metas'}]]}); }
   const ord={alta:0,media:1,info:2}; return out.sort((a,b)=>ord[a.n]-ord[b.n]);
@@ -1676,7 +1679,7 @@ function vCasa(){
   if(!L.length) out+=`<p class="empty">Lista vazia.</p>`;
   for(const s of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===s); if(!it.length) continue;
     out+=`<div class="daylabel">${s}</div>`+it.map(x=>`<div class="row" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><span class="grow" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${esc(x.item)}</span><button class="iconbtn" data-a="itemDel" data-id="${x.id}" aria-label="Tirar">${svg('x')}</button></div>`).join(''); }
-  out+=`</section><section class="card"><div class="row between"><h2>Rotina da casa</h2><button class="btn pri sm" data-a="novaRot">${svg('plus')}Tarefa</button></div><p class="muted small">O que se repete a cada X dias: trocar roupa de cama, limpar geladeira, regar planta. Quando atrasa, aparece em Hoje, sem culpa.</p>`;
+  out+=`</section><section class="card"><div class="row between"><h2>Rotina da casa</h2><button class="btn pri sm" data-a="novaRot">${svg('plus')}Tarefa</button></div><p class="muted small">O que se repete a cada X dias: trocar roupa de cama, limpar geladeira, regar planta. No dia de fazer, aparece no Te cobrando em Hoje. Se você nunca registrou, conta como pra hoje.</p>`;
   if(!S.casa.rotina.length) out+=`<p class="empty">Nada cadastrado.</p>`;
   out+=[...S.casa.rotina].map(r=>{const p=r.ultima?addDays(r.ultima,+r.cada||7):t;return {r,f:diffDays(t,p)}}).sort((a,b)=>a.f-b.f).map(({r,f})=>`<div class="lrow"><button class="open" data-a="editRot" data-id="${r.id}"><b>${esc(r.nome)}</b><div class="muted tiny">${r.comodo?esc(r.comodo)+' · ':''}a cada ${r.cada} dias${r.ultima?' · última '+fmtDs(r.ultima):''}</div></button><span class="pill ${f<0?'bad':f===0?'warn':'mut'}">${!r.ultima?'nunca feito':f<0?`atrasado ${-f}d`:f===0?'hoje':`em ${f}d`}</span><button class="btn sm" data-a="rotinaFeita" data-id="${r.id}">Feito</button></div>`).join('');
   return out+`</section>`;
@@ -1946,7 +1949,8 @@ const ACT={
  novaRot:()=>openSheet(formRot()),
  editRot:d=>openSheet(formRot(S.casa.rotina.find(r=>r.id===d.id))),
  delRot:d=>{S.casa.rotina=S.casa.rotina.filter(r=>r.id!==d.id);save('casa');closeSheet();render()},
- rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();save('casa');render();toast(r.nome+': feito')},
+ rotinaFeita:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.ultima=TODAY();delete r.adiadoAte;save('casa');render();toast(r.nome+': feito. Próxima em '+fmtD(addDays(TODAY(),+r.cada||7)))},
+ rotinaAdia:d=>{const r=S.casa.rotina.find(x=>x.id===d.id);r.adiadoAte=addDays(TODAY(),1);save('casa');render();toast(r.nome+': fica pra amanhã')},
  backup:()=>{ const src=REAL||{S,M}; const blob=new Blob([JSON.stringify({versao:2,S:src.S,M:src.M},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rumo-backup-'+TODAY()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Cópia baixada'); },
  syncAgora:()=>pull(),
  checaVersao:()=>checaVersao(true),
