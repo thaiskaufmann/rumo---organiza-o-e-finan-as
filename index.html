@@ -488,6 +488,19 @@ body.focoon{overflow:hidden}
 .fnota{display:flex;gap:8px}
 .fnota input{flex:1;min-width:0}
 .fok{font-size:56px;text-align:center;margin-top:20px}
+.fcard{gap:12px}
+.fcomo summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--muted);padding:4px 0}
+.fcomo .fpassos{margin-top:8px}
+.fhoje{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.fhoje b{font-family:var(--display);font-size:36px;line-height:1}
+.fhoje span{color:var(--muted);font-size:14px}
+.fsem{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:110px}
+.fsem>div{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.fsem .fv{font-size:10.5px;color:var(--muted);height:14px}
+.fsem .fb{flex:1;width:100%;max-width:28px;display:flex;align-items:flex-end;background:var(--sunk);border-radius:8px;overflow:hidden}
+.fsem .fb i{display:block;width:100%;background:var(--accent);border-radius:8px}
+.fsem .hj .tiny{color:var(--ink);font-weight:700}
+.flog{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
 .tdot.ok.min{background:var(--hab-soft);font-size:12px}
 :root{--sn-a:#241C46;--sn-b:#4B2C5E;--sn-ink:#FFFFFF;--sn-mut:rgba(255,255,255,.68);--sn-line:rgba(255,255,255,.14);--sn-bar:#B8A6FF;--sn-pouco:#F2B84B;--sn-chip:rgba(255,255,255,.12)}
 .snoite{position:relative;overflow:hidden;border:0;color:var(--sn-ink);gap:10px;
@@ -705,6 +718,7 @@ function fill(def,data){ if(Array.isArray(def)) return Array.isArray(data)?data:
   if(def&&typeof def==='object'){const o={...(data&&typeof data==='object'&&!Array.isArray(data)?data:{})};for(const k in def){o[k]=k in o?fill(def[k],o[k]):clone(def[k])}return o}
   return data===undefined?def:data;}
 const IC={
+ foco:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
  habitos:'<path d="M12 21v-9"/><path d="M12 12C12 8 9 6 5 6c0 4 3 6 7 6zM12 10c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M8 21h8"/>',
  mente:'<path d="M9.5 3a4.5 4.5 0 0 0-4.4 5.4A4 4 0 0 0 5 16h.2A3.5 3.5 0 0 0 12 17.5V4.6A4.4 4.4 0 0 0 9.5 3zM14.5 3A4.5 4.5 0 0 1 18.9 8.4 4 4 0 0 1 19 16h-.2A3.5 3.5 0 0 1 12 17.5"/><path d="M12 17.5V21"/>',
  hoje:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -756,6 +770,7 @@ const DEF={
  estudos:{materias:[]},
  casa:{compras:[],rotina:[]},
  mente:{dump:[],semanas:{}},
+ foco:{sessoes:[]},
  fotos:{}
 };
 const KEYS=Object.keys(DEF);
@@ -830,7 +845,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.12';
+const VERSAO='2026-10-30.13';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -858,10 +873,10 @@ function migrar(){
 /* ================= estado de tela ================= */
 const UI={view:'hoje',dia:TODAY(),mes:TODAY().slice(0,7),sub:{dinheiro:'resumo',saude:'injecao'},ag:{modo:'hoje',dia:TODAY(),q:'',mes:TODAY().slice(0,7)},
   compra:null,chatLive:null,chatBusy:false,timer:null,confirmApagar:false,ciclomes:TODAY().slice(0,7),txq:'',txcat:'',isso:null,calc:'tudo',planoModo:'plano',decIdx:0};
-const VIEWS=['hoje','agenda','dinheiro','metas','habitos','saude','estudos','casa','ajustes','mais'];
+const VIEWS=['hoje','agenda','dinheiro','metas','habitos','foco','saude','estudos','casa','ajustes','mais'];
 try{const v=localStorage.getItem('rumo-view');if(VIEWS.includes(v))UI.view=v; UI.sideMin=localStorage.getItem('rumo-sidemin')==='1'}catch(e){}
 {const h=(location.hash||'').slice(1);if(VIEWS.includes(h))UI.view=h; if(h==='demo') UI.wantDemo=true;}
-const NAV=[['hoje','Hoje'],['agenda','Agenda'],['dinheiro','Dinheiro'],['metas','Meu plano'],['habitos','Hábitos'],['saude','Bem-estar'],['estudos','Estudos'],['casa','Casa & compras'],['mente','Esvaziar a mente'],['ajustes','Ajustes']];
+const NAV=[['hoje','Hoje'],['agenda','Agenda'],['dinheiro','Dinheiro'],['metas','Meu plano'],['habitos','Hábitos'],['foco','Foco'],['saude','Bem-estar'],['estudos','Estudos'],['casa','Casa & compras'],['mente','Esvaziar a mente'],['ajustes','Ajustes']];
 function go(v){UI.view=v;try{localStorage.setItem('rumo-view',v)}catch(e){}render();window.scrollTo(0,0)}
 
 let rq=false,pendingRender=false;
@@ -875,7 +890,7 @@ function aplicaTema(){
   const cor=getComputedStyle(document.body).backgroundColor;
   document.querySelectorAll('meta[name=theme-color]').forEach(m=>{m.setAttribute('content',cor);m.removeAttribute('media')});
 }
-const NOMEMENU={hoje:'Hoje',agenda:'Agenda',dinheiro:'Dinheiro',saude:'Bem-estar',metas:'Meu plano',habitos:'Hábitos',estudos:'Estudos',casa:'Casa',mente:'Mente'};
+const NOMEMENU={hoje:'Hoje',agenda:'Agenda',dinheiro:'Dinheiro',saude:'Bem-estar',metas:'Meu plano',habitos:'Hábitos',foco:'Foco',estudos:'Estudos',casa:'Casa',mente:'Mente'};
 function menuAtual(){ const m=(S.perfil.menu||[]).filter(v=>NOMEMENU[v]); const def=['hoje','agenda','dinheiro','saude']; const out=[...new Set(m)]; for(const v of def){ if(out.length>=4) break; if(!out.includes(v)) out.push(v); } for(const v of Object.keys(NOMEMENU)){ if(out.length>=4) break; if(!out.includes(v)) out.push(v); } return out.slice(0,4); }
 function pcBar(){
   if(UI.view==='ajustes'||UI.view==='mais') return '';
@@ -891,7 +906,7 @@ function render(){
   const menu=menuAtual(); const tabs=[...menu.map(v=>[v,NOMEMENU[v]]),['mais','Mais']];
   const inMais=!menu.includes(UI.view);
   $('#tabs').innerHTML=tabs.map(([v,l])=>`<button class="${(UI.view===v||(v==='mais'&&inMais))?'on':''}" data-a="${v==='mais'?'abrirMais':'go'}" data-v="${v}">${ic(v)}${l}</button>`).join('');
-  const fn={hoje:vHoje,agenda:vAgenda,dinheiro:vDinheiro,metas:vMetas,habitos:vHabitos,saude:vSaude,estudos:vEstudos,casa:vCasa,mente:vMente,ajustes:vAjustes,mais:vMais}[UI.view]||vHoje;
+  const fn={hoje:vHoje,agenda:vAgenda,dinheiro:vDinheiro,metas:vMetas,habitos:vHabitos,foco:vFoco,saude:vSaude,estudos:vEstudos,casa:vCasa,mente:vMente,ajustes:vAjustes,mais:vMais}[UI.view]||vHoje;
   $('#view').className=UI.view==='agenda'?'wide':'';
   $('#view').innerHTML=pcBar()+fn();
   $('#fabslot').innerHTML=UI.view==='hoje'||UI.view==='agenda'?`<button class="fab" data-a="addMenu" aria-label="Adicionar">${svg('plus')}</button>`:UI.view==='dinheiro'?`<button class="fab" data-a="lancarMenu" aria-label="Lançar">${svg('plus')}</button>`:'';
@@ -2122,7 +2137,7 @@ function focoIniciar(fase,min){ const F=UI.foco; F.fase=fase; F.min=min; F.total
 function focoRest(){ const F=UI.foco; return Math.max(0,Math.round(((F.pausado||F.fim)-(F.pausado?0:Date.now()))/1000)); }
 function focoTick(){ const F=UI.foco; if(!F||F.pausado) return; const r=Math.max(0,Math.round((F.fim-Date.now())/1000));
   if(r<=0){ clearInterval(FOCO.t); focoBeep();
-    if(F.fase==='foco'){ const i=getT(F.id); if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } F.blocos=(F.blocos||0)+1; F.fase='fimFoco'; }
+    if(F.fase==='foco'){ const i=F.id?getT(F.id):null; if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } S.foco.sessoes.push({data:TODAY(),min:F.min,t:i?i.titulo:(F.titulo||'Foco'),id:F.id||''}); if(S.foco.sessoes.length>600) S.foco.sessoes=S.foco.sessoes.slice(-600); save('foco'); F.blocos=(F.blocos||0)+1; F.fase='fimFoco'; }
     else F.fase='fimPausa';
     focoRender(); return; }
   const tx=document.getElementById('focoT'); if(tx) tx.textContent=fmtMS(r);
@@ -2133,7 +2148,7 @@ function focoRender(){
   if(!F){ if(el) el.remove(); document.body.classList.remove('focoon'); return; }
   if(!el){ el=document.createElement('div'); el.id='foco'; el.className='foco'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Modo foco'); document.body.appendChild(el); }
   document.body.classList.add('focoon');
-  const i=getT(F.id); const nome=i?esc(i.titulo):'';
+  const i=F.id?getT(F.id):null; const nome=esc(i?i.titulo:(F.titulo||'Foco'));
   const anel=(cor,txt,sub,frac)=>`<div class="fanel"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" fill="none" stroke="var(--sunk)" stroke-width="12"/><circle id="focoArc" cx="100" cy="100" r="90" fill="none" stroke="${cor}" stroke-width="12" stroke-linecap="round" stroke-dasharray="565.5" style="stroke-dashoffset:${(565.5*frac).toFixed(1)}" transform="rotate(-90 100 100)"/></svg><div><b id="focoT">${txt}</b><span>${sub}</span></div></div>`;
   let body='';
   if(F.fase==='pronto') body=`<div class="feye">Modo foco</div><h2 class="ftit">${nome}</h2>
@@ -2144,16 +2159,34 @@ function focoRender(){
     <button class="btn pri fbig" data-a="focoGo">Começar</button>`;
   else if(F.fase==='foco'){ const r=focoRest();
     body=`<div class="feye">Focando em</div><h2 class="ftit">${nome}</h2>${anel('var(--accent)',fmtMS(r),F.pausado?'pausado':'só nisso agora',1-r/F.total)}
-    <div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoPausa">${F.pausado?'Continuar':'Pausar'}</button><button class="btn ghost" data-a="focoFeito">Terminei a tarefa</button></div>
+    <div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoPausa">${F.pausado?'Continuar':'Pausar'}</button><button class="btn ghost" data-a="focoFeito">${F.id?'Terminei a tarefa':'Terminei'}</button></div>
     <form data-f="focoNota" class="fnota"><input type="text" name="t" id="focoNota" placeholder="Lembrou de outra coisa? Anota aqui e volta" autocomplete="off"><button class="btn sm">Anotar</button></form>
     <p class="tiny muted" style="text-align:center">O que você anotar vai pro Esvaziar a mente. Você vê depois.</p>`; }
   else if(F.fase==='fimFoco') body=`<div class="fok">🎉</div><h2 class="ftit">Rodada feita!</h2><p class="small" style="text-align:center">${F.blocos} ${plural(F.blocos,'rodada','rodadas')} de foco agora${i&&i.focos&&i.focos[F.d]>F.blocos?` · ${i.focos[F.d]} hoje nessa tarefa`:''}. Agora descansa um pouquinho.</p>
-    <button class="btn pri fbig" data-a="focoDescansar">Descansar 5 min</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">Terminei a tarefa</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
+    <button class="btn pri fbig" data-a="focoDescansar">Descansar 5 min</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">${F.id?'Terminei a tarefa':'Terminei'}</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
   else if(F.fase==='pausa'){ const r=focoRest(); body=`<div class="feye">Descanso</div><h2 class="ftit">Respira 🌿</h2>${anel('var(--good)',fmtMS(r),'descansando',1-r/F.total)}
     <p class="small" style="text-align:center">Levanta, bebe água, olha pela janela. Se puder, deixa o celular de lado nesses minutos.</p><button class="btn ghost" data-a="focoGo">Pular descanso</button>`; }
   else if(F.fase==='fimPausa') body=`<div class="fok">⏰</div><h2 class="ftit">Descanso acabou</h2><p class="small" style="text-align:center">Quer fazer mais uma rodada em <b>${nome}</b>?</p>
-    <button class="btn pri fbig" data-a="focoGo">Mais uma rodada (${F.min} min)</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">Terminei a tarefa</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
+    <button class="btn pri fbig" data-a="focoGo">Mais uma rodada (${F.min} min)</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">${F.id?'Terminei a tarefa':'Terminei'}</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
   el.innerHTML=`<div class="fbox"><button class="iconbtn fx" data-a="focoFechar" aria-label="Sair do modo foco">${svg('x')}</button>${body}</div>`;
+}
+function vFoco(){
+  const t=TODAY(), ss=S.foco.sessoes, hoje=ss.filter(s=>s.data===t), minH=hoje.reduce((a,s)=>a+(+s.min||0),0);
+  const sem=semanaDe(t), porDia=sem.map(d=>ss.filter(s=>s.data===d).reduce((a,s)=>a+(+s.min||0),0)), minS=porDia.reduce((a,b)=>a+b,0), mx=Math.max(30,...porDia);
+  const its=itensDoDia(t).filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)).sort((a,b)=>(a.tipo==='tarefa'?0:1)-(b.tipo==='tarefa'?0:1)||prioN(b)-prioN(a));
+  const min=UI.focoMinTab||focoMinPadrao();
+  let out=`<section><div class="eyebrow">Foco</div><h1>O que você vai fazer agora?</h1></section>
+  <section class="card fcard"><form data-f="focoLivre" class="stack"><input type="text" name="t" id="focoLivreTxt" placeholder="Ex.: editar o vídeo, responder e-mails, arrumar o quarto" autocomplete="off" value="${esc(UI.focoTxt||'')}">
+   <div class="fmins">${[10,15,25,45].map(m=>`<button type="button" class="${min===m?'on':''}" data-a="focoMinTab" data-m="${m}">${m}<small>min</small></button>`).join('')}</div>
+   <button class="btn pri fbig">🎯 Começar a focar</button></form>
+   <details class="fcomo"><summary>Como funciona?</summary><ol class="fpassos"><li><b>Foca só nisso</b> pelo tempo que você escolher.</li><li><b>Quando o tempo acabar</b>, o celular apita e você <b>descansa 5 minutos</b>.</li><li><b>Depois, se quiser</b>, faz mais uma rodada. Começar com 10 ou 15 minutos já é ótimo.</li></ol></details></section>`;
+  if(its.length) out+=`<section class="card"><h2>Ou escolhe algo do seu dia</h2><div class="stack" style="gap:8px">${its.slice(0,UI.focoTodos?99:5).map(i=>`<button class="fesc" data-a="focoAbrir" data-id="${i.id}" data-d="${t}"><span class="grow">${prioTag(i)}${esc(i.titulo)}${(i.focos||{})[t]?`<span class="tiny muted"> · 🎯 ${i.focos[t]}</span>`:''}</span><span class="tiny muted">${PER.find(p=>p[0]===(i.periodo||periodoDe(i.hora)))[1]}</span></button>`).join('')}</div>
+   ${its.length>5?`<button class="linkbtn" data-a="focoTodos" style="align-self:flex-start">${UI.focoTodos?'Mostrar menos':`Ver mais ${its.length-5}`}</button>`:''}</section>`;
+  out+=`<section class="card"><div class="row between"><h2>Seu foco</h2><span class="small muted">${minS?durTxt(minS)+' na semana':''}</span></div>
+   <div class="fhoje"><b class="num">${minH?durTxt(minH):'0 min'}</b><span>${hoje.length?`hoje, em ${hoje.length} ${plural(hoje.length,'rodada','rodadas')}`:'hoje. Bora começar a primeira?'}</span></div>
+   <div class="fsem">${sem.map((d,k)=>`<div class="${d===t?'hj':''}"><span class="fv">${porDia[k]?porDia[k]+'′':''}</span><span class="fb"><i style="height:${porDia[k]?Math.max(8,porDia[k]/mx*100):0}%"></i></span><span class="tiny muted">${DOW[parseD(d).getDay()][0].toUpperCase()}</span></div>`).join('')}</div>
+   ${hoje.length?`<div class="flog">${[...hoje].reverse().slice(0,6).map(s=>`<div class="row between small"><span class="trunc">${esc(s.t)}</span><span class="muted">${s.min} min</span></div>`).join('')}</div>`:''}</section>`;
+  return out;
 }
 function vMente(){
   const tab=UI.menteTab||'despejar', M2=S.mente;
@@ -2291,7 +2324,7 @@ function syncCard(){
 }
 const erroSB=e=>{const m=String(e&&e.message||e||'');return /invalid login/i.test(m)?'E-mail ou senha errados.':/not confirmed/i.test(m)?'Confirme o e-mail que o Supabase te mandou e tente de novo.':/already registered|already exists/i.test(m)?'Esse e-mail já tem conta. Toque em Entrar.':/password/i.test(m)?'A senha precisa ter pelo menos 6 caracteres.':/fetch|network/i.test(m)?'Sem internet agora.':'Não deu certo: '+m};
 
-const AREAS=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['habitos','Hábitos','Sua plantinha e seus hábitos da semana'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
+const AREAS=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['habitos','Hábitos','Sua plantinha e seus hábitos da semana'],['foco','Foco','Cronômetro pra focar numa coisa só'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
 function abrirMais(){
   const menu=menuAtual(), outras=AREAS.filter(a=>!menu.includes(a[0]));
   const item=([v,l,s])=>`<button class="ditem ${UI.view===v?'on':''}" data-a="irMais" data-v="${v}">${ic(v)}<span>${l}<small>${s}</small></span></button>`;
@@ -2302,7 +2335,7 @@ function abrirMais(){
   $('#drawer').hidden=false;
 }
 function vMais(){
-  const todos=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['habitos','Hábitos','Sua plantinha e seus hábitos da semana'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
+  const todos=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['habitos','Hábitos','Sua plantinha e seus hábitos da semana'],['foco','Foco','Cronômetro pra focar numa coisa só'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
   const menu=menuAtual(); const tiles=[...todos.filter(t=>!menu.includes(t[0])),['ajustes','Ajustes','Menu, aparência, sincronizar']];
   return `<section><div class="eyebrow">Mais</div><h1>Tudo do Rumo</h1></section><div class="tiles">${tiles.map(([v,l,s])=>`<button class="tile" data-a="go" data-v="${v}">${ic(v)}<b>${l}</b><span class="muted small">${s}</span></button>`).join('')}</div>`;
 }
@@ -2444,8 +2477,10 @@ const ACT={
  focoGo:()=>focoIniciar('foco',UI.foco.min),
  focoDescansar:()=>focoIniciar('pausa',5),
  focoPausa:()=>{ const F=UI.foco; if(F.pausado){ F.fim=Date.now()+F.pausado*1000; F.pausado=0; } else F.pausado=Math.max(1,Math.round((F.fim-Date.now())/1000)); focoRender(); },
- focoFeito:()=>{ const F=UI.foco, i=getT(F.id); if(i){ setEstado(i,F.d,'feito'); save('tarefas'); } focoFechar(); toast('Feito ✅ Mandou bem!'); },
+ focoFeito:()=>{ const F=UI.foco, i=F.id?getT(F.id):null; if(i){ setEstado(i,F.d,'feito'); save('tarefas'); } focoFechar(); toast('Feito ✅ Mandou bem!'); },
  focoFechar:()=>focoFechar(),
+ focoMinTab:d=>{ UI.focoMinTab=+d.m; try{localStorage.setItem('rumo-foco-min',d.m)}catch(e){} const x=$('#focoLivreTxt'); if(x) UI.focoTxt=x.value; render(); },
+ focoTodos:()=>{UI.focoTodos=!UI.focoTodos;render()},
  focoEscolher:()=>{ const t=TODAY(), its=itensDoDia(t).filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)).sort((a,b)=>(a.tipo==='tarefa'?0:1)-(b.tipo==='tarefa'?0:1)||prioN(b)-prioN(a));
    openSheet(`${sheetHead('Focar em quê?','Escolhe uma coisa só. As outras esperam.')}<div class="stack">${its.map(i=>`<button class="fesc" data-a="focoAbrir" data-id="${i.id}" data-d="${t}"><span class="grow">${prioTag(i)}${esc(i.titulo)}</span><span class="tiny muted">${PER.find(p=>p[0]===(i.periodo||periodoDe(i.hora)))[1]}</span></button>`).join('')}</div>`); },
  sDicasTodas:()=>{UI.sDicasTodas=!UI.sDicasTodas;render()},
@@ -2643,6 +2678,7 @@ const FORMS={
  mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),meta:+o.meta||0};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
  sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes.push({data:TODAY(),min});save('estudos');render();toast(`${min} min registrados`)},
  dump:o=>{const ls=String(o.t||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!ls.length)return;ls.forEach(t=>S.mente.dump.unshift({id:uid(),t,criado:TODAY()}));save('mente');render();toast(ls.length===1?'Guardado':ls.length+' coisas guardadas')},
+ focoLivre:o=>{ const t=String(o.t||'').trim()||'Foco'; UI.focoTxt=''; UI.foco={id:'',titulo:cap(t),d:TODAY(),fase:'pronto',min:UI.focoMinTab||focoMinPadrao(),blocos:0}; focoIniciar('foco',UI.foco.min); },
  focoNota:o=>{ const t=String(o.t||'').trim(); if(!t) return; S.mente.dump.unshift({id:uid(),t,criado:TODAY()}); save('mente'); const x=$('#focoNota'); if(x){ x.value=''; x.focus(); } toast('Anotado. Volta pro foco 🎯'); },
  menteAdd:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;const seg=UI.menteSem||semanaDe(TODAY())[0];const w=S.mente.semanas[seg]=S.mente.semanas[seg]||{certo:[],melhorar:[],notas:''};(w[f.dataset.k]=w[f.dataset.k]||[]).push({id:uid(),t});save('mente');render();setTimeout(()=>{const i=document.querySelector(`form[data-f=menteAdd][data-k=${f.dataset.k}] input`);if(i)i.focus()},30)},
  parCodigo:o=>parAprovar(o.c),
