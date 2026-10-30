@@ -455,6 +455,40 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
+.qpick{display:flex;flex-wrap:wrap;gap:6px}
+.qpick label{position:relative}
+.qpick input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.qpick span{display:block;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:600;color:var(--ink)}
+.qpick input:checked+span{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.qpick input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.tlivre{display:flex;gap:12px;align-items:flex-start;background:var(--sun-soft);border-radius:16px;padding:14px}
+.tlivre.perto{background:var(--warn-soft)}
+.tlivre .e{font-size:24px;line-height:1}
+.tlivre>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.focobtn{width:100%}
+.fesc{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;font:inherit;font-weight:600;color:var(--ink);text-align:left;cursor:pointer}
+body.focoon{overflow:hidden}
+.foco{position:fixed;inset:0;z-index:80;background:var(--bg);overflow:auto;display:flex;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 20px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(16px,env(safe-area-inset-left,0px))}
+.fbox{position:relative;width:100%;max-width:440px;display:flex;flex-direction:column;gap:16px;padding-top:30px}
+.fx{position:absolute;top:0;right:0}
+.feye{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center}
+.ftit{font-family:var(--display);font-size:26px;text-align:center;text-wrap:balance;margin:0}
+.fpassos{margin:0;padding:16px 16px 16px 36px;background:var(--surface);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;gap:10px;font-size:14.5px}
+.fmins{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fmins button{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:14px 4px;font:inherit;font-size:22px;font-weight:800;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center}
+.fmins button small{font-size:11px;font-weight:600;color:var(--muted)}
+.fmins button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fmins button.on small{color:var(--bg);opacity:.8}
+.fbig{padding:16px;font-size:17px}
+.fanel{position:relative;width:min(270px,75vw);aspect-ratio:1;margin:6px auto}
+.fanel svg{width:100%;height:100%}
+.fanel>div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.fanel b{font-family:var(--display);font-size:52px;font-variant-numeric:tabular-nums;line-height:1}
+.fanel span{font-size:13px;color:var(--muted);margin-top:6px}
+.fnota{display:flex;gap:8px}
+.fnota input{flex:1;min-width:0}
+.fok{font-size:56px;text-align:center;margin-top:20px}
+.tdot.ok.min{background:var(--hab-soft);font-size:12px}
 :root{--sn-a:#241C46;--sn-b:#4B2C5E;--sn-ink:#FFFFFF;--sn-mut:rgba(255,255,255,.68);--sn-line:rgba(255,255,255,.14);--sn-bar:#B8A6FF;--sn-pouco:#F2B84B;--sn-chip:rgba(255,255,255,.12)}
 .snoite{position:relative;overflow:hidden;border:0;color:var(--sn-ink);gap:10px;
  background:radial-gradient(1.2px 1.2px at 18% 22%,rgba(255,255,255,.8),transparent 60%),radial-gradient(1px 1px at 72% 14%,rgba(255,255,255,.7),transparent 60%),radial-gradient(1.5px 1.5px at 88% 38%,rgba(255,255,255,.6),transparent 60%),radial-gradient(1px 1px at 40% 8%,rgba(255,255,255,.6),transparent 60%),radial-gradient(1px 1px at 58% 30%,rgba(255,255,255,.5),transparent 60%),linear-gradient(160deg,var(--sn-a),var(--sn-b))}
@@ -796,7 +830,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.11';
+const VERSAO='2026-10-30.12';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -899,10 +933,11 @@ const PRIO={alta:['!!!','Alta',3],media:['!!','Média',2],baixa:['!','Baixa',1]}
 const prioN=i=>(PRIO[i.prioridade]||[,,0])[2];
 const prioTag=i=>PRIO[i.prioridade]?`<span class="prio p-${i.prioridade}" title="Prioridade ${PRIO[i.prioridade][1].toLowerCase()}" aria-label="Prioridade ${PRIO[i.prioridade][1].toLowerCase()}">${PRIO[i.prioridade][0]}</span>`:'';
 const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); return l.sort((a,b)=>{ const ha=a.hora||'99', hb=b.hora||'99'; if(ha!==hb) return ha<hb?-1:1; return prioN(b)-prioN(a); }); };
-const isDone=(i,d)=>isRep(i)?i.feitos?.[d]===true:!!i.feito;
+const isDone=(i,d)=>isRep(i)?(i.feitos?.[d]===true||i.feitos?.[d]==='minimo'):!!i.feito;
+const isMin=(i,d)=>isRep(i)&&i.feitos?.[d]==='minimo';
 const obsDe=(i,d)=>isRep(i)?((i.obsDia||{})[d]||''):(i.obs||'');
-const ESTADOS={pulou:['Hoje não','➖'],naofiz:['Não fiz','✖'],cancelado:['Cancelado','🚫']};
-const estadoDe=(i,d)=>isDone(i,d)?'feito':(isRep(i)?(ESTADOS[i.feitos?.[d]]?i.feitos[d]:''):(ESTADOS[i.estado]?i.estado:''));
+const ESTADOS={minimo:['Mínimo','🌱'],pulou:['Hoje não','➖'],naofiz:['Não fiz','✖'],cancelado:['Cancelado','🚫']};
+const estadoDe=(i,d)=>isDone(i,d)?(isMin(i,d)?'minimo':'feito'):(isRep(i)?(ESTADOS[i.feitos?.[d]]?i.feitos[d]:''):(ESTADOS[i.estado]?i.estado:''));
 const isSkip=(i,d)=>['pulou','cancelado'].includes(estadoDe(i,d));
 const isFechado=(i,d)=>!!estadoDe(i,d);
 function setEstado(i,d,e){ if(isRep(i)){ i.feitos=i.feitos||{}; if(e==='feito') i.feitos[d]=true; else if(e) i.feitos[d]=e; else delete i.feitos[d]; } else { i.feito=e==='feito'; i.estado=e&&e!=='feito'?e:''; } }
@@ -910,7 +945,7 @@ function streak(i,d){ let n=0,x=d; if(!isDone(i,x)) x=addDays(x,-1); for(let k=0
 function semanaDe(d){ const dt=parseD(d); const wd=(dt.getDay()+6)%7; const seg=addDays(d,-wd); return [...Array(7)].map((_,i)=>addDays(seg,i)); }
 const getT=id=>S.tarefas.items.find(x=>x.id===id);
 function atrasadas(){ const t=TODAY(); return S.tarefas.items.filter(i=>i.tipo==='tarefa'&&!isRep(i)&&!i.feito&&i.data&&i.data<t); }
-function toggleItem(i,d){ const k0=i.tipo==='habito'?plFase(plGotas()):0; if(isRep(i)){ i.feitos=i.feitos||{}; if(i.feitos[d]===true) delete i.feitos[d]; else i.feitos[d]=true; } else i.feito=!i.feito; save('tarefas'); if(i.tipo==='habito'&&i.feitos[d]===true) setTimeout(()=>celebraHab(i,d,k0),50); }
+function toggleItem(i,d){ const k0=i.tipo==='habito'?plFase(plGotas()):0; if(isRep(i)){ i.feitos=i.feitos||{}; if(i.feitos[d]===true||i.feitos[d]==='minimo') delete i.feitos[d]; else i.feitos[d]=true; } else i.feito=!i.feito; save('tarefas'); if(i.tipo==='habito'&&i.feitos[d]===true) setTimeout(()=>celebraHab(i,d,k0),50); }
 function celebraHab(i,d,k0){ const k=plFase(plGotas()); if(k>k0) return toast(`Sua plantinha cresceu! Agora ela é ${PL_FASES[k][1]} 🌿`); if(d!==TODAY()) return; const st=streak(i,d); const hs=S.tarefas.items.filter(x=>x.tipo==='habito'&&ocorre(x,d)&&!isSkip(x,d)); const cheio=hs.length&&hs.every(x=>isDone(x,d));
   toast(cheio?'Dia completo! Sua plantinha agradece 🌱':`💧 Regou a plantinha · ${i.titulo}`+(st>1?` · 🔥 ${st} seguidos`:'')); }
 function metaLinha(i){
@@ -1032,8 +1067,8 @@ function cobrancas(){
   const dec=decisoes().filter(d=>d.tipo!=='conta'); if(dec.length) out.push({n:'media',txt:`${dec.length} ${plural(dec.length,'decisão','decisões')} de dinheiro pra hoje`,sub:dec.slice(0,2).map(d=>d.titulo).join(' · '),acts:[['goSub','Decidir','pri',{v:'dinheiro',s:'decidir'}]]});
   for(const h of S.tarefas.items.filter(i=>i.tipo==='habito')){
     if(diffDays(h.data||h.inicio||t,t)<3) continue; let falt=0,x=addDays(t,-1);
-    for(let k=0;k<14&&falt<3;k++){ if(ocorre(h,x)){ if(h.feitos?.[x]===true) break; if(!['pulou','cancelado'].includes(h.feitos?.[x])) falt++; } x=addDays(x,-1); }
-    if(falt>=3) out.push({n:'media',txt:`Faz ${falt} dias sem ${h.titulo}`,sub:'Hoje dá pra voltar, nem que seja numa versão menor.',acts:[]});
+    for(let k=0;k<14&&falt<3;k++){ if(ocorre(h,x)){ if(isDone(h,x)) break; if(!['pulou','cancelado'].includes(h.feitos?.[x])) falt++; } x=addDays(x,-1); }
+    if(falt>=3) out.push({n:'media',txt:`Faz ${falt} dias sem ${h.titulo}`,sub:h.minimo?`Hoje dá pra voltar com a versão mínima: ${h.minimo}.`:'Hoje dá pra voltar, nem que seja numa versão menor.',acts:[]});
   }
   { const dev=S.casa.rotina.map(r=>({r,f:rotF(r,t)})).filter(({r,f})=>f<=0&&!(r.adiadoAte&&r.adiadoAte>t)).sort((a,b)=>a.f-b.f);
     const txtR=({r,f})=>f<0?`${r.nome} está atrasado ${-f} ${plural(-f,'dia','dias')}`:`Hoje: ${r.nome}`;
@@ -1052,7 +1087,7 @@ function itemHtml(i,d){
   const done=isDone(i,d),est=estadoDe(i,d),st=i.tipo==='habito'?streak(i,d):0, e=ESTADOS[est];
   return `<div class="item t-${i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
-    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
+    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${(i.focos||{})[d]?` · 🎯 ${i.focos[d]} ${plural(i.focos[d],'bloco','blocos')}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
     ${i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
   </div>`;
 }
@@ -1094,12 +1129,23 @@ function vHoje(){
    <div class="row"><div class="bar grow"><i style="width:${pct}%"></i></div><span class="small muted num">${feitos}/${tot}</span></div></section>`;
   const groups={manha:[],tarde:[],noite:[],livre:[]};
   its.forEach(i=>groups[i.periodo&&groups[i.periodo]?i.periodo:periodoDe(i.hora)].push(i));
-  let any=false; meio+=`<section class="stack">`;
+  let any=false; meio+=`<section class="stack">${d===t?tempoLivre(its,t):''}`;
   for(const [p,l] of PER){ const g=groups[p]; if(!g.length) continue; any=true;
     meio+=`<div class="period"><h3>${l}<small>${g.filter(x=>isDone(x,d)).length}/${g.length}</small></h3>${g.map(x=>itemHtml(x,d)).join('')}</div>`; }
   if(!any) meio+=`<div class="card flat"><b>Nada marcado pra ${d===t?'hoje':'esse dia'}.</b><span class="muted small">Toque no + pra adicionar uma tarefa, um hábito que se repete ou um compromisso.</span></div>`;
   meio+=`</section>`;
   return out+`<div class="hgrid"><div class="hmain">${meio}</div><aside class="hside">${lado}</aside></div>`;
+}
+function tempoLivre(its,t){
+  const now=new Date(), agora=now.getHours()*60+now.getMinutes();
+  const prox=its.filter(i=>i.tipo==='compromisso'&&i.hora&&!isFechado(i,t)&&toMin(i.hora)>agora).sort((a,b)=>a.hora<b.hora?-1:1)[0];
+  if(!prox) return '';
+  const falta=toMin(prox.hora)-agora, N=NC(), avisa=+N.antes&&PUSH.estado==='on';
+  if(falta<45) return `<div class="tlivre perto"><span class="e">⏰</span><div><b>Daqui a ${falta} min: ${esc(prox.titulo)}</b><span class="small muted">Hora de ir se arrumando.</span></div></div>`;
+  const pend=its.filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)).length;
+  return `<div class="tlivre"><span class="e">☕</span><div class="grow"><b>Você tem ${durTxt(Math.floor(falta/5)*5)} livres até ${esc(prox.titulo)} (${prox.hora})</b>
+   <span class="small muted">Dá tempo de fazer outras coisas antes, com calma. ${avisa?`O lembrete toca ${N.antes} min antes, não precisa ficar de olho no relógio.`:'Põe um alarme uns 30 min antes e esquece o relógio.'}</span>
+   ${pend?`<button class="btn sm" data-a="focoEscolher" style="align-self:flex-start;margin-top:6px">🎯 Escolher algo pra focar</button>`:''}</div></div>`;
 }
 function onboardCard(){
   const steps=[[+cfg().renda>0,'Dizer quanto você espera receber no mês','planoEdit',{}],[S.tarefas.items.length>0,'Criar sua primeira tarefa ou hábito','addMenu',{}],[!!S.saude.injecao.ultima,'Registrar a última injeção','goSub',{v:'saude',s:'injecao'}],[Object.values(M).some(x=>x.tx?.length),'Lançar um gasto ou mandar o extrato','extrato',{}]];
@@ -1174,9 +1220,11 @@ function addMenuHtml(d){
   <div class="addtiles">${[['compromisso','Compromisso','Data e horário'],['tarefa','Tarefa','Algo para fazer'],['habito','Hábito','Parte da rotina']].map(([k,l,s])=>`<button class="t-${k}" data-a="novoItem" data-tipo="${k}" data-d="${d||''}"><span style="color:var(--tc)">${svg(TIPOS[k][1])}</span><b>${l}</b><small>${s}</small></button>`).join('')}</div>`;
 }
 function estadoHtml(i,d){
-  const est=estadoDe(i,d), op=[['feito','✅','Feito'],['pulou','➖','Hoje não'],['naofiz','✖','Não fiz'],['cancelado','🚫','Cancelado']];
+  const est=estadoDe(i,d), op=i.tipo==='habito'?[['feito','✅','Feito'],['minimo','🌱','Fiz o mínimo'],['pulou','➖','Hoje não'],['naofiz','✖','Não fiz']]:[['feito','✅','Feito'],['pulou','➖','Hoje não'],['naofiz','✖','Não fiz'],['cancelado','🚫','Cancelado']];
   return `${sheetHead(esc(i.titulo),(d===TODAY()?'Hoje':cap(fmtD(d)))+(i.hora?' · '+i.hora:''))}
-  <div class="stack"><span class="eyebrow">Como foi?</span><div class="estgrid">${op.map(([k,ic,l])=>`<button class="${est===k?'on':''}" data-a="setEstado" data-id="${i.id}" data-d="${d}" data-e="${k}"><span>${ic}</span>${l}</button>`).join('')}</div>
+  <div class="stack">${!isDone(i,d)&&i.tipo!=='compromisso'?`<button class="btn pri focobtn" data-a="focoAbrir" data-id="${i.id}" data-d="${d}">🎯 Focar nisso agora</button>`:''}
+   ${i.tipo==='habito'&&i.minimo?`<p class="small muted">🌱 Seu mínimo: <b style="color:var(--ink)">${esc(i.minimo)}</b>. Num dia difícil, fazer o mínimo conta e mantém a sequência.</p>`:''}
+   <span class="eyebrow">Como foi?</span><div class="estgrid">${op.map(([k,ic,l])=>`<button class="${est===k?'on':''}" data-a="setEstado" data-id="${i.id}" data-d="${d}" data-e="${k}"><span>${ic}</span>${l}</button>`).join('')}</div>
    ${est?`<button class="linkbtn" data-a="setEstado" data-id="${i.id}" data-d="${d}" data-e="" style="align-self:flex-start">Voltar pra pendente</button>`:''}
    <form data-f="obs" data-id="${i.id}" data-d="${d}" class="stack"><label class="f">Observação${isRep(i)?' deste dia':''}<textarea name="obs" id="obsTxt" rows="3" placeholder="Ex.: remarcar pra sexta, levar documento…">${esc(obsDe(i,d))}</textarea></label><div class="row between"><button class="btn sm">Salvar observação</button><button type="button" class="btn ghost sm" data-a="editT" data-id="${i.id}">Editar ${TIPOS[i.tipo][0].toLowerCase()}</button></div></form></div>`;
 }
@@ -1192,14 +1240,15 @@ function formItem(i,focus){
     <div class="frow ${rep==='dias'?'':'hide'}" id="fDias"><div class="daypick">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}" ${(i.dias||[]).map(Number).includes(w)?'checked':''}><span>${DOW[w]}</span></label>`).join('')}</div></div></div></div>
    <div class="fsec"><span class="eyebrow">Organização</span><div class="flist">
     <div class="frow"><span id="lData">${rep==='nao'?'Data':'Começa em'}</span><input type="date" name="data" id="iData" value="${esc(i.data||i.inicio||TODAY())}"></div>
-    <div class="frow"><span>Horário</span><input type="time" name="hora" id="iHora" value="${esc(i.hora||'')}" ${focus==='hora'?'autofocus':''}></div>
+    ${(()=>{const q=i.hora?'hora':(i.periodo||(tipo==='compromisso'?'hora':'livre')); return `<div class="frow col"><span>Quando</span><div class="qpick">${[['manha','Manhã'],['tarde','Tarde'],['noite','Noite'],['livre','Qualquer hora'],['hora','Hora certa']].map(([v,l])=>`<label><input type="radio" name="quando" value="${v}" ${q===v?'checked':''} data-c="quandoItem"><span>${l}</span></label>`).join('')}</div><span class="tiny muted" style="font-weight:400">Sem horário fica mais leve: você faz quando der, dentro do período. Use hora certa pro que depende de outra pessoa.</span></div>
+    <div class="frow ${q==='hora'?'':'hide'}" id="fHora"><span>Horário</span><input type="time" name="hora" id="iHora" value="${esc(i.hora||'')}" ${focus==='hora'?'autofocus':''}></div>`})()}
     <div class="frow"><span>Duração</span><select name="dur" id="iDur">${[10,15,30,45,60,90,120,180,240].map(m=>`<option value="${m}" ${defDur(i)===m?'selected':''}>${durTxt(m)}</option>`).join('')}</select></div>
     <div class="frow"><span>Etiqueta</span><select name="etiqueta" id="iEtiq"><option value="">Nenhuma</option>${ETIQ.map(e=>`<option ${i.etiqueta===e?'selected':''}>${e}</option>`).join('')}</select></div>
-    <div class="frow"><span>Período do dia</span><select name="periodo" id="iPer"><option value="">Automático</option>${PER.slice(0,3).map(([v,l])=>`<option value="${v}" ${i.periodo===v?'selected':''}>${l}</option>`).join('')}</select></div>
     <div class="frow"><span>Prioridade</span><select name="prioridade" id="iPrio">${[['','Nenhuma'],['baixa','Baixa'],['media','Média'],['alta','Alta']].map(([v,l])=>`<option value="${v}" ${(i.prioridade||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>
    </div></div>
    <div class="fsec"><span class="eyebrow">Detalhes</span><div class="flist">
     <div class="frow col"><span>Passos</span><div id="passosBox" class="stack">${passos.map((p,k)=>`<div class="row"><input type="checkbox" name="pok" value="${k}" ${p.ok?'checked':''} aria-label="Passo feito"><input type="text" name="passo" value="${esc(p.t)}" id="ps-${k}"></div>`).join('')}<div class="row"><input type="text" name="passo" id="psNovo" placeholder="Adicionar passo e apertar Enter"></div></div></div>
+    <div class="frow col ${tipo==='habito'?'':'hide'}" id="fMin"><span>Versão mínima (pros dias difíceis)</span><input type="text" name="minimo" id="iMin" value="${esc(i.minimo||'')}" placeholder="Ex.: 10 min de caminhada, 1 página, 1 copo d'água"></div>
     <div class="frow col ${tipo==='compromisso'?'':'hide'}" id="fLocal"><span>Onde</span><input type="text" name="local" id="iLocal" value="${esc(i.local||'')}"></div>
     <div class="frow col"><span>Link</span><input type="url" name="link" id="iLink" value="${esc(i.link||'')}" placeholder="https://"></div>
     <div class="frow col ${rep==='nao'?'':'hide'}" id="fObs"><span>Observação</span><textarea name="obs" id="iObs" rows="2" placeholder="Anote o que precisar">${esc(i.obs||'')}</textarea></div>
@@ -2017,7 +2066,7 @@ function semanaResumo(seg){
 /* ================= VIEW: Hábitos (plantinha) ================= */
 const PL_FASES=[[0,'Semente'],[3,'Brotinho'],[10,'Mudinha'],[25,'Plantinha'],[50,'Planta'],[90,'Botãozinho'],[150,'Florzinha'],[250,'Florida']];
 function plFase(g){ let k=0; PL_FASES.forEach(([m],i)=>{ if(g>=m) k=i; }); return k; }
-function plGotas(){ return S.tarefas.items.filter(i=>i.tipo==='habito').reduce((a,i)=>a+Object.entries(i.feitos||{}).filter(([d,v])=>v===true&&ocorre(i,d)).length,0); }
+function plGotas(){ return S.tarefas.items.filter(i=>i.tipo==='habito').reduce((a,i)=>a+Object.entries(i.feitos||{}).filter(([d,v])=>(v===true||v==='minimo')&&ocorre(i,d)).length,0); }
 function plantaSvg(k,sede){
   const H=[0,22,44,62,80,90,98,104][k], soil=142, folha=sede?'var(--pl-seca)':'var(--pl-folha)', folha2=sede?'var(--pl-seca)':'var(--pl-folha2)';
   const nF=[0,2,2,4,6,6,8,8][k]; let g='';
@@ -2058,9 +2107,53 @@ function vHabitos(){
    <div class="trk"><div class="trow trcab"><span></span>${sem.map(d=>`<span class="${d===t?'hj':''}">${DOW[parseD(d).getDay()][0].toUpperCase()}</span>`).join('')}</div>
    ${hs.map(i=>{ const st=streak(i,t);
      return `<div class="trow"><button class="trnome" data-a="editT" data-id="${i.id}"><span class="trunc">${esc(i.titulo)}</span>${st>1?`<span class="trfogo">🔥 ${st} seguidos</span>`:''}</button>${sem.map(d=>{
-       const prog=ocorre(i,d)&&d>=(i.data||i.inicio||'0000'), fut=d>t, c=!prog?'off':isDone(i,d)?'ok':isSkip(i,d)?'skip':estadoDe(i,d)==='naofiz'?'no':fut?'fut':d<t?'no':'hoje';
-       return prog&&!fut?`<button class="tdot ${c}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${esc(i.titulo)}, ${DOWL[parseD(d).getDay()]}: ${c==='ok'?'feito':'não feito'}">${c==='ok'?'✓':''}</button>`:`<span class="tdot ${c}"></span>`}).join('')}</div>`}).join('')}</div></section>`;
+       const prog=ocorre(i,d)&&d>=(i.data||i.inicio||'0000'), fut=d>t, c=!prog?'off':isMin(i,d)?'ok min':isDone(i,d)?'ok':isSkip(i,d)?'skip':estadoDe(i,d)==='naofiz'?'no':fut?'fut':d<t?'no':'hoje';
+       return prog&&!fut?`<button class="tdot ${c}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${esc(i.titulo)}, ${DOWL[parseD(d).getDay()]}: ${c==='ok'?'feito':'não feito'}">${c==='ok'?'✓':c==='ok min'?'🌱':''}</button>`:`<span class="tdot ${c}"></span>`}).join('')}</div>`}).join('')}</div></section>`;
   return `<div class="habwrap">${out}</div>`;
+}
+/* ================= Modo foco ================= */
+const FOCO={t:null,lock:null,ac:null};
+const fmtMS=s=>pad(Math.floor(s/60))+':'+pad(s%60);
+function focoBeep(){ try{ FOCO.ac=FOCO.ac||new (window.AudioContext||window.webkitAudioContext)(); const ac=FOCO.ac; [0,0.25,0.5].forEach(t0=>{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(0.0001,ac.currentTime+t0); g.gain.exponentialRampToValueAtTime(0.25,ac.currentTime+t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t0+0.2); o.start(ac.currentTime+t0); o.stop(ac.currentTime+t0+0.22); }); }catch(e){} try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
+function focoMinPadrao(){ try{ return +localStorage.getItem('rumo-foco-min')||15 }catch(e){ return 15 } }
+function focoIniciar(fase,min){ const F=UI.foco; F.fase=fase; F.min=min; F.total=min*60; F.fim=Date.now()+min*60000; F.pausado=0;
+  try{ if(navigator.wakeLock&&!FOCO.lock) navigator.wakeLock.request('screen').then(l=>FOCO.lock=l).catch(()=>{}); }catch(e){}
+  clearInterval(FOCO.t); FOCO.t=setInterval(focoTick,1000); focoRender(); }
+function focoRest(){ const F=UI.foco; return Math.max(0,Math.round(((F.pausado||F.fim)-(F.pausado?0:Date.now()))/1000)); }
+function focoTick(){ const F=UI.foco; if(!F||F.pausado) return; const r=Math.max(0,Math.round((F.fim-Date.now())/1000));
+  if(r<=0){ clearInterval(FOCO.t); focoBeep();
+    if(F.fase==='foco'){ const i=getT(F.id); if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } F.blocos=(F.blocos||0)+1; F.fase='fimFoco'; }
+    else F.fase='fimPausa';
+    focoRender(); return; }
+  const tx=document.getElementById('focoT'); if(tx) tx.textContent=fmtMS(r);
+  const ar=document.getElementById('focoArc'); if(ar) ar.style.strokeDashoffset=(565.5*(1-r/F.total)).toFixed(1); }
+function focoFechar(){ clearInterval(FOCO.t); try{ FOCO.lock&&FOCO.lock.release(); }catch(e){} FOCO.lock=null; UI.foco=null; focoRender(); render(); }
+function focoRender(){
+  let el=document.getElementById('foco'); const F=UI.foco;
+  if(!F){ if(el) el.remove(); document.body.classList.remove('focoon'); return; }
+  if(!el){ el=document.createElement('div'); el.id='foco'; el.className='foco'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Modo foco'); document.body.appendChild(el); }
+  document.body.classList.add('focoon');
+  const i=getT(F.id); const nome=i?esc(i.titulo):'';
+  const anel=(cor,txt,sub,frac)=>`<div class="fanel"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" fill="none" stroke="var(--sunk)" stroke-width="12"/><circle id="focoArc" cx="100" cy="100" r="90" fill="none" stroke="${cor}" stroke-width="12" stroke-linecap="round" stroke-dasharray="565.5" style="stroke-dashoffset:${(565.5*frac).toFixed(1)}" transform="rotate(-90 100 100)"/></svg><div><b id="focoT">${txt}</b><span>${sub}</span></div></div>`;
+  let body='';
+  if(F.fase==='pronto') body=`<div class="feye">Modo foco</div><h2 class="ftit">${nome}</h2>
+    <ol class="fpassos"><li><b>Foca só nisso</b> pelo tempo que você escolher. Nada de abrir outra coisa.</li><li><b>Quando o tempo acabar</b>, o celular apita e você <b>descansa 5 minutos</b>.</li><li><b>Depois, se quiser</b>, faz mais uma rodada. Se não, tudo bem: já valeu.</li></ol>
+    <div class="eyebrow" style="text-align:center">Quanto tempo de foco?</div>
+    <div class="fmins">${[10,15,25,45].map(m=>`<button class="${F.min===m?'on':''}" data-a="focoMin" data-m="${m}">${m}<small>min</small></button>`).join('')}</div>
+    <p class="tiny muted" style="text-align:center">Começando agora? 10 ou 15 minutos já é ótimo. O importante é começar.</p>
+    <button class="btn pri fbig" data-a="focoGo">Começar</button>`;
+  else if(F.fase==='foco'){ const r=focoRest();
+    body=`<div class="feye">Focando em</div><h2 class="ftit">${nome}</h2>${anel('var(--accent)',fmtMS(r),F.pausado?'pausado':'só nisso agora',1-r/F.total)}
+    <div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoPausa">${F.pausado?'Continuar':'Pausar'}</button><button class="btn ghost" data-a="focoFeito">Terminei a tarefa</button></div>
+    <form data-f="focoNota" class="fnota"><input type="text" name="t" id="focoNota" placeholder="Lembrou de outra coisa? Anota aqui e volta" autocomplete="off"><button class="btn sm">Anotar</button></form>
+    <p class="tiny muted" style="text-align:center">O que você anotar vai pro Esvaziar a mente. Você vê depois.</p>`; }
+  else if(F.fase==='fimFoco') body=`<div class="fok">🎉</div><h2 class="ftit">Rodada feita!</h2><p class="small" style="text-align:center">${F.blocos} ${plural(F.blocos,'rodada','rodadas')} de foco agora${i&&i.focos&&i.focos[F.d]>F.blocos?` · ${i.focos[F.d]} hoje nessa tarefa`:''}. Agora descansa um pouquinho.</p>
+    <button class="btn pri fbig" data-a="focoDescansar">Descansar 5 min</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">Terminei a tarefa</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
+  else if(F.fase==='pausa'){ const r=focoRest(); body=`<div class="feye">Descanso</div><h2 class="ftit">Respira 🌿</h2>${anel('var(--good)',fmtMS(r),'descansando',1-r/F.total)}
+    <p class="small" style="text-align:center">Levanta, bebe água, olha pela janela. Se puder, deixa o celular de lado nesses minutos.</p><button class="btn ghost" data-a="focoGo">Pular descanso</button>`; }
+  else if(F.fase==='fimPausa') body=`<div class="fok">⏰</div><h2 class="ftit">Descanso acabou</h2><p class="small" style="text-align:center">Quer fazer mais uma rodada em <b>${nome}</b>?</p>
+    <button class="btn pri fbig" data-a="focoGo">Mais uma rodada (${F.min} min)</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">Terminei a tarefa</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
+  el.innerHTML=`<div class="fbox"><button class="iconbtn fx" data-a="focoFechar" aria-label="Sair do modo foco">${svg('x')}</button>${body}</div>`;
 }
 function vMente(){
   const tab=UI.menteTab||'despejar', M2=S.mente;
@@ -2346,6 +2439,15 @@ const ACT={
  go:d=>{ if(d.v==='ajustes') UI.aj=''; go(d.v); },
  ajPag:d=>{ UI.aj=d.p||''; render(); window.scrollTo(0,0); },
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
+ focoAbrir:d=>{ closeSheet(); UI.foco={id:d.id,d:d.d||TODAY(),fase:'pronto',min:focoMinPadrao(),blocos:0}; focoRender(); },
+ focoMin:d=>{ UI.foco.min=+d.m; try{localStorage.setItem('rumo-foco-min',d.m)}catch(e){} focoRender(); },
+ focoGo:()=>focoIniciar('foco',UI.foco.min),
+ focoDescansar:()=>focoIniciar('pausa',5),
+ focoPausa:()=>{ const F=UI.foco; if(F.pausado){ F.fim=Date.now()+F.pausado*1000; F.pausado=0; } else F.pausado=Math.max(1,Math.round((F.fim-Date.now())/1000)); focoRender(); },
+ focoFeito:()=>{ const F=UI.foco, i=getT(F.id); if(i){ setEstado(i,F.d,'feito'); save('tarefas'); } focoFechar(); toast('Feito ✅ Mandou bem!'); },
+ focoFechar:()=>focoFechar(),
+ focoEscolher:()=>{ const t=TODAY(), its=itensDoDia(t).filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)).sort((a,b)=>(a.tipo==='tarefa'?0:1)-(b.tipo==='tarefa'?0:1)||prioN(b)-prioN(a));
+   openSheet(`${sheetHead('Focar em quê?','Escolhe uma coisa só. As outras esperam.')}<div class="stack">${its.map(i=>`<button class="fesc" data-a="focoAbrir" data-id="${i.id}" data-d="${t}"><span class="grow">${prioTag(i)}${esc(i.titulo)}</span><span class="tiny muted">${PER.find(p=>p[0]===(i.periodo||periodoDe(i.hora)))[1]}</span></button>`).join('')}</div>`); },
  sDicasTodas:()=>{UI.sDicasTodas=!UI.sDicasTodas;render()},
  catsTodas:()=>{UI.catsTodas=!UI.catsTodas;render()},
  catVer:d=>{UI.txcat=d.c;UI.txq='';UI.sub.dinheiro='transacoes';render();window.scrollTo(0,0)},
@@ -2370,7 +2472,7 @@ const ACT={
  agendar:d=>{const i=getT(d.id);if(i)openSheet(formItem(i,'hora'))},
  delT:d=>{const i=getT(d.id);S.tarefas.items=S.tarefas.items.filter(x=>x.id!==d.id);save('tarefas');closeSheet();render();toast('Apagado',()=>{S.tarefas.items.push(i);save('tarefas');render()})},
  estadoMenu:d=>{const i=getT(d.id);if(i)openSheet(estadoHtml(i,d.d||UI.dia))},
- setEstado:d=>{const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia;const k0=i.tipo==='habito'?plFase(plGotas()):0;setEstado(i,dia,d.e);save('tarefas');closeSheet();render();if(i.tipo==='habito'&&d.e==='feito'){setTimeout(()=>celebraHab(i,dia,k0),50);return;}toast(d.e?({feito:'Feito ✅',pulou:'Marcado: hoje não',naofiz:'Marcado: não fiz',cancelado:'Cancelado'})[d.e]:'Voltou pra pendente')},
+ setEstado:d=>{const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia;const k0=i.tipo==='habito'?plFase(plGotas()):0;setEstado(i,dia,d.e);save('tarefas');closeSheet();render();if(i.tipo==='habito'&&(d.e==='feito'||d.e==='minimo')){setTimeout(()=>celebraHab(i,dia,k0),50);return;}toast(d.e?({feito:'Feito ✅',pulou:'Marcado: hoje não',naofiz:'Marcado: não fiz',cancelado:'Cancelado'})[d.e]:'Voltou pra pendente')},
  toggleT:d=>{ if(d.id==='inj'){ const dia=d.d||UI.dia, j=S.saude.injecao; if(j.historico.includes(dia)){ j.historico=j.historico.filter(x=>x!==dia); j.ultima=j.historico[j.historico.length-1]||''; save('saude'); render(); toast('Injeção desmarcada'); } else { registraInj(dia); render(); toast('Injeção registrada. Próxima em '+fmtD(injStatus().prox)); } return; }
    const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia; if(estadoDe(i,dia)&&!isDone(i,dia)){setEstado(i,dia,'');save('tarefas');render();return;} toggleItem(i,dia);render()},
  pularH:d=>{const i=getT(d.id);i.feitos=i.feitos||{};const k=d.d||UI.dia; if(i.feitos[k]==='pulou') delete i.feitos[k]; else i.feitos[k]='pulou'; save('tarefas');render()},
@@ -2503,7 +2605,7 @@ const FORMS={
  item:(o,f)=>{const id=f.dataset.id; const tipo=o.tipo; let rep=o.rep||'nao'; if(tipo==='habito'&&rep==='nao') rep='diario';
    const old=id?getT(id):null; const oldP=old?.passos||[];
    const textos=arr(o.passo); const oks=new Set(arr(o.pok).map(Number)); const passos=textos.map((t,k)=>({id:oldP[k]?.id||uid(),t:String(t).trim(),ok:oks.has(k)})).filter(p=>p.t);
-   const base={titulo:String(o.titulo).trim(),tipo,rep,dias:rep==='dias'?arr(o.dias).map(Number):[],data:o.data||TODAY(),hora:o.hora||'',dur:+o.dur||0,etiqueta:o.etiqueta||'',periodo:o.periodo||'',prioridade:o.prioridade||'',local:tipo==='compromisso'?(o.local||''):'',link:o.link||'',obs:rep==='nao'?String(o.obs||'').trim():'',passos};
+   const base={titulo:String(o.titulo).trim(),tipo,rep,dias:rep==='dias'?arr(o.dias).map(Number):[],data:o.data||TODAY(),hora:o.quando?(o.quando==='hora'?(o.hora||''):''):(o.hora||''),dur:+o.dur||0,etiqueta:o.etiqueta||'',periodo:['manha','tarde','noite'].includes(o.quando)?o.quando:(o.quando?'':(o.periodo||'')),minimo:tipo==='habito'?String(o.minimo||'').trim():'',prioridade:o.prioridade||'',local:tipo==='compromisso'?(o.local||''):'',link:o.link||'',obs:rep==='nao'?String(o.obs||'').trim():'',passos};
    if(old) Object.assign(old,base); else S.tarefas.items.push({id:uid(),...base,feitos:{},criado:Date.now()});
    if(UI.convFrom&&!id){ const c=UI.convFrom; if(c.k==='dump') S.mente.dump=S.mente.dump.filter(x=>x.id!==c.id); else { const x=(S.mente.semanas[c.seg]?.[c.k]||[]).find(y=>y.id===c.id); if(x) x.virou=true; } save('mente'); } UI.convFrom=null;
    save('tarefas');closeSheet();render();toast(id?'Salvo':({tarefa:'Tarefa adicionada',habito:'Hábito adicionado',compromisso:'Compromisso adicionado'})[tipo])},
@@ -2541,6 +2643,7 @@ const FORMS={
  mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),meta:+o.meta||0};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
  sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes.push({data:TODAY(),min});save('estudos');render();toast(`${min} min registrados`)},
  dump:o=>{const ls=String(o.t||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!ls.length)return;ls.forEach(t=>S.mente.dump.unshift({id:uid(),t,criado:TODAY()}));save('mente');render();toast(ls.length===1?'Guardado':ls.length+' coisas guardadas')},
+ focoNota:o=>{ const t=String(o.t||'').trim(); if(!t) return; S.mente.dump.unshift({id:uid(),t,criado:TODAY()}); save('mente'); const x=$('#focoNota'); if(x){ x.value=''; x.focus(); } toast('Anotado. Volta pro foco 🎯'); },
  menteAdd:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;const seg=UI.menteSem||semanaDe(TODAY())[0];const w=S.mente.semanas[seg]=S.mente.semanas[seg]||{certo:[],melhorar:[],notas:''};(w[f.dataset.k]=w[f.dataset.k]||[]).push({id:uid(),t});save('mente');render();setTimeout(()=>{const i=document.querySelector(`form[data-f=menteAdd][data-k=${f.dataset.k}] input`);if(i)i.focus()},30)},
  parCodigo:o=>parAprovar(o.c),
  pcRapido:o=>{ const t=String(o.t||'').trim(); if(!t) return; const n=norm(t);
@@ -2570,7 +2673,8 @@ document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.d
   if(c==='agBusca'||c==='txBusca'){clearTimeout(buscaT);buscaT=setTimeout(()=>{if(c==='agBusca')UI.ag.q=el.value;else UI.txq=el.value;const pos=el.selectionStart;render();const n=document.getElementById(el.id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}},250)}
   if(c==='calcIn'){const f=el.form;const cc=CALCS.find(x=>x.id===f.dataset.id);const v={};new FormData(f).forEach((val,k)=>v[k]=+val||0);let r;try{r=cc.calc(v)}catch(x){r='Confira os números.'}$('#calcRes').textContent=r}});
 document.addEventListener('change',async e=>{const el=e.target;const c=el.dataset&&el.dataset.c;if(!c)return;
-  if(c==='tipoItem'){const t=el.value;$('#fLocal').classList.toggle('hide',t!=='compromisso');const rep=$('#iRep');const o=rep.querySelector('option[value=nao]');if(t==='habito'){if(rep.value==='nao')rep.value='diario';if(o)o.remove()}else if(!o){rep.insertAdjacentHTML('afterbegin','<option value="nao">Não repetir</option>')}$('#fDias').classList.toggle('hide',rep.value!=='dias');$('#lData').textContent=rep.value==='nao'?'Data':'Começa em'}
+  if(c==='quandoItem'){ const fh=$('#fHora'); if(fh) fh.classList.toggle('hide',el.value!=='hora'); }
+  if(c==='tipoItem'){const t=el.value;$('#fLocal').classList.toggle('hide',t!=='compromisso'); const fm=$('#fMin'); if(fm) fm.classList.toggle('hide',t!=='habito');const rep=$('#iRep');const o=rep.querySelector('option[value=nao]');if(t==='habito'){if(rep.value==='nao')rep.value='diario';if(o)o.remove()}else if(!o){rep.insertAdjacentHTML('afterbegin','<option value="nao">Não repetir</option>')}$('#fDias').classList.toggle('hide',rep.value!=='dias');$('#lData').textContent=rep.value==='nao'?'Data':'Começa em'}
   if(c==='repItem'){ const fo=$('#fObs'); if(fo) fo.classList.toggle('hide',el.value!=='nao'); }
   if(c==='repItem'){$('#fDias').classList.toggle('hide',el.value!=='dias');$('#lData').textContent=el.value==='nao'?'Data':'Começa em'}
   if(c==='secaoPick'){UI.secao=el.value;}
