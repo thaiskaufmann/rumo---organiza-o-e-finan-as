@@ -85,6 +85,15 @@ a{color:var(--accent)}
   #side button:hover{background:var(--surface)}
   #side button.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
   #main{padding-block:32px 60px}
+  #side{transition:width .18s ease}
+  .sidetop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+  #side .sidetog{width:36px;height:36px;padding:0;justify-content:center;flex:none;border-radius:10px;color:var(--muted)}
+  #side .sidetog svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  body.sidemin #side{width:72px;padding-inline:12px}
+  body.sidemin #view,body.sidemin #view.wide{max-width:1400px}
+  body.sidemin #side .brand,body.sidemin #side .lbl{display:none}
+  body.sidemin .sidetop{justify-content:center;margin-bottom:10px}
+  body.sidemin #side button{justify-content:center;padding:10px 0}
 }
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -485,6 +494,47 @@ details summary{list-style:none}
 details summary::-webkit-details-marker{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (min-width:900px){#drawer{display:none!important}}
+.pconly{display:none!important}
+.hgrid{display:flex;flex-direction:column;gap:18px}
+.hside{order:-1;display:flex;flex-direction:column;gap:18px}
+.hmain{display:flex;flex-direction:column;gap:18px;min-width:0}
+.cgrid .cpan{display:none;flex-direction:column;gap:18px;min-width:0}
+.cgrid[data-tab=tarefas] .cpan[data-p=tarefas],.cgrid[data-tab=compras] .cpan[data-p=compras]{display:flex}
+.dgrid{display:flex;flex-direction:column;gap:18px;min-width:0}
+@media (min-width:1100px){
+  #view,#view.wide{max-width:1240px}
+  .banner{max-width:1240px}
+  .pconly{display:flex!important}
+  .mobonly{display:none!important}
+  .pcbar{align-items:center;gap:14px;margin-bottom:-4px}
+  .pcadd{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 8px 4px 14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .pcadd:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .pcadd input{border:0;background:transparent;flex:1;font:inherit;font-size:15px;padding:9px 0;color:var(--ink);outline:none}
+  .pcplus{width:18px;height:18px;color:var(--muted);display:grid;place-items:center}
+  .pcplus svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+  .pcadd kbd{font:inherit;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  .pcst{white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .pcst .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .hgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:24px;align-items:start}
+  .hside{order:0;position:sticky;top:20px}
+  .wid{gap:10px}
+  .wid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .wid2>div{background:var(--sunk);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+  .wid2 b{font-family:var(--display);font-size:22px}
+  .wrow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:6px 0;font:inherit;color:var(--ink);text-align:left;cursor:pointer;width:100%;min-width:0}
+  .wrow+.wrow{border-top:1px solid var(--line)}
+  .wrow .grow{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wdia{width:38px;flex:none;text-align:center;font-size:11px;color:var(--muted);text-transform:uppercase;line-height:1.1}
+  .wdia b{display:block;font-size:17px;color:var(--ink)}
+  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .cgrid .cpan{display:flex!important}
+  .cpan>h2.pconly{font-size:22px}
+  .dg-resumo{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  .dg-resumo>section:not(.hero):first-child{grid-column:1/-1}
+  .dg-resumo .hero svg{max-height:200px}
+  .item:hover,.crow:hover{background:var(--surface)}
+  #sheet .panel{max-width:640px;padding:24px 26px 28px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 </head>
@@ -661,7 +711,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.4';
+const VERSAO='2026-10-30.5';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -690,7 +740,7 @@ function migrar(){
 const UI={view:'hoje',dia:TODAY(),mes:TODAY().slice(0,7),sub:{dinheiro:'resumo',saude:'injecao'},ag:{modo:'hoje',dia:TODAY(),q:'',mes:TODAY().slice(0,7)},
   compra:null,chatLive:null,chatBusy:false,timer:null,confirmApagar:false,ciclomes:TODAY().slice(0,7),txq:'',txcat:'',isso:null,calc:'tudo',planoModo:'plano',decIdx:0};
 const VIEWS=['hoje','agenda','dinheiro','metas','saude','estudos','casa','ajustes','mais'];
-try{const v=localStorage.getItem('rumo-view');if(VIEWS.includes(v))UI.view=v}catch(e){}
+try{const v=localStorage.getItem('rumo-view');if(VIEWS.includes(v))UI.view=v; UI.sideMin=localStorage.getItem('rumo-sidemin')==='1'}catch(e){}
 {const h=(location.hash||'').slice(1);if(VIEWS.includes(h))UI.view=h; if(h==='demo') UI.wantDemo=true;}
 const NAV=[['hoje','Hoje'],['agenda','Agenda'],['dinheiro','Dinheiro'],['metas','Meu plano'],['saude','Bem-estar'],['estudos','Estudos'],['casa','Casa & compras'],['mente','Esvaziar a mente'],['ajustes','Ajustes']];
 function go(v){UI.view=v;try{localStorage.setItem('rumo-view',v)}catch(e){}render();window.scrollTo(0,0)}
@@ -708,17 +758,23 @@ function aplicaTema(){
 }
 const NOMEMENU={hoje:'Hoje',agenda:'Agenda',dinheiro:'Dinheiro',saude:'Bem-estar',metas:'Meu plano',estudos:'Estudos',casa:'Casa',mente:'Mente'};
 function menuAtual(){ const m=(S.perfil.menu||[]).filter(v=>NOMEMENU[v]); const def=['hoje','agenda','dinheiro','saude']; const out=[...new Set(m)]; for(const v of def){ if(out.length>=4) break; if(!out.includes(v)) out.push(v); } for(const v of Object.keys(NOMEMENU)){ if(out.length>=4) break; if(!out.includes(v)) out.push(v); } return out.slice(0,4); }
+function pcBar(){
+  if(UI.view==='ajustes'||UI.view==='mais') return '';
+  const st=SB.user?(SB.estado==='erro'?'<span class="dot" style="background:var(--bad)"></span>Sem conexão':SB.estado==='sync'?'<span class="dot" style="background:var(--warn)"></span>Sincronizando…':'<span class="dot" style="background:var(--good)"></span>Sincronizado'):'<button class="linkbtn" data-a="go" data-v="ajustes">Entrar pra sincronizar</button>';
+  return `<div class="pcbar pconly"><form data-f="pcRapido" class="pcadd"><span class="pcplus">${svg('plus')}</span><input type="text" name="t" id="pcAdd" placeholder="Adicionar rápido: “dentista amanhã 15h” ou “gastei 45 mercado”" autocomplete="off"><kbd>Enter</kbd></form><span class="pcst small muted">${st}</span></div>`;
+}
 function render(){
   aplicaTema();
   drawBanner();
-  $('#side').innerHTML=`<div class="brand">Rumo<small>${esc(S.perfil.nome||'')}${S.perfil.nome?' · ':''}organização do dia e do dinheiro</small></div>`+
-    NAV.map(([v,l])=>`<button class="${UI.view===v?'on':''}" data-a="go" data-v="${v}">${ic(v)}${l}</button>`).join('');
+  document.body.classList.toggle('sidemin',!!UI.sideMin);
+  $('#side').innerHTML=`<div class="sidetop"><div class="brand">Rumo<small>${esc(S.perfil.nome||'')}${S.perfil.nome?' · ':''}organização do dia e do dinheiro</small></div><button class="sidetog" data-a="sideTog" aria-label="${UI.sideMin?'Abrir menu':'Recolher menu'}" title="${UI.sideMin?'Abrir menu':'Recolher menu'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>`+
+    NAV.map(([v,l])=>`<button class="${UI.view===v?'on':''}" data-a="go" data-v="${v}" title="${l}">${ic(v)}<span class="lbl">${l}</span></button>`).join('');
   const menu=menuAtual(); const tabs=[...menu.map(v=>[v,NOMEMENU[v]]),['mais','Mais']];
   const inMais=!menu.includes(UI.view);
   $('#tabs').innerHTML=tabs.map(([v,l])=>`<button class="${(UI.view===v||(v==='mais'&&inMais))?'on':''}" data-a="${v==='mais'?'abrirMais':'go'}" data-v="${v}">${ic(v)}${l}</button>`).join('');
   const fn={hoje:vHoje,agenda:vAgenda,dinheiro:vDinheiro,metas:vMetas,saude:vSaude,estudos:vEstudos,casa:vCasa,mente:vMente,ajustes:vAjustes,mais:vMais}[UI.view]||vHoje;
   $('#view').className=UI.view==='agenda'?'wide':'';
-  $('#view').innerHTML=fn();
+  $('#view').innerHTML=pcBar()+fn();
   $('#fabslot').innerHTML=UI.view==='hoje'||UI.view==='agenda'?`<button class="fab" data-a="addMenu" aria-label="Adicionar">${svg('plus')}</button>`:UI.view==='dinheiro'?`<button class="fab" data-a="lancarMenu" aria-label="Lançar">${svg('plus')}</button>`:'';
   const tl=$('#tlwrap'); if(tl&&tl.dataset.scroll) tl.scrollTop=+tl.dataset.scroll;
 }
@@ -913,6 +969,21 @@ function itemHtml(i,d){
     ${i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
   </div>`;
 }
+function pcWidgets(t){
+  const m=t.slice(0,7), f=fin(m);
+  const rs=S.fin.recorrentes.filter(r=>recAtivo(r,m)), falta=rs.filter(r=>!(r.pagos||{})[m]), totF=falta.reduce((a,r)=>a+(+r.valor||0),0);
+  let w=`<section class="card pconly wid"><div class="row between"><h2>Dinheiro</h2><button class="linkbtn" data-a="go" data-v="dinheiro">Abrir ›</button></div>
+   <div class="wid2"><div><span class="tiny muted">Livre hoje</span><b class="num">${f.base>0?brl0(f.porDia):'—'}</b></div><div><span class="tiny muted">Livre no mês</span><b class="num">${f.base>0?brl0(f.livre):'—'}</b></div></div>
+   ${rs.length?`<div class="row between small"><span class="muted">Contas a pagar</span><b class="num">${falta.length?brl0(totF)+' · '+falta.length:'tudo pago 🎉'}</b></div>`:''}</section>`;
+  const prox=[]; for(let k=1;k<=4&&prox.length<6;k++){ const d=addDays(t,k); for(const i of itensDoDia(d)) if(i.hora&&(i.tipo==='compromisso'||!isRep(i))) prox.push({d,i}); }
+  w+=`<section class="card pconly wid"><div class="row between"><h2>Próximos dias</h2><button class="linkbtn" data-a="go" data-v="agenda">Agenda ›</button></div>
+   ${prox.length?prox.slice(0,6).map(({d,i})=>`<button class="wrow" data-a="editT" data-id="${i.id}"><span class="wdia">${DOW[parseD(d).getDay()]}<b>${parseD(d).getDate()}</b></span><span class="grow">${prioTag(i)}${esc(i.titulo)}<span class="tiny muted"> · ${i.hora}</span></span></button>`).join(''):'<p class="small muted">Nada com horário nos próximos dias.</p>'}</section>`;
+  const inj=injStatus(), sono=[...S.saude.sono].sort((a,b)=>a.data<b.data?1:-1)[0];
+  if(inj||sono) w+=`<section class="card pconly wid"><div class="row between"><h2>Bem-estar</h2><button class="linkbtn" data-a="go" data-v="saude">Abrir ›</button></div>
+   ${inj?`<div class="row between small"><span class="muted">💉 Próxima injeção</span><b>${inj.falta<0?'atrasada':inj.falta===0?'hoje':fmtDs(inj.prox)}</b></div>`:''}
+   ${sono?`<div class="row between small"><span class="muted">🌙 Última noite</span><b>${sDurTxt(Math.round(sonoH(sono)*60))}</b></div>`:''}</section>`;
+  return w;
+}
 function vHoje(){
   const t=TODAY(), d=UI.dia, sem=semanaDe(d);
   const its=itensDoDia(d);
@@ -923,22 +994,25 @@ function vHoje(){
   let out=`<section><div class="eyebrow">${DOWL[parseD(t).getDay()]}, ${fmtD(t)}</div><h1 style="margin-top:6px">${saudacao()}${S.perfil.nome?', '+esc(S.perfil.nome):''}.</h1>
   ${f.base>0?`<p class="muted" style="margin-top:6px">Livre pra gastar hoje: <b class="num" style="color:var(--ink)">${brl(f.porDia)}</b> · até domingo ${brl0(f.ateDom)}</p>`:''}</section>`;
   if(!S.perfil.onboard) out+=onboardCard();
-  if(cob.length) out+=`<section class="card cob"><div class="head">${ic('hoje')}<h2 class="grow">Te cobrando</h2><span class="pill acc">${cob.length}</span></div>
+  let lado='';
+  if(cob.length) lado+=`<section class="card cob"><div class="head">${ic('hoje')}<h2 class="grow">Te cobrando</h2><span class="pill acc">${cob.length}</span></div>
     <div>${cob.slice(0,UI.cobAll?99:5).map(c=>`<div class="cobi"><span class="sev ${c.n}"></span><div class="grow"><b>${esc(c.txt)}</b>${c.sub?`<div class="muted small">${esc(c.sub)}</div>`:''}${c.acts.length?`<div class="acts">${actBtns(c.acts)}</div>`:''}</div></div>`).join('')}</div>
     ${cob.length>5?`<button class="btn ghost sm" data-a="cobAll">${UI.cobAll?'Mostrar menos':`Ver as outras ${cob.length-5}`}</button>`:''}</section>`;
-  else if(d===t&&S.perfil.onboard) out+=`<section class="card flat"><b>Nada atrasado. Pode respirar.</b><span class="muted small">Quando alguma coisa ficar pra trás, ela aparece aqui.</span></section>`;
-  out+=`<section class="stack"><div class="row between"><h2>${d===t?'Seu dia':cap(DOWL[parseD(d).getDay()])+', '+fmtD(d)}</h2></div>
+  else if(d===t&&S.perfil.onboard) lado+=`<section class="card flat"><b>Nada atrasado. Pode respirar.</b><span class="muted small">Quando alguma coisa ficar pra trás, ela aparece aqui.</span></section>`;
+  lado+=pcWidgets(t);
+  let meio=`<section class="stack"><div class="row between"><h2>${d===t?'Seu dia':cap(DOWL[parseD(d).getDay()])+', '+fmtD(d)}</h2></div>
    <div class="week"><button class="iconbtn" data-a="semana" data-n="-7" aria-label="Semana anterior">${svg('l')}</button>
    ${sem.map(x=>{const has=itensDoDia(x).some(i=>!isRep(i));return `<button class="wd ${x===d?'on':''} ${x===t?'today':''}" data-a="dia" data-d="${x}">${DOW[parseD(x).getDay()]}<b>${parseD(x).getDate()}</b>${has?'<span class="mk"></span>':'<span style="height:7px"></span>'}</button>`}).join('')}
    <button class="iconbtn" data-a="semana" data-n="7" aria-label="Próxima semana">${svg('r')}</button></div>
    <div class="row"><div class="bar grow"><i style="width:${pct}%"></i></div><span class="small muted num">${feitos}/${tot}</span></div></section>`;
   const groups={manha:[],tarde:[],noite:[],livre:[]};
   its.forEach(i=>groups[i.periodo&&groups[i.periodo]?i.periodo:periodoDe(i.hora)].push(i));
-  let any=false; out+=`<section class="stack">`;
+  let any=false; meio+=`<section class="stack">`;
   for(const [p,l] of PER){ const g=groups[p]; if(!g.length) continue; any=true;
-    out+=`<div class="period"><h3>${l}<small>${g.filter(x=>isDone(x,d)).length}/${g.length}</small></h3>${g.map(x=>itemHtml(x,d)).join('')}</div>`; }
-  if(!any) out+=`<div class="card flat"><b>Nada marcado pra ${d===t?'hoje':'esse dia'}.</b><span class="muted small">Toque no + pra adicionar uma tarefa, um hábito que se repete ou um compromisso.</span></div>`;
-  return out+`</section>`;
+    meio+=`<div class="period"><h3>${l}<small>${g.filter(x=>isDone(x,d)).length}/${g.length}</small></h3>${g.map(x=>itemHtml(x,d)).join('')}</div>`; }
+  if(!any) meio+=`<div class="card flat"><b>Nada marcado pra ${d===t?'hoje':'esse dia'}.</b><span class="muted small">Toque no + pra adicionar uma tarefa, um hábito que se repete ou um compromisso.</span></div>`;
+  meio+=`</section>`;
+  return out+`<div class="hgrid"><div class="hmain">${meio}</div><aside class="hside">${lado}</aside></div>`;
 }
 function onboardCard(){
   const steps=[[+cfg().renda>0,'Dizer quanto você espera receber no mês','planoEdit',{}],[S.tarefas.items.length>0,'Criar sua primeira tarefa ou hábito','addMenu',{}],[!!S.saude.injecao.ultima,'Registrar a última injeção','goSub',{v:'saude',s:'injecao'}],[Object.values(M).some(x=>x.tx?.length),'Lançar um gasto ou mandar o extrato','extrato',{}]];
@@ -1070,7 +1144,7 @@ function vDinheiro(){
   ${(()=>{const g=grupoDe(s); return `<nav class="dgrupos" aria-label="Áreas do dinheiro">${DGRUPOS.map(x=>{const n=x.k==='plano'?nd:0;return `<button class="${x.k===g.k?'on':''}" data-a="dsub" data-s="${x.k===g.k?s:(UI.dlast&&UI.dlast[x.k])||x.s[0][0]}">${x.l}${n?`<span class="pill acc">${n}</span>`:''}</button>`}).join('')}</nav>
   <div class="dsubs"><p class="muted tiny">${g.d}</p><nav class="chips" aria-label="${g.l}">${g.s.map(([k,l])=>`<button class="chip ${s===k?'on':''}" data-a="dsub" data-s="${k}">${l}${k==='decidir'&&nd?` <span class="pill acc">${nd}</span>`:''}</button>`).join('')}</nav></div>`})()}`;
   if(['resumo','orcamento','transacoes'].includes(s)) out+=`<div class="row between"><button class="iconbtn" data-a="mes" data-n="-1" aria-label="Mês anterior">${svg('l')}</button><b>${UI.mes===TODAY().slice(0,7)?'Esse mês · ':''}${cap(fmtM(UI.mes))}</b><button class="iconbtn" data-a="mes" data-n="1" aria-label="Próximo mês">${svg('r')}</button></div>`;
-  return out+({resumo:dResumo,previsao:dPrevisao,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)();
+  return out+`<div class="dgrid dg-${s}">`+({resumo:dResumo,previsao:dPrevisao,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)()+`</div>`;
 }
 function chartMes(m){
   const pm=addMonth(m,-1), nm=daysInMonth(m), np=daysInMonth(pm), cur=TODAY().slice(0,7);
@@ -1788,26 +1862,28 @@ function vCasa(){
   const rot=S.casa.rotina.map(r=>({r,f:rotF(r,t),adiada:!!(r.adiadoAte&&r.adiadoAte>t)}));
   const hoje=rot.filter(x=>x.f<=0), atras=rot.filter(x=>x.f<0), falta=L.filter(x=>!x.ok).length;
   let out=`<section><div class="eyebrow">Casa & compras</div><h1>Um cuidado de cada vez</h1></section>
-  <div class="segtabs"><button class="${tab==='tarefas'?'on':''}" data-a="casaTab" data-t="tarefas">Tarefas da casa${hoje.length?` <span class="pill acc">${hoje.length}</span>`:''}</button><button class="${tab==='compras'?'on':''}" data-a="casaTab" data-t="compras">Lista de compras${falta?` <span class="pill mut">${falta}</span>`:''}</button></div>`;
-  if(tab==='tarefas'){
+  <div class="segtabs mobonly"><button class="${tab==='tarefas'?'on':''}" data-a="casaTab" data-t="tarefas">Tarefas da casa${hoje.length?` <span class="pill acc">${hoje.length}</span>`:''}</button><button class="${tab==='compras'?'on':''}" data-a="casaTab" data-t="compras">Lista de compras${falta?` <span class="pill mut">${falta}</span>`:''}</button></div>`;
+  let pT='',pC='';
+  {
     const linha=({r,f,adiada})=>{ const st=adiada?['amanhã','mut']:f<0?[`atrasado ${-f} ${plural(-f,'dia','dias')}`,'bad']:f===0?['hoje','warn']:f===1?['amanhã','mut']:[`em ${f} dias`,'mut'];
       return `<div class="crow"><span class="cic">${COMODO_IC[r.comodo]||'🏠'}</span><button class="open grow" data-a="editRot" data-id="${r.id}"><b>${esc(r.nome)}</b><span class="tiny muted">${r.comodo?esc(r.comodo)+' · ':''}${rotQuando(r)}${r.ultima?' · última '+fmtDs(r.ultima):' · nunca registrada'}</span></button><span class="pill ${st[1]}">${st[0]}</span><button class="check" data-a="rotinaFeita" data-id="${r.id}" aria-label="Fiz hoje">${svg('check')}</button></div>`; };
     const grupo=(tit,arr)=>arr.length?`<div class="daylabel">${tit}</div><div class="clist">${arr.sort((a,b)=>a.f-b.f).map(linha).join('')}</div>`:'';
-    out+=`<div class="ctiles"><div><b>${hoje.length}</b><span>pra hoje</span></div><div class="${atras.length?'bad':''}"><b>${atras.length}</b><span>${plural(atras.length,'atrasada','atrasadas')}</span></div><div><b>${rot.filter(x=>x.f>0).length}</b><span>em dia</span></div></div>
+    pT+=`<div class="ctiles"><div><b>${hoje.length}</b><span>pra hoje</span></div><div class="${atras.length?'bad':''}"><b>${atras.length}</b><span>${plural(atras.length,'atrasada','atrasadas')}</span></div><div><b>${rot.filter(x=>x.f>0).length}</b><span>em dia</span></div></div>
     <section class="card"><div class="row between"><h2>Rotina da casa</h2><button class="btn pri sm" data-a="novaRot">${svg('plus')}Tarefa</button></div>
     ${rot.length?grupo('Pra fazer hoje',hoje)+grupo('Próximos 7 dias',rot.filter(x=>x.f>0&&x.f<=7))+grupo('Mais pra frente',rot.filter(x=>x.f>7)):`<p class="empty">O que se repete a cada X dias: trocar roupa de cama, limpar geladeira, regar planta. Cadastre uma vez e o Rumo te lembra no dia.</p>`}
     <p class="tiny muted">Toque no ✓ quando fizer: o Rumo conta os dias até a próxima. No dia, aparece no Te cobrando em Hoje.</p></section>`;
-  } else {
+  }
+  {
     const pegos=L.filter(x=>x.ok).length;
-    out+=`<section class="card"><form data-f="item2" class="stack" style="gap:8px"><div class="row"><input type="text" name="item" id="itemN" placeholder="O que precisa comprar?" autocomplete="off"><button class="btn pri" aria-label="Adicionar">${svg('plus')}</button></div>
+    pC+=`<section class="card"><form data-f="item2" class="stack" style="gap:8px"><div class="row"><input type="text" name="item" id="itemN" placeholder="O que precisa comprar?" autocomplete="off"><button class="btn pri" aria-label="Adicionar">${svg('plus')}</button></div>
       <div class="secpick">${SECOES.map((s,k)=>`<label><input type="radio" name="secao" value="${s}" ${(UI.secao||'Mercado')===s?'checked':''} data-c="secaoPick"><span>${SECAO_IC[s]} ${s}</span></label>`).join('')}</div></form>
       <p class="tiny muted">Separe por vírgula pra adicionar vários: leite, café, pão.</p></section>`;
-    if(!L.length) out+=`<section class="card"><p class="empty">Lista vazia. O que você adicionar aparece aqui separado por seção.</p></section>`;
-    else { out+=`<div class="row between" style="padding:0 4px"><span class="small muted"><b style="color:var(--ink)">${pegos} de ${L.length}</b> no carrinho</span>${pegos?`<button class="btn ghost sm" data-a="limpaLista">Tirar os pegos</button>`:''}</div><div class="bar good"><i style="width:${Math.round(pegos/L.length*100)}%"></i></div>`;
+    if(!L.length) pC+=`<section class="card"><p class="empty">Lista vazia. O que você adicionar aparece aqui separado por seção.</p></section>`;
+    else { pC+=`<div class="row between" style="padding:0 4px"><span class="small muted"><b style="color:var(--ink)">${pegos} de ${L.length}</b> no carrinho</span>${pegos?`<button class="btn ghost sm" data-a="limpaLista">Tirar os pegos</button>`:''}</div><div class="bar good"><i style="width:${Math.round(pegos/L.length*100)}%"></i></div>`;
       for(const s of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===s); if(!it.length) continue; const ord=[...it.filter(x=>!x.ok),...it.filter(x=>x.ok)];
-        out+=`<section class="card" style="gap:4px"><div class="row between"><b>${SECAO_IC[s]} ${s}</b><span class="tiny muted">${it.filter(x=>!x.ok).length} ${plural(it.filter(x=>!x.ok).length,'item','itens')}</span></div>${ord.map(x=>`<div class="lrow" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><span class="grow" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${esc(x.item)}</span><button class="iconbtn sm" data-a="itemDel" data-id="${x.id}" aria-label="Tirar da lista">${svg('x')}</button></div>`).join('')}</section>`; } }
+        pC+=`<section class="card" style="gap:4px"><div class="row between"><b>${SECAO_IC[s]} ${s}</b><span class="tiny muted">${it.filter(x=>!x.ok).length} ${plural(it.filter(x=>!x.ok).length,'item','itens')}</span></div>${ord.map(x=>`<div class="lrow" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><span class="grow" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${esc(x.item)}</span><button class="iconbtn sm" data-a="itemDel" data-id="${x.id}" aria-label="Tirar da lista">${svg('x')}</button></div>`).join('')}</section>`; } }
   }
-  return out;
+  return out+`<div class="cgrid" data-tab="${tab}"><div class="cpan" data-p="tarefas">${pT}</div><div class="cpan" data-p="compras"><h2 class="pconly">Lista de compras</h2>${pC}</div></div>`;
 }
 function formRot(r){ r=r||{cada:7}; return `${sheetHead(r.id?'Editar':'Nova tarefa da casa')}<form data-f="rot" class="stack" data-id="${r.id||''}"><label class="f">Tarefa<input type="text" name="nome" id="rotN" value="${esc(r.nome||'')}" required autofocus placeholder="Ex.: trocar roupa de cama"></label>
  <label class="f">Cômodo<select name="comodo" id="rotCo"><option value="">Nenhum</option>${['Cozinha','Sala','Quarto','Banheiro','Área de serviço','Varanda'].map(c=>`<option ${r.comodo===c?'selected':''}>${c}</option>`).join('')}</select></label>
@@ -2029,6 +2105,7 @@ function sairDemo(){ if(!REAL) return; S=REAL.S; M=REAL.M; REAL=null; UI.decIdx=
 
 /* ================= ações ================= */
 const ACT={
+ sideTog:()=>{UI.sideMin=!UI.sideMin; try{localStorage.setItem('rumo-sidemin',UI.sideMin?'1':'0')}catch(e){} render()},
  go:d=>{ if(d.v==='ajustes') UI.aj=''; go(d.v); },
  ajPag:d=>{ UI.aj=d.p||''; render(); window.scrollTo(0,0); },
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
@@ -2224,6 +2301,9 @@ const FORMS={
  dump:o=>{const ls=String(o.t||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!ls.length)return;ls.forEach(t=>S.mente.dump.unshift({id:uid(),t,criado:TODAY()}));save('mente');render();toast(ls.length===1?'Guardado':ls.length+' coisas guardadas')},
  menteAdd:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;const seg=UI.menteSem||semanaDe(TODAY())[0];const w=S.mente.semanas[seg]=S.mente.semanas[seg]||{certo:[],melhorar:[],notas:''};(w[f.dataset.k]=w[f.dataset.k]||[]).push({id:uid(),t});save('mente');render();setTimeout(()=>{const i=document.querySelector(`form[data-f=menteAdd][data-k=${f.dataset.k}] input`);if(i)i.focus()},30)},
  parCodigo:o=>parAprovar(o.c),
+ pcRapido:o=>{ const t=String(o.t||'').trim(); if(!t) return; const n=norm(t);
+   if(/^(gastei|paguei|comprei|recebi|ganhei|entrou|caiu|vendi)\b/.test(n)){ const p=parseLanc(t); openSheet(formTx({tipo:p.tipo,desc:p.desc,valor:p.valor||'',data:p.data,cat:p.tipo==='entrada'?ENTCATS[0]:categorizar(p.desc)})); }
+   else openSheet(formItem(parseItem(t))); const i=$('#pcAdd'); if(i) i.value=''; },
  item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>S.casa.compras.push({id:uid(),item:cap(x),secao:o.secao||UI.secao||'Mercado',ok:false}));save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
  rot:(o,f)=>{const id=f.dataset.id;const modo=o.modo==='semana'?'semana':'cada';const dias=arr(o.dias).map(Number);if(modo==='semana'&&!dias.length){toast('Escolha pelo menos um dia da semana');return}const b={nome:String(o.nome).trim(),modo,dias:modo==='semana'?dias:[],cada:+o.cada||7,ultima:o.ultima||'',comodo:o.comodo||''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
  sbcfg:o=>{ const url=String(o.url||'').trim().replace(/\/+$/,''), key=String(o.key||'').trim(); if(!/^https:\/\/.+/.test(url)||key.length<20){toast('Confira a URL e a chave.');return} SB.cfg={url,key}; try{localStorage.setItem(LSCFG,JSON.stringify(SB.cfg))}catch(e){} initSync(); render(); },
