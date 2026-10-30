@@ -501,6 +501,34 @@ body.focoon{overflow:hidden}
 .fsem .fb i{display:block;width:100%;background:var(--accent);border-radius:8px}
 .fsem .hj .tiny{color:var(--ink);font-weight:700}
 .flog{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.plintro{gap:12px}
+.pldias{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.pldia{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;color:var(--ink);cursor:pointer;min-width:0}
+.pldia b{font-size:17px;line-height:1.1}
+.pldia .plest{font-size:10px;color:var(--warn);letter-spacing:-1px;white-space:nowrap}
+.pldia .tiny{font-size:10px}
+.pldia.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pldia.cheio{background:var(--bad-soft);border-color:var(--bad)}
+.pldia.cheio .plest{color:var(--bad)}
+.pldia.passou{opacity:.45}
+.plaviso{background:var(--bad-soft);border-radius:12px;padding:8px 12px;margin:0}
+.plsel{background:var(--sunk);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.plit{display:flex;align-items:center;gap:8px;font-size:14px}
+.plstar{border:0;background:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 4px}
+.plstar.on{color:var(--warn)}
+.plcard{display:flex;flex-direction:column;gap:10px;padding:14px;margin:4px 0;border-radius:16px;background:var(--sunk)}
+.plmini{display:flex;align-items:center;gap:8px;border:0;border-top:1px solid var(--line);background:none;font:inherit;font-size:15px;color:var(--ink);text-align:left;padding:13px 2px;cursor:pointer;width:100%}
+.plbtns button:hover:not(.passou){border-color:var(--ink)}
+.pltxt{font-weight:600;font-size:15px}
+.plper{display:flex;flex-wrap:wrap;gap:6px}
+.plper button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 11px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.plper button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.plbtns{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.plbtns button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:7px 0;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.plbtns button span{font-size:10px;font-weight:700;opacity:.75}
+.plbtns button b{font-size:15px}
+.plbtns button.passou{opacity:.35;cursor:default}
+.pldicas{gap:6px}
 .tdot.ok.min{background:var(--hab-soft);font-size:12px}
 :root{--sn-a:#241C46;--sn-b:#4B2C5E;--sn-ink:#FFFFFF;--sn-mut:rgba(255,255,255,.68);--sn-line:rgba(255,255,255,.14);--sn-bar:#B8A6FF;--sn-pouco:#F2B84B;--sn-chip:rgba(255,255,255,.12)}
 .snoite{position:relative;overflow:hidden;border:0;color:var(--sn-ink);gap:10px;
@@ -845,7 +873,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.13';
+const VERSAO='2026-10-30.14';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1091,7 +1119,7 @@ function cobrancas(){
     else if(dev.length) out.push({n:dev.some(x=>x.f<0)?'media':'info',txt:`${dev.length} coisas da casa pra hoje`,sub:dev.slice(0,3).map(x=>x.r.nome+(x.f<0?' (atrasado)':'')).join(' · ')+(dev.length>3?' …':''),acts:[['go','Ver a casa','pri',{v:'casa'}]]}); }
   for(const e of S.estudos.materias){ if(!+e.meta) continue; const ult=(e.sessoes||[]).map(s=>s.data).sort().pop(); if(!ult||diffDays(ult,t)>=4) out.push({n:'info',txt:`${e.nome}: ${ult?`${diffDays(ult,t)} dias sem estudar`:'nenhuma sessão ainda'}`,sub:'Estudos',acts:[['go','Estudar','',{v:'estudos'}]]}); }
   for(const g of S.metas.items){ if(!g.prazo) continue; const tot=(g.etapas||[]).length,ok=(g.etapas||[]).filter(e=>e.ok).length; const f3=diffDays(t,g.prazo); if(f3>=0&&f3<=14&&(!tot||ok<tot)) out.push({n:'media',txt:`“${g.titulo}” vence em ${f3} ${plural(f3,'dia','dias')}`,sub:tot?`${ok} de ${tot} etapas feitas`:'Ainda sem etapas',acts:[['go','Ver','',{v:'metas'}]]}); }
-  { const wd=parseD(t).getDay(), seg=semanaDe(t)[0], w=S.mente.semanas[seg]; if((wd===0||wd===6)&&!(w&&((w.certo||[]).length||(w.melhorar||[]).length||w.notas))) out.push({n:'info',txt:'Que tal revisar sua semana?',sub:'5 minutinhos: o que deu certo e o que dá pra melhorar.',acts:[['irMente','Revisar','pri']]}); }
+  { const wd=parseD(t).getDay(), seg=semanaDe(t)[0], w=S.mente.semanas[seg]; if((wd===0||wd===6)&&!(w&&((w.certo||[]).length||(w.melhorar||[]).length||w.notas))) out.push({n:'info',txt:'Que tal revisar sua semana?',sub:'5 minutinhos: o que deu certo e o que dá pra melhorar.',acts:[['irMente','Revisar','pri']]}); if(wd===0){ const prox=addDays(seg,7), n=semanaDe(prox).reduce((a,d)=>a+planDoDia(d).length,0); if(n<3) out.push({n:'info',txt:'Bora planejar a semana?',sub:'Despeja tudo que precisa fazer e distribui pelos dias. Uns 15 minutinhos.',acts:[['irPlanejar','Planejar','pri']]}); } }
   const ord={alta:0,media:1,info:2}; return out.sort((a,b)=>ord[a.n]-ord[b.n]);
 }
 const actBtns=acts=>acts.map(([a,l,k,data])=>`<button class="btn sm ${k||''}" data-a="${a}" ${dataAttrs(data)}>${l}</button>`).join('');
@@ -2188,10 +2216,40 @@ function vFoco(){
    ${hoje.length?`<div class="flog">${[...hoje].reverse().slice(0,6).map(s=>`<div class="row between small"><span class="trunc">${esc(s.t)}</span><span class="muted">${s.min} min</span></div>`).join('')}</div>`:''}</section>`;
   return out;
 }
+/* ---------- Planejar a semana ---------- */
+function planSemanaIni(){ const t=TODAY(), wd=parseD(t).getDay(); const base=(wd===0||wd===6||wd===5)?addDays(semanaDe(t)[0],7):semanaDe(t)[0]; return UI.planSem||base; }
+function planDoDia(d){ return S.tarefas.items.filter(i=>i.tipo!=='habito'&&!isRep(i)&&i.data===d); }
+function planejarSemana(){
+  const t=TODAY(), seg=planSemanaIni(), dias=semanaDe(seg), M2=S.mente, P=UI.plan=UI.plan||{};
+  const sel=UI.planDia&&dias.includes(UI.planDia)?UI.planDia:null;
+  const ehEsta=seg===semanaDe(t)[0];
+  let out=`<section class="card plintro"><div class="row between"><div><h2>Planejar a semana</h2><p class="tiny muted">Pega o que você despejou, escolhe o período e toca no dia. Marca ☆ nas importantes.</p></div></div>
+   <div class="row between"><button class="iconbtn" data-a="planSem" data-n="-7" aria-label="Semana anterior">${svg('l')}</button><b class="small">${ehEsta?'Esta semana':seg===addDays(semanaDe(t)[0],7)?'Próxima semana':'Semana'} · ${fmtDs(dias[0])} a ${fmtDs(dias[6])}</b><button class="iconbtn" data-a="planSem" data-n="7" aria-label="Próxima semana">${svg('r')}</button></div>
+   <div class="pldias">${dias.map(d=>{ const its=planDoDia(d), est=its.filter(i=>i.prioridade==='alta').length, passou=d<t;
+     return `<button class="pldia ${sel===d?'on':''} ${est>3?'cheio':''} ${passou?'passou':''}" data-a="planDia" data-d="${d}"><span class="tiny">${DOW[parseD(d).getDay()]}</span><b>${parseD(d).getDate()}</b><span class="plest">${'★'.repeat(Math.min(est,3))}${'☆'.repeat(Math.max(0,3-est))}${est>3?'+'+(est-3):''}</span><span class="tiny muted">${its.length?its.length+' '+plural(its.length,'coisa','coisas'):'livre'}</span></button>`}).join('')}</div>
+   ${dias.some(d=>planDoDia(d).filter(i=>i.prioridade==='alta').length>3)?`<p class="small plaviso">⚠️ Tem dia com mais de 3 ⭐. Vale passar alguma pra um dia mais leve.</p>`:''}`;
+  if(sel){ const its=planDoDia(sel).sort((a,b)=>(a.hora||'99')<(b.hora||'99')?-1:1);
+    out+=`<div class="plsel"><div class="row between"><b>${cap(DOWL[parseD(sel).getDay()])}, ${fmtDs(sel)}</b><button class="linkbtn" data-a="planDia" data-d="${sel}">Fechar</button></div>
+     ${its.length?its.map(i=>`<div class="plit"><button class="plstar ${i.prioridade==='alta'?'on':''}" data-a="planStarIt" data-id="${i.id}" aria-label="Marcar como importante">${i.prioridade==='alta'?'★':'☆'}</button><span class="grow">${esc(i.titulo)}<span class="tiny muted"> · ${i.hora?i.hora:PER.find(p=>p[0]===(i.periodo||'livre'))[1]}</span></span>${i.tipo==='compromisso'?'':`<button class="iconbtn sm" data-a="planVolta" data-id="${i.id}" aria-label="Voltar pra lista">↩︎</button>`}</div>`).join(''):'<p class="small muted">Nada nesse dia ainda.</p>'}</div>`; }
+  out+=`</section>`;
+  // itens pra distribuir
+  out+=`<section class="card"><div class="row between"><h2>Pra distribuir</h2><span class="small muted">${M2.dump.length||''}</span></div>
+   <form data-f="dump" class="row"><input type="text" name="t" id="planAdd" placeholder="Adicionar mais uma coisa" autocomplete="off"><button class="btn" aria-label="Adicionar">${svg('plus')}</button></form>`;
+  if(!M2.dump.length) out+=`<p class="empty">Tudo distribuído 🎉 Confere os dias lá em cima.</p>`;
+  else { const ab=M2.dump.some(y=>y.id===UI.planAberto)?UI.planAberto:M2.dump[0].id; out+=M2.dump.map(x=>{ const o=P[x.id]||{p:'livre',s:false};
+    if(x.id!==ab) return `<button class="plmini" data-a="planAbre" data-id="${x.id}"><span class="grow">${esc(x.t)}</span>${o.s?'<span class="plstar on" style="font-size:16px">★</span>':''}<span class="tiny muted">escolher dia ›</span></button>`;
+    return `<div class="plcard on"><div class="row between top"><span class="pltxt">${esc(x.t)}</span><button class="plstar ${o.s?'on':''}" data-a="planStar" data-id="${x.id}" aria-label="Importante">${o.s?'★':'☆'}</button></div>
+     <div class="plper">${[['manha','Manhã'],['tarde','Tarde'],['noite','Noite'],['livre','Qualquer hora']].map(([k,l])=>`<button class="${o.p===k?'on':''}" data-a="planPer" data-id="${x.id}" data-p="${k}">${l}</button>`).join('')}</div>
+     <div class="plbtns">${dias.map(d=>`<button class="${d<t?'passou':''}" data-a="planPor" data-id="${x.id}" data-d="${d}" ${d<t?'disabled':''}><span>${DOW[parseD(d).getDay()][0].toUpperCase()}</span><b>${parseD(d).getDate()}</b></button>`).join('')}</div>
+     <div class="row" style="gap:14px"><button class="linkbtn tiny" data-a="dumpOk" data-id="${x.id}">✓ Não precisa</button><button class="linkbtn tiny" data-a="dumpDel" data-id="${x.id}">Apagar</button></div></div>`}).join(''); }
+  out+=`</section><section class="card flat pldicas"><b>Na hora de distribuir</b><span class="small">1. Compromissos com hora certa primeiro.<br>2. No máximo 3 ⭐ (as importantes) por dia. Hábitos não contam.<br>3. Deixa um dia mais leve pro que atrasar.<br>4. Junta o que é parecido: um dia pra gravar, outro pra editar.</span></section>`;
+  return out;
+}
 function vMente(){
   const tab=UI.menteTab||'despejar', M2=S.mente;
   let out=`<section><div class="eyebrow">Esvaziar a mente</div><h1>Tira da cabeça, põe aqui</h1></section>
-  <div class="segtabs"><button class="${tab==='despejar'?'on':''}" data-a="menteTab" data-t="despejar">Despejar${M2.dump.length?` <span class="pill mut">${M2.dump.length}</span>`:''}</button><button class="${tab==='semana'?'on':''}" data-a="menteTab" data-t="semana">Revisão da semana</button></div>`;
+  <div class="segtabs"><button class="${tab==='despejar'?'on':''}" data-a="menteTab" data-t="despejar">Despejar${M2.dump.length?` <span class="pill mut">${M2.dump.length}</span>`:''}</button><button class="${tab==='planejar'?'on':''}" data-a="menteTab" data-t="planejar">Planejar</button><button class="${tab==='semana'?'on':''}" data-a="menteTab" data-t="semana">Revisão</button></div>`;
+  if(tab==='planejar') return out+planejarSemana();
   if(tab==='despejar'){
     out+=`<section class="card"><h2>O que está na sua cabeça?</h2><p class="small muted">Escreve tudo, sem organizar: ideias, coisas pra fazer, preocupações. Uma por linha. Depois você decide o que vira tarefa.</p>
     <form data-f="dump" class="stack"><textarea name="t" id="dumpTxt" rows="4" placeholder="Ex.:\nligar pro dentista\nideia de reels sobre rotina de skincare\nver presente da minha mãe"></textarea><button class="btn pri" style="align-self:flex-start">Guardar</button></form></section>`;
@@ -2582,6 +2640,18 @@ const ACT={
  pararTimer:()=>fimTimer(true),
  cancelaTimer:()=>{UI.timer=null;render()},
  irMente:()=>{UI.menteTab='semana';UI.menteSem='';go('mente')},
+ planSem:d=>{UI.planSem=addDays(planSemanaIni(),+d.n);UI.planDia=null;render()},
+ planAbre:d=>{UI.planAberto=d.id;render()},
+ planDia:d=>{UI.planDia=UI.planDia===d.d?null:d.d;render()},
+ planPer:d=>{UI.plan=UI.plan||{};UI.plan[d.id]={...(UI.plan[d.id]||{p:'livre',s:false}),p:d.p};render()},
+ planStar:d=>{UI.plan=UI.plan||{};const o=UI.plan[d.id]||{p:'livre',s:false};UI.plan[d.id]={...o,s:!o.s};render()},
+ planStarIt:d=>{const i=getT(d.id);if(!i)return;i.prioridade=i.prioridade==='alta'?'':'alta';save('tarefas');render()},
+ planPor:d=>{const k=S.mente.dump.findIndex(y=>y.id===d.id);if(k<0)return;const x=S.mente.dump[k], o=(UI.plan||{})[x.id]||{p:'livre',s:false}, p=parseItem(x.t);
+   const it={id:uid(),titulo:cap(p.titulo||x.t),tipo:p.hora?'compromisso':'tarefa',rep:'nao',dias:[],data:d.d,hora:p.hora||'',dur:p.hora?60:30,etiqueta:'',periodo:p.hora?'':(o.p==='livre'?'':o.p),prioridade:o.s?'alta':'',local:'',link:'',obs:'',passos:[],feitos:{},criado:Date.now()};
+   S.tarefas.items.push(it); S.mente.dump.splice(k,1); save('tarefas'); save('mente'); render();
+   toast(`Foi pra ${DOWL[parseD(d.d).getDay()]}${o.s?' ⭐':''}`,()=>{S.tarefas.items=S.tarefas.items.filter(y=>y.id!==it.id);S.mente.dump.splice(k,0,x);save('tarefas');save('mente');render()})},
+ planVolta:d=>{const i=getT(d.id);if(!i)return;S.tarefas.items=S.tarefas.items.filter(y=>y.id!==i.id);S.mente.dump.unshift({id:uid(),t:i.titulo,criado:TODAY()});save('tarefas');save('mente');render();toast('Voltou pra lista')},
+ irPlanejar:()=>{UI.menteTab='planejar';UI.planSem='';UI.planDia=null;go('mente')},
  menteTab:d=>{UI.menteTab=d.t;render();window.scrollTo(0,0)},
  menteSem:d=>{UI.menteSem=addDays(UI.menteSem||semanaDe(TODAY())[0],+d.n);render()},
  dumpEncaixar:d=>{const x=S.mente.dump.find(y=>y.id===d.id);if(!x)return;UI.convFrom={k:'dump',id:x.id};const p=parseItem(x.t);if(!/\b(hoje|amanha|segunda|terca|quarta|quinta|sexta|sabado|domingo|dia \d)/.test(norm(x.t)))p.data=TODAY();openSheet(formItem(p))},
