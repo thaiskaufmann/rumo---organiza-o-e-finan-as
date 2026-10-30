@@ -654,7 +654,7 @@ const DEF={
  agenda:{eventos:[]},
  metas:{items:[]},
  fin:{config:{renda:0,guardar:0,limite:90,cats:CATS0,regras:{},ignorarRep:[],extraDivida:0,metodo:'avalanche',ack:{}},recorrentes:[],compras:[],metas:[],reserva:{meses:6,guardado:0,foto:''},dividas:[],decisoes:{puladas:{},feitas:{}}},
- saude:{ciclo:{registros:[]},injecao:{intervalo:30,ultima:'',historico:[],nome:'',hora:''},sono:[]},
+ saude:{ciclo:{registros:[]},injecao:{intervalo:30,tol:3,ultima:'',historico:[],nome:'',hora:''},sono:[]},
  estudos:{materias:[]},
  casa:{compras:[],rotina:[]},
  mente:{dump:[],semanas:{}},
@@ -732,7 +732,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.7';
+const VERSAO='2026-10-30.8';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -829,7 +829,7 @@ function injItem(d){
   const feita=j.historico.includes(d);
   const t=TODAY(), mostra=feita||d===st.prox||(st.prox<t&&d===t);
   if(!mostra) return null;
-  return {id:'inj',virt:'inj',tipo:'tarefa',titulo:'Tomar a '+(j.nome||'injeção'),data:d,hora:j.hora||'',dur:15,rep:'nao',prioridade:'alta',feito:feita,feitos:{},passos:[],etiqueta:st.prox<t&&!feita?'atrasada '+(-st.falta)+' '+plural(-st.falta,'dia','dias'):'Bem-estar'};
+  return {id:'inj',virt:'inj',tipo:'tarefa',titulo:'Tomar a '+(j.nome||'injeção'),data:d,hora:j.hora||'',dur:15,rep:'nao',prioridade:'alta',feito:feita,feitos:{},passos:[],etiqueta:st.prox<t&&!feita?(st.janela?'pode tomar até '+fmtDs(st.ate):'passou da janela'):'Bem-estar'};
 }
 const PRIO={alta:['!!!','Alta',3],media:['!!','Média',2],baixa:['!','Baixa',1]};
 const prioN=i=>(PRIO[i.prioridade]||[,,0])[2];
@@ -944,7 +944,7 @@ function reservaMeta(){ const r=S.fin.reserva, med=mediaGastos(); return {id:'re
 const coverStyle=(x,i)=>x.foto&&S.fotos&&S.fotos[x.foto]?`background-image:url('${S.fotos[x.foto]}')`:`background-image:linear-gradient(140deg,var(--c${(i*3+1)%12}),var(--c${(i*3+4)%12}))`;
 
 /* ================= saúde ================= */
-function injStatus(){ const j=S.saude.injecao; if(!j.ultima) return null; const prox=addDays(j.ultima,+j.intervalo||30); return {prox,falta:diffDays(TODAY(),prox)}; }
+function injStatus(){ const j=S.saude.injecao; if(!j.ultima) return null; const prox=addDays(j.ultima,+j.intervalo||30), tol=j.tol==null||j.tol===''?3:+j.tol, falta=diffDays(TODAY(),prox); return {prox,falta,tol,ini:addDays(prox,-tol),ate:addDays(prox,tol),janela:falta<0&&-falta<=tol,fora:falta<0&&-falta>tol}; }
 function cicloInfo(){
   const regs=[...S.saude.ciclo.registros].sort((a,b)=>a.inicio<b.inicio?-1:1); if(!regs.length) return null;
   const ints=[]; for(let i=1;i<regs.length;i++){ const d=diffDays(regs[i-1].inicio,regs[i].inicio); if(d>=15&&d<=60) ints.push(d); }
@@ -961,7 +961,7 @@ function cobrancas(){
   const atras=atrasadas();
   if(atras.length) out.push({n:'alta',txt:`${atras.length} ${plural(atras.length,'tarefa ficou','tarefas ficaram')} pra trás`,sub:atras.slice(0,3).map(i=>i.titulo).join(' · ')+(atras.length>3?' …':''),acts:[['trazerHoje','Trazer pra hoje','pri']]});
   const inj=injStatus();
-  if(inj&&inj.falta<=5) out.push({n:inj.falta<=1?'alta':'media',txt:inj.falta<0?`Injeção atrasada ${-inj.falta} ${plural(-inj.falta,'dia','dias')}`:inj.falta===0?'Hoje é dia da injeção':`Injeção em ${inj.falta} ${plural(inj.falta,'dia','dias')}`,sub:'Prevista para '+fmtD(inj.prox),acts:[['tomeiInj','Tomei hoje','pri'],['goSub','Ver','',{v:'saude',s:'injecao'}]]});
+  if(inj&&inj.falta<=5) out.push({n:inj.fora||inj.falta===0?'alta':'media',txt:inj.fora?`Injeção passou da janela (era até ${fmtDs(inj.ate)})`:inj.janela?`Injeção: dá pra tomar até ${fmtDs(inj.ate)}`:inj.falta===0?'Hoje é dia da injeção':`Injeção em ${inj.falta} ${plural(inj.falta,'dia','dias')}`,sub:inj.falta<0?`Era pra ${fmtD(inj.prox)}. A próxima conta a partir do dia que você tomar.`:'Prevista para '+fmtD(inj.prox)+(inj.tol?` · janela de ${fmtDs(inj.ini)} a ${fmtDs(inj.ate)}`:''),acts:[['tomeiInj','Tomei hoje','pri'],['goSub','Ver','',{v:'saude',s:'injecao'}]]});
   for(const r of S.fin.recorrentes){ if(!recAtivo(r,m)||(r.pagos||{})[m]||!r.dia) continue; const venc=m+'-'+pad(Math.min(+r.dia,daysInMonth(m))); const f=diffDays(t,venc); if(f<=3) out.push({n:f<0?'alta':'media',txt:f<0?`${r.nome} venceu dia ${fmtDs(venc)}`:f===0?`${r.nome} vence hoje`:`${r.nome} vence em ${f} ${plural(f,'dia','dias')}`,sub:brl(r.valor),acts:[['pagarRec','Paguei','pri',{id:r.id}]]}); }
   const dec=decisoes().filter(d=>d.tipo!=='conta'); if(dec.length) out.push({n:'media',txt:`${dec.length} ${plural(dec.length,'decisão','decisões')} de dinheiro pra hoje`,sub:dec.slice(0,2).map(d=>d.titulo).join(' · '),acts:[['goSub','Decidir','pri',{v:'dinheiro',s:'decidir'}]]});
   for(const h of S.tarefas.items.filter(i=>i.tipo==='habito')){
@@ -1001,7 +1001,7 @@ function pcWidgets(t){
    ${prox.length?prox.slice(0,6).map(({d,i})=>`<button class="wrow" data-a="editT" data-id="${i.id}"><span class="wdia">${DOW[parseD(d).getDay()]}<b>${parseD(d).getDate()}</b></span><span class="grow">${prioTag(i)}${esc(i.titulo)}<span class="tiny muted"> · ${i.hora}</span></span></button>`).join(''):'<p class="small muted">Nada com horário nos próximos dias.</p>'}</section>`;
   const inj=injStatus(), sono=[...S.saude.sono].sort((a,b)=>a.data<b.data?1:-1)[0];
   if(inj||sono) w+=`<section class="card pconly wid"><div class="row between"><h2>Bem-estar</h2><button class="linkbtn" data-a="go" data-v="saude">Abrir ›</button></div>
-   ${inj?`<div class="row between small"><span class="muted">💉 Próxima injeção</span><b>${inj.falta<0?'atrasada':inj.falta===0?'hoje':fmtDs(inj.prox)}</b></div>`:''}
+   ${inj?`<div class="row between small"><span class="muted">💉 Próxima injeção</span><b>${inj.janela?'até '+fmtDs(inj.ate):inj.fora?'passou':inj.falta===0?'hoje':fmtDs(inj.prox)}</b></div>`:''}
    ${sono?`<div class="row between small"><span class="muted">🌙 Última noite</span><b>${sDurTxt(Math.round(sonoH(sono)*60))}</b></div>`:''}</section>`;
   return w;
 }
@@ -1649,13 +1649,15 @@ function vSaude(){
 function sInj(){
   const j=S.saude.injecao,st=injStatus();
   let out=`<section class="card">`;
-  if(st){ const c=st.falta<0?'bad':st.falta<=3?'warn':'good';
-    out+=`<div class="eyebrow">Próxima dose</div><div class="row between wrap"><span class="bigstat">${fmtD(st.prox)}</span><span class="pill ${c}">${st.falta<0?`atrasada ${-st.falta} ${plural(-st.falta,'dia','dias')}`:st.falta===0?'é hoje':`faltam ${st.falta} ${plural(st.falta,'dia','dias')}`}</span></div>
-    <p class="muted small">Última em ${fmtD(j.ultima)} · a cada ${j.intervalo} dias${j.nome?' · '+esc(j.nome):''}</p>
+  if(st){ const c=st.fora?'bad':st.falta<=3?'warn':'good';
+    out+=`<div class="eyebrow">Próxima dose</div><div class="row between wrap"><span class="bigstat">${fmtD(st.prox)}</span><span class="pill ${c}">${st.fora?`passou da janela`:st.janela?`pode até ${fmtDs(st.ate)}`:st.falta===0?'é hoje':`faltam ${st.falta} ${plural(st.falta,'dia','dias')}`}</span></div>
+    ${st.tol?`<p class="small">Pode tomar de <b>${fmtD(st.ini)}</b> a <b>${fmtD(st.ate)}</b>.</p>`:''}
+    <p class="muted small">Última em ${fmtD(j.ultima)} · a cada ${j.intervalo} dias${j.nome?' · '+esc(j.nome):''}. Quando você marca que tomou, a próxima conta a partir desse dia.</p>
     <div class="row wrap"><button class="btn pri" data-a="tomeiInj">Tomei hoje</button><a class="btn" target="_blank" rel="noopener" href="${gcal({titulo:'Injeção anticoncepcional',data:st.prox,rrule:'FREQ=DAILY;INTERVAL='+(+j.intervalo||30),detalhes:'Lembrete do Rumo. Confirme a data certa com a bula ou com sua médica.'})}">Lembrete no Google Agenda</a></div>`; }
   else out+=`<h2>Quando foi a última injeção?</h2><p class="muted small">Com a data eu calculo a próxima, te cobro na tela Hoje alguns dias antes e gero o lembrete pro calendário.</p>`;
   out+=`<form data-f="inj" class="fgrid"><label class="f">Data da última dose<input type="date" name="ultima" id="iUlt" value="${esc(j.ultima||'')}" required></label>
    <label class="f">Intervalo<select name="intervalo" id="iInt"><option value="30" ${+j.intervalo===30?'selected':''}>Mensal</option><option value="84" ${+j.intervalo===84?'selected':''}>A cada 12 semanas</option><option value="90" ${+j.intervalo===90?'selected':''}>A cada 90 dias</option></select></label>
+   <label class="f">Pode adiantar ou atrasar<select name="tol" id="iTol">${[0,1,2,3,5,7].map(v=>`<option value="${v}" ${(j.tol==null||j.tol===''?3:+j.tol)===v?'selected':''}>${v?'± '+v+' '+plural(v,'dia','dias'):'Só no dia'}</option>`).join('')}</select></label>
    <label class="f">Nome do anticoncepcional (opcional)<input type="text" name="nome" id="iNome" value="${esc(j.nome||'')}"></label>
    <label class="f">Horário na agenda (opcional)<input type="time" name="hora" id="iHora" value="${esc(j.hora||'')}"></label><button class="btn full">Salvar</button></form>
    <p class="muted tiny">O intervalo e a janela de tolerância dependem do produto. Confira na bula ou com a sua médica; aqui é só lembrete.</p></section>`;
@@ -2351,7 +2353,7 @@ const FORMS={
  calc:()=>{},
  meta:(o,f)=>{const id=f.dataset.id;const b={titulo:String(o.titulo).trim(),motivo:o.motivo||'',prazo:o.prazo||''};if(id)Object.assign(S.metas.items.find(g=>g.id===id),b);else S.metas.items.push({id:uid(),...b,etapas:[]});save('metas');closeSheet();render()},
  etapa:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;S.metas.items.find(g=>g.id===f.dataset.g).etapas.push({id:uid(),t,ok:false});save('metas');render();setTimeout(()=>{const i=$('#et-'+f.dataset.g);if(i)i.focus()},30)},
- inj:o=>{const j=S.saude.injecao;j.intervalo=+o.intervalo||30;j.nome=o.nome||'';j.hora=o.hora||'';if(o.ultima)registraInj(o.ultima);save('saude');render();toast('Salvo')},
+ inj:o=>{const j=S.saude.injecao;j.intervalo=+o.intervalo||30;j.tol=+o.tol||0;j.nome=o.nome||'';j.hora=o.hora||'';if(o.ultima)registraInj(o.ultima);save('saude');render();toast('Salvo')},
  menst:o=>{S.saude.ciclo.registros.push({inicio:o.inicio,...(o.fim?{fim:o.fim}:{})});save('saude');closeSheet();render()},
  sono:o=>{const d=o.data||TODAY();S.saude.sono=S.saude.sono.filter(s=>s.data!==d);S.saude.sono.push({data:d,deitou:o.deitou,acordou:o.acordou,q:+o.q||3});S.saude.sono.sort((a,b)=>a.data<b.data?-1:1);if(S.saude.sono.length>400)S.saude.sono=S.saude.sono.slice(-400);save('saude');render();toast('Noite registrada')},
  mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),meta:+o.meta||0};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
