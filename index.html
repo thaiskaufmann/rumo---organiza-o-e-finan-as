@@ -431,6 +431,16 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .orow{display:flex;gap:10px;padding:8px 0;align-items:flex-start;min-width:0}
 .orow .grow{min-width:0;overflow-wrap:anywhere}
 .oest{width:22px;flex:none;text-align:center;font-size:15px;line-height:1.4}
+.ou{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+.ou::before,.ou::after{content:'';flex:1;border-top:1px solid var(--line)}
+.qrbtn{align-self:stretch;justify-content:center}
+.parbox{align-items:center;text-align:left}
+.qrimg{width:min(240px,70vw);background:#fff;padding:10px;border-radius:16px;border:1px solid var(--line)}
+.qrimg svg{width:100%;height:auto;display:block}
+.parcod{font-family:ui-monospace,Menlo,monospace;font-size:22px;font-weight:700;letter-spacing:3px}
+.camwrap{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1}
+.camwrap video{width:100%;height:100%;object-fit:cover;display:block}
+.camframe{position:absolute;inset:18%;border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
 .dgrupos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
 .dgrupos button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:10px 2px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -651,7 +661,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.3';
+const VERSAO='2026-10-30.4';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -662,7 +672,7 @@ setTimeout(checaVersao,3000);
 window.addEventListener('online',()=>{ if(SB.user) pull(); });
 window.addEventListener('focus',()=>{ if(SB.user&&Date.now()-(SB.ultima||0)>15000) pull(); });
 setInterval(()=>{ if(SB.user&&document.visibilityState==='visible'&&Date.now()-(SB.ultima||0)>45000) pull(); },60000);
-async function initStore(){ loadLocal(); migrar(); if(UI.wantDemo) entrarDemo(); render(); initSync(); checaPush(); if(temPush()) navigator.serviceWorker.getRegistration().then(r=>{ if(r) r.update(); }).catch(()=>{}); }
+async function initStore(){ loadLocal(); migrar(); if(UI.wantDemo) entrarDemo(); render(); initSync(); { const m=location.hash.match(/par=([A-Z0-9]{8})/i); if(m){ history.replaceState(null,'',location.pathname); setTimeout(()=>{ if(SB.user) openSheet(`${sheetHead('Conectar o computador?')}<p>Esse QR code é pra entrar na sua conta do Rumo em outro aparelho. Só aprove se foi você que abriu no seu computador.</p><div class="row"><button class="btn pri" data-a="parSim" data-c="${m[1]}">Sim, conectar</button><button class="btn ghost" data-a="fecharSheet">Cancelar</button></div><p class="small muted" id="parLeSt"></p>`); },2500); } } checaPush(); if(temPush()) navigator.serviceWorker.getRegistration().then(r=>{ if(r) r.update(); }).catch(()=>{}); }
 function drawBanner(){
   let h='';
   if(REAL) h=`<div class="banner demo"><span>Demonstração: dados de exemplo. Nada aqui é seu e nada é salvo.</span><button class="btn sm" data-a="sairDemo">Sair da demonstração</button></div>`;
@@ -715,7 +725,7 @@ function render(){
 
 /* ================= sheet / toast ================= */
 function openSheet(html){ $('#sheetBody').innerHTML=html; $('#sheet').hidden=false; $('#sheetBody').scrollTop=0; const f=$('#sheetBody').querySelector('[autofocus]'); if(f) setTimeout(()=>f.focus(),60); }
-function closeSheet(){ UI.convFrom=null; $('#sheet').hidden=true; $('#sheetBody').innerHTML=''; if(pendingRender){pendingRender=false;render()} }
+function closeSheet(){ UI.convFrom=null; parParar(); $('#sheet').hidden=true; $('#sheetBody').innerHTML=''; if(pendingRender){pendingRender=false;render()} }
 let toastT=null,toastUndo=null;
 function toast(msg,undo){ const t=$('#toast'); toastUndo=undo||null; t.innerHTML=`<span>${esc(msg)}</span>${undo?'<button data-a="desfazer">Desfazer</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{t.hidden=true;toastUndo=null},undo?6000:3500); }
 const sheetHead=(t,sub)=>`<div class="row between top"><div class="grow"><h2>${t}</h2>${sub?`<p class="muted small" style="margin-top:2px">${sub}</p>`:''}</div><button class="iconbtn" data-a="fecharSheet" aria-label="Fechar">${svg('x')}</button></div>`;
@@ -1805,6 +1815,59 @@ function formRot(r){ r=r||{cada:7}; return `${sheetHead(r.id?'Editar':'Nova tare
  <label class="f ${r.modo==='semana'?'hide':''}" id="fRotCada">Repetir a cada (dias)<input type="number" min="1" name="cada" id="rotC" value="${r.cada||7}"></label>
  <div class="f ${r.modo==='semana'?'':'hide'}" id="fRotDias"><span>Quais dias</span><div class="daypick">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}" ${(r.dias||[]).map(Number).includes(w)?'checked':''}><span>${DOW[w]}</span></label>`).join('')}</div></div><label class="f">Última vez que fez<input type="date" name="ultima" id="rotU" value="${esc(r.ultima||'')}"></label>
  <div class="row between"><button class="btn pri">Salvar</button>${r.id?`<button type="button" class="btn danger ghost" data-a="delRot" data-id="${r.id}">Apagar</button>`:''}</div></form>`; }
+const PAR={timer:null,codigo:null,stream:null,raf:null};
+const PARFN=q=>SB.cfg.url.replace(/\/$/,'')+'/functions/v1/rumo-par'+(q?'?'+q:'');
+function carregaScript(src){ return new Promise((ok,erro)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=erro; document.head.appendChild(s); }); }
+function parParar(){ clearInterval(PAR.timer); PAR.timer=null; if(PAR.raf) cancelAnimationFrame(PAR.raf); PAR.raf=null; if(PAR.stream){ PAR.stream.getTracks().forEach(t=>t.stop()); PAR.stream=null; } }
+async function qrMostrar(){
+  if(!SB.client){ toast('A sincronização ainda está carregando, tenta de novo'); return; }
+  const AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', rnd=crypto.getRandomValues(new Uint32Array(8)); const cod=[...rnd].map(n=>AB[n%AB.length]).join('');
+  PAR.codigo=cod;
+  try{ await carregaScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js'); }catch(e){ toast('Sem internet pra gerar o QR code'); return; }
+  const qr=qrcode(0,'M'); qr.addData(location.origin+location.pathname+'#par='+cod); qr.make();
+  openSheet(`${sheetHead('Entrar com QR code','Igual ao WhatsApp Web')}<div class="stack parbox">
+   <div class="qrimg" id="parQR">${qr.createSvgTag({cellSize:6,margin:2,scalable:true})}</div>
+   <div class="parcod">${cod.slice(0,4)}-${cod.slice(4)}</div>
+   <ol class="small passos"><li>Abra o <b>Rumo no celular</b> (onde você já entrou).</li><li>Vá em <b>Ajustes → Conta e sincronização</b>.</li><li>Toque em <b>Ler QR code do computador</b> e aponte pra cá.</li></ol>
+   <p class="small muted" id="parSt">⏳ Esperando o celular…</p></div>`);
+  const ini=Date.now();
+  PAR.timer=setInterval(async()=>{
+    if(!document.getElementById('parQR')){ parParar(); return; }
+    if(Date.now()-ini>3*60000){ parParar(); const st=$('#parSt'); if(st) st.innerHTML='O código expirou. <button class="linkbtn" data-a="qrMostrar">Gerar outro</button>'; return; }
+    try{ const r=await (await fetch(PARFN('acao=ver&codigo='+cod))).json();
+      if(r.ok&&r.token_hash){ parParar(); const st=$('#parSt'); if(st) st.textContent='✅ Aprovado! Entrando…';
+        const {error}=await SB.client.auth.verifyOtp({token_hash:r.token_hash,type:'magiclink'});
+        if(error){ if(st) st.textContent='Não deu certo: '+erroSB(error); } else { closeSheet(); toast('Entrou! Sincronizando…'); } }
+    }catch(e){}
+  },2000);
+}
+async function parAprovar(cod){
+  cod=String(cod||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(cod.length<8){ toast('Código incompleto'); return; }
+  const st=$('#parLeSt'); if(st) st.textContent='Conectando…';
+  try{ const {data}=await SB.client.auth.getSession(); const tk=data?.session?.access_token;
+    const r=await (await fetch(PARFN('acao=aprovar'),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},body:JSON.stringify({codigo:cod})})).json();
+    if(r.ok){ parParar(); openSheet(`${sheetHead('Pronto! 🎉')}<p>O computador vai entrar na sua conta em alguns segundos. Pode fechar aqui.</p><button class="btn pri" data-a="fecharSheet" style="align-self:flex-start">Ok</button>`); }
+    else { if(st) st.textContent=r.erro||'Não consegui conectar.'; }
+  }catch(e){ if(st) st.textContent='Sem conexão agora.'; }
+}
+async function qrLer(){
+  if(!SB.user){ toast('Entre na sua conta neste celular primeiro'); return; }
+  openSheet(`${sheetHead('Ler QR code do computador')}<div class="stack">
+   <div class="camwrap"><video id="parVideo" playsinline muted autoplay></video><div class="camframe"></div></div>
+   <p class="small muted" id="parLeSt">Aponte a câmera pro QR code na tela do computador.</p>
+   <form data-f="parCodigo" class="row"><input type="text" name="c" placeholder="ou digite o código: ABCD-EFGH" autocomplete="off" autocapitalize="characters"><button class="btn">Ok</button></form></div>`);
+  try{ await carregaScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js');
+    PAR.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const v=$('#parVideo'); if(!v){ parParar(); return; } v.srcObject=PAR.stream; await v.play();
+    const cv=document.createElement('canvas'), cx=cv.getContext('2d',{willReadFrequently:true});
+    const loop=()=>{ const vv=$('#parVideo'); if(!vv){ parParar(); return; }
+      if(vv.readyState>=2){ cv.width=vv.videoWidth; cv.height=vv.videoHeight; cx.drawImage(vv,0,0); const img=cx.getImageData(0,0,cv.width,cv.height); const res=window.jsQR&&jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+        if(res&&res.data){ const m=res.data.match(/par=([A-Z0-9]{8})/i)||res.data.match(/^([A-Z0-9]{4}-?[A-Z0-9]{4})$/i); if(m){ parParar(); parAprovar(m[1]); return; } } }
+      PAR.raf=requestAnimationFrame(loop); };
+    loop();
+  }catch(e){ const st=$('#parLeSt'); if(st) st.textContent='Não consegui abrir a câmera. Libere a câmera pro Rumo ou digite o código que aparece no computador.'; }
+}
 function syncCard(){
   if(!SB.cfg) return `<section class="card"><h2>Sincronizar celular e computador</h2><p class="small">Cole aqui os dados do seu projeto no Supabase. Você só faz isso uma vez em cada aparelho.</p>
    <form data-f="sbcfg" class="stack"><label class="f">URL do projeto<input type="url" name="url" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off" required></label>
@@ -1812,9 +1875,13 @@ function syncCard(){
   if(!SB.user) return `<section class="card"><h2>Entrar pra sincronizar</h2><p class="small">Use o mesmo e-mail e senha no celular e no computador.</p>
    <form data-f="login" class="stack"><label class="f">E-mail<input type="email" name="email" id="sbEmail" autocomplete="username" required style="width:100%;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;font-size:16px"></label>
    <label class="f">Senha<input type="password" name="senha" id="sbSenha" autocomplete="current-password" minlength="6" required style="width:100%;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;font-size:16px"></label>
-   <div class="row wrap"><button class="btn pri">Entrar</button><button type="button" class="btn" data-a="criarConta">Criar conta</button><button type="button" class="btn ghost sm" data-a="sbReset">Trocar projeto</button></div></form></section>`;
+   <div class="row wrap"><button class="btn pri">Entrar</button><button type="button" class="btn" data-a="criarConta">Criar conta</button><button type="button" class="btn ghost sm" data-a="sbReset">Trocar projeto</button></div></form>
+   <div class="ou"><span>ou</span></div>
+   <button class="btn qrbtn" data-a="qrMostrar"><span>▦</span> Entrar com QR code, sem senha</button>
+   <p class="tiny muted">Mostra um QR code aqui. Você aponta o celular (com o Rumo já logado) e pronto.</p></section>`;
   const st=SB.estado==='sync'?'Sincronizando…':SB.estado==='erro'?'Sem conexão agora':SB.ultima?'Sincronizado às '+new Date(SB.ultima).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Conectada';
-  return `<section class="card"><h2>Sincronização ligada</h2><p class="small">Entrou como <b>${esc(SB.user.email||'')}</b>. ${st}.</p><div class="row wrap"><button class="btn" data-a="syncAgora">Sincronizar agora</button><button class="btn ghost" data-a="sbSair">Sair</button></div></section>`;
+  return `<section class="card"><h2>Sincronização ligada</h2><p class="small">Entrou como <b>${esc(SB.user.email||'')}</b>. ${st}.</p><div class="row wrap"><button class="btn" data-a="syncAgora">Sincronizar agora</button><button class="btn ghost" data-a="sbSair">Sair</button></div></section>
+  <section class="card"><h2>Conectar outro aparelho</h2><p class="small">No computador, abra o Rumo e toque em <b>Entrar com QR code</b>. Depois toque aqui e aponte a câmera pro QR code que aparecer.</p><button class="btn pri" data-a="qrLer" style="align-self:flex-start">📷 Ler QR code do computador</button></section>`;
 }
 const erroSB=e=>{const m=String(e&&e.message||e||'');return /invalid login/i.test(m)?'E-mail ou senha errados.':/not confirmed/i.test(m)?'Confirme o e-mail que o Supabase te mandou e tente de novo.':/already registered|already exists/i.test(m)?'Esse e-mail já tem conta. Toque em Entrar.':/password/i.test(m)?'A senha precisa ter pelo menos 6 caracteres.':/fetch|network/i.test(m)?'Sem internet agora.':'Não deu certo: '+m};
 
@@ -2068,6 +2135,7 @@ const ACT={
  dumpDel:d=>{const i=S.mente.dump.findIndex(y=>y.id===d.id);if(i<0)return;const [x]=S.mente.dump.splice(i,1);save('mente');render();toast('Apagado',()=>{S.mente.dump.splice(i,0,x);save('mente');render()})},
  menteDel:d=>{const seg=UI.menteSem||semanaDe(TODAY())[0];const w=S.mente.semanas[seg];if(!w)return;w[d.k]=(w[d.k]||[]).filter(x=>x.id!==d.id);save('mente');render()},
  menteTarefa:d=>{const seg=UI.menteSem||semanaDe(TODAY())[0];const x=(S.mente.semanas[seg]?.[d.k]||[]).find(y=>y.id===d.id);if(!x)return;UI.convFrom={k:d.k,seg,id:x.id};const p=parseItem(x.t);p.data=TODAY();openSheet(formItem(p))},
+ qrMostrar:()=>qrMostrar(), parSim:d=>parAprovar(d.c), qrLer:()=>qrLer(),
  casaTab:d=>{UI.casaTab=d.t;render();window.scrollTo(0,0)},
  itemOk:d=>{const x=S.casa.compras.find(y=>y.id===d.id);x.ok=!x.ok;save('casa');render()},
  itemDel:d=>{S.casa.compras=S.casa.compras.filter(y=>y.id!==d.id);save('casa');render()},
@@ -2155,6 +2223,7 @@ const FORMS={
  sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes.push({data:TODAY(),min});save('estudos');render();toast(`${min} min registrados`)},
  dump:o=>{const ls=String(o.t||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!ls.length)return;ls.forEach(t=>S.mente.dump.unshift({id:uid(),t,criado:TODAY()}));save('mente');render();toast(ls.length===1?'Guardado':ls.length+' coisas guardadas')},
  menteAdd:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;const seg=UI.menteSem||semanaDe(TODAY())[0];const w=S.mente.semanas[seg]=S.mente.semanas[seg]||{certo:[],melhorar:[],notas:''};(w[f.dataset.k]=w[f.dataset.k]||[]).push({id:uid(),t});save('mente');render();setTimeout(()=>{const i=document.querySelector(`form[data-f=menteAdd][data-k=${f.dataset.k}] input`);if(i)i.focus()},30)},
+ parCodigo:o=>parAprovar(o.c),
  item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>S.casa.compras.push({id:uid(),item:cap(x),secao:o.secao||UI.secao||'Mercado',ok:false}));save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
  rot:(o,f)=>{const id=f.dataset.id;const modo=o.modo==='semana'?'semana':'cada';const dias=arr(o.dias).map(Number);if(modo==='semana'&&!dias.length){toast('Escolha pelo menos um dia da semana');return}const b={nome:String(o.nome).trim(),modo,dias:modo==='semana'?dias:[],cada:+o.cada||7,ultima:o.ultima||'',comodo:o.comodo||''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
  sbcfg:o=>{ const url=String(o.url||'').trim().replace(/\/+$/,''), key=String(o.key||'').trim(); if(!/^https:\/\/.+/.test(url)||key.length<20){toast('Confira a URL e a chave.');return} SB.cfg={url,key}; try{localStorage.setItem(LSCFG,JSON.stringify(SB.cfg))}catch(e){} initSync(); render(); },
