@@ -455,6 +455,24 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
+.dvolta{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;margin-top:-4px}
+.dvolta svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.rbox{background:color-mix(in srgb,var(--surface) 75%,transparent);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.rleg{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.rleg div{display:flex;align-items:center;gap:8px}
+.rleg b{margin-left:auto}
+.rleg.big3{font-size:16px;gap:10px;margin-top:6px}
+.rleg .rtot{border-top:1px solid color-mix(in srgb,var(--ink) 15%,transparent);padding-top:10px;font-weight:700}
+.pcat{display:flex;flex-direction:column;gap:6px;border:0;background:none;font:inherit;color:inherit;text-align:left;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;width:100%}
+.pcat .bad{color:var(--bad)}
+.pbar{display:block;height:6px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:99px}
+.plist{padding-top:6px;padding-bottom:6px}
+.prow{display:flex;align-items:center;gap:12px;border:0;background:none;font:inherit;color:inherit;text-align:left;padding:14px 0;border-top:1px solid var(--line);cursor:pointer;width:100%}
+.prow:first-child{border-top:0}
+.prow>span{display:flex;flex-direction:column;gap:2px}
+.prow .pv{color:var(--accent);font-weight:600;margin-top:2px}
+.prow svg{width:18px;height:18px;color:var(--muted);flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .bigstat{font-family:var(--display);font-size:38px;font-weight:800;line-height:1}
 
 .chat{display:flex;flex-direction:column;gap:10px}
@@ -529,8 +547,10 @@ details summary::-webkit-details-marker{display:none}
   .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
   .cgrid .cpan{display:flex!important}
   .cpan>h2.pconly{font-size:22px}
-  .dg-resumo{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
-  .dg-resumo>section:not(.hero):first-child{grid-column:1/-1}
+  .dg-resumo{display:block;columns:2;column-gap:18px}
+  .dg-resumo>section{break-inside:avoid;margin-bottom:18px}
+  .dg-resumo svg{max-height:200px}
+  
   .dg-resumo .hero svg{max-height:200px}
   .item:hover,.crow:hover{background:var(--surface)}
   #sheet .panel{max-width:640px;padding:24px 26px 28px}
@@ -711,7 +731,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.5';
+const VERSAO='2026-10-30.6';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1132,19 +1152,33 @@ function gcal({titulo,data,hora,dur,detalhes,rrule}){
 
 /* ================= VIEW: Dinheiro ================= */
 const DGRUPOS=[
- {k:'geral',l:'Visão geral',d:'Como está o mês e o que vem pela frente',s:[['resumo','Resumo'],['previsao','Previsão']]},
- {k:'gastos',l:'Gastos',d:'Tudo que entrou e saiu, e as contas de todo mês',s:[['transacoes','Transações'],['recorrentes','Contas fixas']]},
- {k:'plano',l:'Planejar',d:'Seu limite por categoria e se dá pra comprar',s:[['orcamento','Orçamento'],['decidir','Posso comprar?'],['calc','Calculadoras']]},
- {k:'obj',l:'Objetivos',d:'O que você está juntando e o que está pagando',s:[['metasf','Metas'],['dividas','Dívidas']]}];
+ {k:'geral',l:'Resumo',s:[['resumo','Resumo']]},
+ {k:'gastos',l:'Lançamentos',s:[['transacoes','Lançamentos']]},
+ {k:'contas',l:'Contas',s:[['recorrentes','Contas fixas']]},
+ {k:'plano',l:'Planejar',s:[['planejar','Planejar'],['orcamento','Orçamento'],['decidir','Posso comprar?'],['previsao','Previsão'],['metasf','Metas'],['dividas','Dívidas'],['calc','Calculadoras']]}];
 const DSUB=DGRUPOS.flatMap(g=>g.s);
 const grupoDe=s=>DGRUPOS.find(g=>g.s.some(([k])=>k===s))||DGRUPOS[0];
 function vDinheiro(){
-  const s=UI.sub.dinheiro; const nd=decisoes().length;
-  let out=`<section><div class="eyebrow">Dinheiro</div><h1>${grupoDe(s).l}</h1></section>
-  ${(()=>{const g=grupoDe(s); return `<nav class="dgrupos" aria-label="Áreas do dinheiro">${DGRUPOS.map(x=>{const n=x.k==='plano'?nd:0;return `<button class="${x.k===g.k?'on':''}" data-a="dsub" data-s="${x.k===g.k?s:(UI.dlast&&UI.dlast[x.k])||x.s[0][0]}">${x.l}${n?`<span class="pill acc">${n}</span>`:''}</button>`}).join('')}</nav>
-  <div class="dsubs"><p class="muted tiny">${g.d}</p><nav class="chips" aria-label="${g.l}">${g.s.map(([k,l])=>`<button class="chip ${s===k?'on':''}" data-a="dsub" data-s="${k}">${l}${k==='decidir'&&nd?` <span class="pill acc">${nd}</span>`:''}</button>`).join('')}</nav></div>`})()}`;
+  const s=UI.sub.dinheiro; const nd=decisoes().length; const g=grupoDe(s);
+  const sub=g.k==='plano'&&s!=='planejar'?g.s.find(([k])=>k===s):null;
+  let out=`<section><div class="eyebrow">Dinheiro</div><h1>${sub?sub[1]:g.l}</h1></section>
+  <nav class="dgrupos" aria-label="Áreas do dinheiro">${DGRUPOS.map(x=>{const n=x.k==='plano'?nd:0;return `<button class="${x.k===g.k?'on':''}" data-a="dsub" data-s="${x.s[0][0]}">${x.l}${n?`<span class="pill acc">${n}</span>`:''}</button>`}).join('')}</nav>`;
+  if(sub) out+=`<button class="linkbtn dvolta" data-a="dsub" data-s="planejar">${svg('l')}Planejar</button>`;
   if(['resumo','orcamento','transacoes'].includes(s)) out+=`<div class="row between"><button class="iconbtn" data-a="mes" data-n="-1" aria-label="Mês anterior">${svg('l')}</button><b>${UI.mes===TODAY().slice(0,7)?'Esse mês · ':''}${cap(fmtM(UI.mes))}</b><button class="iconbtn" data-a="mes" data-n="1" aria-label="Próximo mês">${svg('r')}</button></div>`;
-  return out+`<div class="dgrid dg-${s}">`+({resumo:dResumo,previsao:dPrevisao,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)()+`</div>`;
+  return out+`<div class="dgrid dg-${s}">`+({resumo:dResumo,planejar:dPlanejar,previsao:dPrevisao,orcamento:dOrcamento,transacoes:dTransacoes,recorrentes:dRecorrentes,decidir:dDecidir,metasf:dMetas,dividas:dDividas,calc:dCalc}[s]||dResumo)()+`</div>`;
+}
+function dPlanejar(){
+  const m=TODAY().slice(0,7), f=fin(m), nd=decisoes().length;
+  const metas=S.fin.metas.filter(x=>metaInfo(x).status!=='Chegou'), divs=S.fin.dividas.filter(d=>!d.saudavel&&+d.saldo>0);
+  const P=previsao(6), sob=P.renda?P.meses.reduce((a,x)=>a+x.sobra,0):null;
+  const it=[
+   ['orcamento','Orçamento','Quanto você quer gastar em cada coisa',f.base?`${Math.round(f.comprom*100)}% da renda com destino`:'Ainda sem plano'],
+   ['decidir','Posso comprar?','Pergunte antes de comprar e eu digo se cabe',nd?`${nd} ${plural(nd,'decisão esperando','decisões esperando')}`:'Nada esperando'],
+   ['previsao','Previsão','Quanto deve sobrar nos próximos meses',sob===null?'Falta a renda':`${sob>=0?'Sobram':'Faltam'} ${brl0(Math.abs(sob))} em 6 meses`],
+   ['metasf','Metas','O que você está juntando',metas.length?`${metas.length} ${plural(metas.length,'meta','metas')} em andamento`:'Nenhuma meta ainda'],
+   ['dividas','Dívidas','O que você está pagando e quando acaba',divs.length?`${divs.length} ${plural(divs.length,'dívida','dívidas')} · ${brl0(divs.reduce((a,d)=>a+(+d.saldo||0),0))}`:'Nenhuma dívida'],
+   ['calc','Calculadoras','Juros, parcelado ou à vista, reserva','']];
+  return `<section class="card plist">${it.map(([k,l,d,v])=>`<button class="prow" data-a="dsub" data-s="${k}"><span class="grow"><b>${l}${k==='decidir'&&nd?` <span class="pill acc">${nd}</span>`:''}</b><span class="tiny muted">${d}</span>${v?`<span class="small pv">${v}</span>`:''}</span>${svg('r')}</button>`).join('')}</section>`;
 }
 function chartMes(m){
   const pm=addMonth(m,-1), nm=daysInMonth(m), np=daysInMonth(pm), cur=TODAY().slice(0,7);
@@ -1223,32 +1257,51 @@ function contasMesCard(m){
    ${lst}${falta.length>4?`<button class="linkbtn" data-a="dsub" data-s="recorrentes" style="align-self:flex-start">+ ${falta.length-4} ${plural(falta.length-4,'conta','contas')} ›</button>`:''}</section>`;
 }
 function dResumo(){
-  const m=UI.mes, pm=addMonth(m,-1), ppm=addMonth(m,-2), cur=TODAY().slice(0,7), f=fin(m);
+  const m=UI.mes, pm=addMonth(m,-1), cur=TODAY().slice(0,7), f=fin(m);
   const ate=m===cur?new Date().getDate():daysInMonth(m), ateP=Math.min(ate,daysInMonth(pm));
-  const g=gastoAte(m,ate), gp=gastoAte(pm,ateP); const dif=g-gp;
-  const fp=fin(pm),fpp=fin(ppm); const sob=fp.ent-fp.sai-fp.guard, sob2=fpp.ent-fpp.sai-fpp.guard;
-  const y=m.slice(0,4); let gy=0,ey=0; for(const mm in M) if(mm.startsWith(y)&&mm<=m){const ff=fin(mm);gy+=ff.guard;ey+=ff.ent}
+  const g=gastoAte(m,ate), gp=gastoAte(pm,ateP), dif=g-gp;
+  const fp=fin(pm), sobP=fp.ent-fp.sai-fp.guard;
+  const reserva=Math.max(+cfg().guardar||0,f.guard);
   let out='';
-  if(f.renda<=0&&m===cur) out+=`<section class="card"><h2>Quanto você espera receber em ${nomeMes(m)}?</h2><p class="muted small">Sua renda varia, então coloque uma previsão realista. Com ela eu calculo o que está livre e respondo o “posso comprar?”.</p>
+  if(f.renda<=0&&m===cur) out+=`<section class="card"><h2>Quanto você espera receber em ${nomeMes(m)}?</h2><p class="muted small">Sua renda varia, então coloque uma previsão realista. Com ela eu calculo quanto ainda dá pra gastar.</p>
     <form data-f="renda" class="row"><input type="number" inputmode="decimal" step="0.01" name="renda" id="rendaQ" placeholder="Ex.: 4500"><button class="btn pri">Salvar</button></form></section>`;
-  out+=`<section class="card hero"><div class="row between"><b class="small">${cap(nomeMes(m))}${m===cur?' até dia '+ate:''}</b><button class="linkbtn" data-a="dsub" data-s="transacoes">Ver tudo ›</button></div>
-   <div class="big num">${brlBig(g)}</div>
-   <p class="small">saíram${gp||txMes(pm).length?`. <b>${brl0(Math.abs(dif))} a ${dif>=0?'mais':'menos'}</b> que ${nomeMes(pm)} até ${pad(ateP)}/${pm.slice(5)}.`:'.'}</p>
-   ${chartMes(m)}
-   <div class="two"><div class="mini"><span class="tiny">Em ${nomeMes(pm)}, sobrou</span><b class="num">${brl0(sob)}</b><span class="tiny muted">${fpp.ent||fpp.sai?`${brl0(Math.abs(sob-sob2))} ${sob>=sob2?'melhor':'pior'} que ${nomeMes(ppm)}`:'sem dados do mês anterior'}</span></div>
-   <div class="mini"><span class="tiny">Guardado em ${y}</span><b class="num">${brl0(gy)}</b><span class="tiny muted">${ey?Math.round(gy/ey*100)+'% do que entrou':'—'}</span></div></div></section>`;
-  out+=contasMesCard(m);
-  if(m===cur&&f.base>0) out+=`<section class="card"><div class="row between"><span class="muted small">Livre até o fim do mês</span><b class="num">${brl(f.livre)}</b></div><div class="bar ${f.comprom>(+cfg().limite||90)/100?'warn':''}"><i style="width:${Math.min(100,Math.round(f.comprom*100))}%"></i></div><p class="small muted">${brl(f.porDia)} por dia · ${brl0(f.ateDom)} até domingo · ${Math.round(f.comprom*100)}% da renda já tem destino</p></section>`;
-  if(m===cur){ const rep=repetidos(); const nd=decisoes().length;
-    if(rep.length){ const r=rep[0]; out+=`<section class="card"><div class="row top">${ic('assistente')}<div class="grow"><b>Achei um gasto que se repete: ${brl(r.med)} por mês em ${esc(cap(r.k))}.</b><p class="muted small">${brl0(r.anual)} por ano. É assinatura ou conta fixa?</p></div></div><div class="row"><button class="btn acc sm" data-a="repVer">Ver</button><button class="btn ghost sm" data-a="repIgn" data-k="${esc(r.k)}">Agora não</button></div></section>`; }
-    if(nd) out+=`<button class="linkbtn" data-a="dsub" data-s="decidir" style="align-self:flex-start">Mais ${nd} em Posso comprar? ›</button>`;
+  // 1) o número que importa
+  if(m===cur&&f.base>0){
+    const partes=[['Já gastou',f.sai,'var(--accent)'],['Contas a pagar',f.pend,'var(--warn)'],['Pra guardar',reserva,'var(--good)'],['Livre',Math.max(0,f.livre),'var(--line)']].filter(p=>p[1]>0);
+    const tot=partes.reduce((a,p)=>a+p[1],0)||1;
+    out+=`<section class="card hero">
+     <span class="small"><b>Você ainda pode gastar</b></span>
+     <div class="big num" style="${f.livre<0?'color:var(--bad)':''}">${f.livre<0?'−':''}${brlBig(Math.abs(f.livre))}</div>
+     <span class="small">${f.livre<0?'Passou do que entra este mês.':`até o fim de ${nomeMes(m)}. Dá uns <b>${brl0(f.porDia)} por dia</b>.`}</span>
+     <div class="rbox"><div class="row between tiny"><span>Sua renda do mês</span><b class="num">${brl0(f.base)}</b></div>
+      <div class="stackbar" style="height:14px">${partes.map(p=>`<i style="width:${p[1]/tot*100}%;background:${p[2]}"></i>`).join('')}</div>
+      <div class="rleg">${partes.map(p=>`<div><span class="dot" style="background:${p[2]}"></span><span>${p[0]}</span><b class="num">${brl0(p[1])}</b></div>`).join('')}</div></div>
+    </section>`;
+  } else {
+    const sob=f.ent-f.sai-f.guard;
+    out+=`<section class="card hero"><span class="small"><b>${cap(nomeMes(m))}</b></span>
+     <div class="rleg big3">${[['Entrou',f.ent],['Saiu',f.sai],['Guardou',f.guard]].filter(p=>p[1]||p[0]!=='Guardou').map(([l,v])=>`<div><span>${l}</span><b class="num">${brl0(v)}</b></div>`).join('')}
+     <div class="rtot"><span>${sob>=0?'Sobrou':'Faltou'}</span><b class="num" style="color:${sob>=0?'var(--good)':'var(--bad)'}">${brl0(Math.abs(sob))}</b></div></div></section>`;
   }
-  const cats=Object.entries(f.porCat).sort((a,b)=>b[1]-a[1]);
-  out+=`<section class="card"><h2>Contra ${nomeMes(pm)}, no mesmo dia</h2>`;
+  // 2) contas
+  out+=contasMesCard(m);
+  if(m===cur){ const rep=repetidos();
+    if(rep.length){ const r=rep[0]; out+=`<section class="card"><div class="row top">${ic('assistente')}<div class="grow"><b>Achei um gasto que se repete: ${brl(r.med)} por mês em ${esc(cap(r.k))}.</b><p class="muted small">${brl0(r.anual)} por ano. É assinatura ou conta fixa?</p></div></div><div class="row"><button class="btn acc sm" data-a="repVer">Ver</button><button class="btn ghost sm" data-a="repIgn" data-k="${esc(r.k)}">Agora não</button></div></section>`; }
+  }
+  // 3) pra onde foi
+  const c=cfg(), cats=Object.entries(f.porCat).sort((a,b)=>b[1]-a[1]), mx=cats.length?cats[0][1]:1, aberto=UI.catsTodas;
+  out+=`<section class="card"><div class="row between"><h2>Pra onde foi o dinheiro</h2><b class="small num">${brl0(f.sai)}</b></div>`;
   if(!cats.length) out+=`<p class="empty">Nenhum gasto ainda em ${nomeMes(m)}. Toque no + pra lançar ou mandar o extrato.</p>`;
-  else out+=cats.map(([c])=>{const a=gastoAte(m,ate,c),b=gastoAte(pm,ateP,c),d=a-b;
-    return `<div class="lrow"><span class="dot" style="background:${catCor(c)}"></span><span class="grow">${esc(c)}</span>${b?`<span class="tiny" style="color:${d>0?'var(--bad)':'var(--good)'}">${d>0?'+':'−'}${brl0(Math.abs(d))}</span>`:'<span class="tiny muted">novo</span>'}<b class="num">${brl0(a)}</b></div>`}).join('');
-  return out+`</section>`;
+  else out+=(aberto?cats:cats.slice(0,5)).map(([n,v])=>{const o=+(c.cats.find(x=>x.n===n)||{}).orc||0;
+    return `<button class="pcat" data-a="catVer" data-c="${esc(n)}"><span class="row between"><span class="row" style="gap:8px;min-width:0"><span class="dot" style="background:${catCor(n)}"></span><span class="trunc">${esc(n)}</span></span><span class="num"><b>${brl0(v)}</b>${o?`<span class="tiny ${v>o?'bad':'muted'}"> de ${brl0(o)}</span>`:''}</span></span><span class="pbar"><i style="width:${Math.max(2,v/mx*100)}%;background:${o&&v>o?'var(--bad)':catCor(n)}"></i></span></button>`}).join('')
+    +(cats.length>5?`<button class="linkbtn" data-a="catsTodas" style="align-self:flex-start">${aberto?'Mostrar menos':`Ver as outras ${cats.length-5}`}</button>`:'');
+  out+=`</section>`;
+  // 4) comparação, por último
+  if(gp||txMes(pm).length) out+=`<section class="card"><h2>Comparando com ${nomeMes(pm)}</h2>
+   <p class="small">Até o dia ${ate}, você gastou <b style="color:${dif>0?'var(--bad)':'var(--good)'}">${brl0(Math.abs(dif))} ${dif>0?'a mais':'a menos'}</b> que no mesmo dia de ${nomeMes(pm)}.</p>
+   ${chartMes(m)}
+   <div class="row between small" style="border-top:1px solid var(--line);padding-top:10px"><span class="muted">${cap(nomeMes(pm))} fechou com</span><b class="num" style="color:${sobP>=0?'var(--good)':'var(--bad)'}">${sobP>=0?'sobra de ':'falta de '}${brl0(Math.abs(sobP))}</b></div></section>`;
+  return out;
 }
 function dOrcamento(){
   const m=UI.mes, f=fin(m), c=cfg();
@@ -2109,6 +2162,8 @@ const ACT={
  go:d=>{ if(d.v==='ajustes') UI.aj=''; go(d.v); },
  ajPag:d=>{ UI.aj=d.p||''; render(); window.scrollTo(0,0); },
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
+ catsTodas:()=>{UI.catsTodas=!UI.catsTodas;render()},
+ catVer:d=>{UI.txcat=d.c;UI.txq='';UI.sub.dinheiro='transacoes';render();window.scrollTo(0,0)},
  dsub:d=>{UI.sub.dinheiro=d.s;UI.dlast=UI.dlast||{};UI.dlast[grupoDe(d.s).k]=d.s;UI.decIdx=0;render();window.scrollTo(0,0)},
  ssub:d=>{UI.sub.saude=d.s;render()},
  mes:d=>{UI.mes=addMonth(UI.mes,+d.n);render()},
