@@ -455,6 +455,36 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
+:root{--pl-folha:#3E9B5F;--pl-folha2:#62B87C;--pl-seca:#B9A25A;--pl-caule:#3C7F4E;--pl-vaso:#D9805F;--pl-vaso2:#C46A4B;--pl-terra:#6B4733;--pl-flor:#F28BB0;--pl-miolo:#F6C243;--pl-semente:#8A6A4A;--pl-sombra:rgba(60,30,40,.08);--pl-ceu:#EAF5EC}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pl-ceu:#1E2A22;--pl-sombra:rgba(0,0,0,.3)}}
+:root[data-theme="dark"]{--pl-ceu:#1E2A22;--pl-sombra:rgba(0,0,0,.3)}
+.trnome .trunc{max-width:100%}
+.habwrap{display:flex;flex-direction:column;gap:18px;max-width:820px;width:100%;margin:0 auto}
+.plhero{flex-direction:row;align-items:center;gap:14px;background:linear-gradient(180deg,var(--pl-ceu),var(--surface));border:0}
+.plsvg{width:150px;height:150px;flex:none}
+.plbalanca{transform-origin:100px 142px;animation:plb 5s ease-in-out infinite}
+@keyframes plb{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+@media (prefers-reduced-motion:reduce){.plbalanca{animation:none}}
+.plinfo{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.plhoje{display:flex;align-items:baseline;gap:6px}
+.plhoje b{font-family:var(--display);font-size:40px;line-height:1;color:var(--pl-caule)}
+.plgota .bar i{background:#4AA3DF}
+.plgota{display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.trk{display:flex;flex-direction:column}
+.trow{display:grid;grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.trcab{border-top:0;padding:0 0 4px}
+.trcab span{font-size:11px;color:var(--muted);text-align:center;font-weight:600}
+.trcab span.hj{color:var(--ink)}
+.trnome{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;border:0;background:none;font:inherit;font-weight:600;font-size:14.5px;color:var(--ink);text-align:left;padding:0;cursor:pointer}
+.trfogo{font-size:11.5px;color:var(--warn);font-weight:700;flex:none}
+.tdot{width:25px;height:25px;border-radius:50%;justify-self:center;display:grid;place-items:center;border:0;padding:0;font:inherit;font-size:13px;font-weight:800;color:#fff;background:var(--sunk);cursor:pointer}
+.tdot.ok{background:var(--pl-folha)}
+.tdot.no{background:var(--bad-soft)}
+.tdot.skip{background:repeating-linear-gradient(45deg,var(--sunk) 0 3px,var(--line) 3px 6px)}
+.tdot.hoje{background:var(--surface);box-shadow:inset 0 0 0 2px var(--pl-folha)}
+.tdot.fut{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);cursor:default}
+.tdot.off{width:6px;height:6px;background:var(--line);cursor:default}
+@media (min-width:1100px){.plsvg{width:200px;height:200px}.trow{grid-template-columns:minmax(0,1fr) repeat(7,44px)}.tdot{width:30px;height:30px}}
 .dvolta{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;margin-top:-4px}
 .dvolta svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 .rbox{background:color-mix(in srgb,var(--surface) 75%,transparent);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;margin-top:6px}
@@ -608,6 +638,7 @@ function fill(def,data){ if(Array.isArray(def)) return Array.isArray(data)?data:
   if(def&&typeof def==='object'){const o={...(data&&typeof data==='object'&&!Array.isArray(data)?data:{})};for(const k in def){o[k]=k in o?fill(def[k],o[k]):clone(def[k])}return o}
   return data===undefined?def:data;}
 const IC={
+ habitos:'<path d="M12 21v-9"/><path d="M12 12C12 8 9 6 5 6c0 4 3 6 7 6zM12 10c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M8 21h8"/>',
  mente:'<path d="M9.5 3a4.5 4.5 0 0 0-4.4 5.4A4 4 0 0 0 5 16h.2A3.5 3.5 0 0 0 12 17.5V4.6A4.4 4.4 0 0 0 9.5 3zM14.5 3A4.5 4.5 0 0 1 18.9 8.4 4 4 0 0 1 19 16h-.2A3.5 3.5 0 0 1 12 17.5"/><path d="M12 17.5V21"/>',
  hoje:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
  agenda:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
@@ -732,7 +763,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.8';
+const VERSAO='2026-10-30.9';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -760,10 +791,10 @@ function migrar(){
 /* ================= estado de tela ================= */
 const UI={view:'hoje',dia:TODAY(),mes:TODAY().slice(0,7),sub:{dinheiro:'resumo',saude:'injecao'},ag:{modo:'hoje',dia:TODAY(),q:'',mes:TODAY().slice(0,7)},
   compra:null,chatLive:null,chatBusy:false,timer:null,confirmApagar:false,ciclomes:TODAY().slice(0,7),txq:'',txcat:'',isso:null,calc:'tudo',planoModo:'plano',decIdx:0};
-const VIEWS=['hoje','agenda','dinheiro','metas','saude','estudos','casa','ajustes','mais'];
+const VIEWS=['hoje','agenda','dinheiro','metas','habitos','saude','estudos','casa','ajustes','mais'];
 try{const v=localStorage.getItem('rumo-view');if(VIEWS.includes(v))UI.view=v; UI.sideMin=localStorage.getItem('rumo-sidemin')==='1'}catch(e){}
 {const h=(location.hash||'').slice(1);if(VIEWS.includes(h))UI.view=h; if(h==='demo') UI.wantDemo=true;}
-const NAV=[['hoje','Hoje'],['agenda','Agenda'],['dinheiro','Dinheiro'],['metas','Meu plano'],['saude','Bem-estar'],['estudos','Estudos'],['casa','Casa & compras'],['mente','Esvaziar a mente'],['ajustes','Ajustes']];
+const NAV=[['hoje','Hoje'],['agenda','Agenda'],['dinheiro','Dinheiro'],['metas','Meu plano'],['habitos','Hábitos'],['saude','Bem-estar'],['estudos','Estudos'],['casa','Casa & compras'],['mente','Esvaziar a mente'],['ajustes','Ajustes']];
 function go(v){UI.view=v;try{localStorage.setItem('rumo-view',v)}catch(e){}render();window.scrollTo(0,0)}
 
 let rq=false,pendingRender=false;
@@ -777,7 +808,7 @@ function aplicaTema(){
   const cor=getComputedStyle(document.body).backgroundColor;
   document.querySelectorAll('meta[name=theme-color]').forEach(m=>{m.setAttribute('content',cor);m.removeAttribute('media')});
 }
-const NOMEMENU={hoje:'Hoje',agenda:'Agenda',dinheiro:'Dinheiro',saude:'Bem-estar',metas:'Meu plano',estudos:'Estudos',casa:'Casa',mente:'Mente'};
+const NOMEMENU={hoje:'Hoje',agenda:'Agenda',dinheiro:'Dinheiro',saude:'Bem-estar',metas:'Meu plano',habitos:'Hábitos',estudos:'Estudos',casa:'Casa',mente:'Mente'};
 function menuAtual(){ const m=(S.perfil.menu||[]).filter(v=>NOMEMENU[v]); const def=['hoje','agenda','dinheiro','saude']; const out=[...new Set(m)]; for(const v of def){ if(out.length>=4) break; if(!out.includes(v)) out.push(v); } for(const v of Object.keys(NOMEMENU)){ if(out.length>=4) break; if(!out.includes(v)) out.push(v); } return out.slice(0,4); }
 function pcBar(){
   if(UI.view==='ajustes'||UI.view==='mais') return '';
@@ -793,7 +824,7 @@ function render(){
   const menu=menuAtual(); const tabs=[...menu.map(v=>[v,NOMEMENU[v]]),['mais','Mais']];
   const inMais=!menu.includes(UI.view);
   $('#tabs').innerHTML=tabs.map(([v,l])=>`<button class="${(UI.view===v||(v==='mais'&&inMais))?'on':''}" data-a="${v==='mais'?'abrirMais':'go'}" data-v="${v}">${ic(v)}${l}</button>`).join('');
-  const fn={hoje:vHoje,agenda:vAgenda,dinheiro:vDinheiro,metas:vMetas,saude:vSaude,estudos:vEstudos,casa:vCasa,mente:vMente,ajustes:vAjustes,mais:vMais}[UI.view]||vHoje;
+  const fn={hoje:vHoje,agenda:vAgenda,dinheiro:vDinheiro,metas:vMetas,habitos:vHabitos,saude:vSaude,estudos:vEstudos,casa:vCasa,mente:vMente,ajustes:vAjustes,mais:vMais}[UI.view]||vHoje;
   $('#view').className=UI.view==='agenda'?'wide':'';
   $('#view').innerHTML=pcBar()+fn();
   $('#fabslot').innerHTML=UI.view==='hoje'||UI.view==='agenda'?`<button class="fab" data-a="addMenu" aria-label="Adicionar">${svg('plus')}</button>`:UI.view==='dinheiro'?`<button class="fab" data-a="lancarMenu" aria-label="Lançar">${svg('plus')}</button>`:'';
@@ -846,7 +877,9 @@ function streak(i,d){ let n=0,x=d; if(!isDone(i,x)) x=addDays(x,-1); for(let k=0
 function semanaDe(d){ const dt=parseD(d); const wd=(dt.getDay()+6)%7; const seg=addDays(d,-wd); return [...Array(7)].map((_,i)=>addDays(seg,i)); }
 const getT=id=>S.tarefas.items.find(x=>x.id===id);
 function atrasadas(){ const t=TODAY(); return S.tarefas.items.filter(i=>i.tipo==='tarefa'&&!isRep(i)&&!i.feito&&i.data&&i.data<t); }
-function toggleItem(i,d){ if(isRep(i)){ i.feitos=i.feitos||{}; if(i.feitos[d]===true) delete i.feitos[d]; else i.feitos[d]=true; } else i.feito=!i.feito; save('tarefas'); }
+function toggleItem(i,d){ const k0=i.tipo==='habito'?plFase(plGotas()):0; if(isRep(i)){ i.feitos=i.feitos||{}; if(i.feitos[d]===true) delete i.feitos[d]; else i.feitos[d]=true; } else i.feito=!i.feito; save('tarefas'); if(i.tipo==='habito'&&i.feitos[d]===true) setTimeout(()=>celebraHab(i,d,k0),50); }
+function celebraHab(i,d,k0){ const k=plFase(plGotas()); if(k>k0) return toast(`Sua plantinha cresceu! Agora ela é ${PL_FASES[k][1]} 🌿`); if(d!==TODAY()) return; const st=streak(i,d); const hs=S.tarefas.items.filter(x=>x.tipo==='habito'&&ocorre(x,d)&&!isSkip(x,d)); const cheio=hs.length&&hs.every(x=>isDone(x,d));
+  toast(cheio?'Dia completo! Sua plantinha agradece 🌱':`💧 Regou a plantinha · ${i.titulo}`+(st>1?` · 🔥 ${st} seguidos`:'')); }
 function metaLinha(i){
   const m=[]; if(i.hora) m.push(i.hora+' · '+durTxt(defDur(i))); if(i.etiqueta) m.push(i.etiqueta);
   if(i.passos&&i.passos.length) m.push(`${i.passos.filter(p=>p.ok).length}/${i.passos.length} passos`);
@@ -1883,6 +1916,54 @@ function semanaResumo(seg){
   let gasto=0; for(const m of [...new Set(dias.map(d=>d.slice(0,7)))]) for(const x of txMes(m)) if(dias.includes(x.data)&&ehGasto(x)) gasto+=+x.valor||0;
   return {tot,ok,ht,hok,sm,gasto};
 }
+/* ================= VIEW: Hábitos (plantinha) ================= */
+const PL_FASES=[[0,'Semente'],[3,'Brotinho'],[10,'Mudinha'],[25,'Plantinha'],[50,'Planta'],[90,'Botãozinho'],[150,'Florzinha'],[250,'Florida']];
+function plFase(g){ let k=0; PL_FASES.forEach(([m],i)=>{ if(g>=m) k=i; }); return k; }
+function plGotas(){ return S.tarefas.items.filter(i=>i.tipo==='habito').reduce((a,i)=>a+Object.entries(i.feitos||{}).filter(([d,v])=>v===true&&ocorre(i,d)).length,0); }
+function plantaSvg(k,sede){
+  const H=[0,22,44,62,80,90,98,104][k], soil=142, folha=sede?'var(--pl-seca)':'var(--pl-folha)', folha2=sede?'var(--pl-seca)':'var(--pl-folha2)';
+  const nF=[0,2,2,4,6,6,8,8][k]; let g='';
+  if(k===0) g+=`<ellipse cx="100" cy="${soil-10}" rx="8" ry="6" fill="var(--pl-semente)"/><path d="M101 ${soil-15} q2 -7 7 -8" stroke="var(--pl-folha)" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+  else {
+    g+=`<path d="M100 ${soil} C 97 ${soil-H*.4}, 103 ${soil-H*.7}, 100 ${soil-H}" stroke="var(--pl-caule)" stroke-width="${k>3?4:3}" fill="none" stroke-linecap="round"/>`;
+    for(let j=0;j<nF;j++){ const par=Math.floor(j/2), lado=j%2?-1:1, pares=Math.ceil(nF/2), y=soil-H*(pares>1?0.2+0.62*par/(pares-1):0.6), s=(k<3?0.8:1.05)*(1-par*0.1);
+      g+=`<path transform="translate(100 ${y.toFixed(1)}) scale(${(lado*s).toFixed(2)} ${s.toFixed(2)}) rotate(${sede?18:-8})" d="M0 0 C 8 -14, 26 -14, 34 -4 C 24 4, 10 6, 0 0Z" fill="${j%4<2?folha:folha2}"/>`; }
+    const topo=soil-H;
+    if(k>=5){ if(k===5) g+=`<ellipse cx="100" cy="${topo-6}" rx="6" ry="9" fill="var(--pl-flor)"/><path d="M95 ${topo-1} q5 4 10 0" stroke="var(--pl-folha)" stroke-width="3" fill="none"/>`;
+      else { const flor=(cx,cy,r)=>[0,72,144,216,288].map(a=>`<ellipse cx="${cx}" cy="${cy-r}" rx="${r*.62}" ry="${r}" fill="var(--pl-flor)" transform="rotate(${a} ${cx} ${cy})"/>`).join('')+`<circle cx="${cx}" cy="${cy}" r="${r*.55}" fill="var(--pl-miolo)"/>`;
+        g+=flor(100,topo-8,10); if(k>=7){ g+=flor(70,topo+22,7)+flor(131,topo+16,7); } } }
+    else if(k>=1) g+=`<circle cx="100" cy="${topo}" r="2.5" fill="var(--pl-folha2)"/>`;
+  }
+  return `<svg class="plsvg" viewBox="35 6 130 190" role="img" aria-label="Plantinha na fase ${PL_FASES[k][1]}${sede?', com sede':''}">
+   <ellipse cx="100" cy="190" rx="52" ry="6" fill="var(--pl-sombra)"/>
+   <g class="plbalanca">${g}</g>
+   <path d="M62 142 h76 l-8 46 h-60z" fill="var(--pl-vaso)"/><rect x="56" y="134" width="88" height="14" rx="5" fill="var(--pl-vaso2)"/>
+   <ellipse cx="100" cy="137" rx="38" ry="4" fill="var(--pl-terra)"/></svg>`;
+}
+function vHabitos(){
+  const t=TODAY(), hs=S.tarefas.items.filter(i=>i.tipo==='habito');
+  let out=`<section><div class="eyebrow">Hábitos</div><h1>Sua plantinha</h1></section>`;
+  if(!hs.length) return out+`<section class="card plhero">${plantaSvg(0,false)}<div class="plinfo"><b>Ela começa como semente</b><p class="small muted">Crie seus hábitos no + e marque quando fizer. Cada hábito feito é uma gota de água e ela vai crescendo.</p><button class="btn pri" data-a="addMenu" style="align-self:flex-start">Criar hábito</button></div></section>`;
+  const gotas=plGotas(), k=plFase(gotas), prox=PL_FASES[k+1];
+  const deHoje=hs.filter(i=>ocorre(i,t)&&!isSkip(i,t)), fezHoje=deHoje.filter(i=>isDone(i,t)).length;
+  const ontem=addDays(t,-1), regouOntem=hs.some(i=>isDone(i,ontem));
+  const sede=deHoje.length>0&&fezHoje===0&&!regouOntem;
+  const pct=prox?Math.round((gotas-PL_FASES[k][0])/(prox[0]-PL_FASES[k][0])*100):100;
+  const msg=deHoje.length===0?'Hoje não tem hábito programado. Ela descansa também.':fezHoje===deHoje.length?'Regada por hoje! Todos os hábitos feitos 🌱':sede?'Ela está com sede. Faz um hábito pra regar 💧':`${deHoje.length-fezHoje>1?'Faltam':'Falta'} ${deHoje.length-fezHoje} ${plural(deHoje.length-fezHoje,'hábito','hábitos')} pra regar por hoje`;
+  out+=`<section class="card plhero">${plantaSvg(k,sede)}
+   <div class="plinfo"><span class="eyebrow">${PL_FASES[k][1]}</span>
+    <div class="plhoje"><b class="num">${fezHoje}</b><span>de ${deHoje.length} hoje</span></div>
+    <p class="small">${msg}</p>
+    <div class="plgota"><div class="bar"><i style="width:${pct}%"></i></div><span class="tiny muted">${prox?`💧 ${prox[0]-gotas} ${plural(prox[0]-gotas,'gota','gotas')} pra virar ${prox[1]}`:'💧 Florida! Ela continua florindo com você'}</span></div></div></section>`;
+  const sem=semanaDe(t);
+  out+=`<section class="card"><div class="row between"><h2>Sua semana</h2><span class="tiny muted">toque pra marcar</span></div>
+   <div class="trk"><div class="trow trcab"><span></span>${sem.map(d=>`<span class="${d===t?'hj':''}">${DOW[parseD(d).getDay()][0].toUpperCase()}</span>`).join('')}</div>
+   ${hs.map(i=>{ const st=streak(i,t);
+     return `<div class="trow"><button class="trnome" data-a="editT" data-id="${i.id}"><span class="trunc">${esc(i.titulo)}</span>${st>1?`<span class="trfogo">🔥 ${st} seguidos</span>`:''}</button>${sem.map(d=>{
+       const prog=ocorre(i,d)&&d>=(i.data||i.inicio||'0000'), fut=d>t, c=!prog?'off':isDone(i,d)?'ok':isSkip(i,d)?'skip':estadoDe(i,d)==='naofiz'?'no':fut?'fut':d<t?'no':'hoje';
+       return prog&&!fut?`<button class="tdot ${c}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${esc(i.titulo)}, ${DOWL[parseD(d).getDay()]}: ${c==='ok'?'feito':'não feito'}">${c==='ok'?'✓':''}</button>`:`<span class="tdot ${c}"></span>`}).join('')}</div>`}).join('')}</div></section>`;
+  return `<div class="habwrap">${out}</div>`;
+}
 function vMente(){
   const tab=UI.menteTab||'despejar', M2=S.mente;
   let out=`<section><div class="eyebrow">Esvaziar a mente</div><h1>Tira da cabeça, põe aqui</h1></section>
@@ -2019,7 +2100,7 @@ function syncCard(){
 }
 const erroSB=e=>{const m=String(e&&e.message||e||'');return /invalid login/i.test(m)?'E-mail ou senha errados.':/not confirmed/i.test(m)?'Confirme o e-mail que o Supabase te mandou e tente de novo.':/already registered|already exists/i.test(m)?'Esse e-mail já tem conta. Toque em Entrar.':/password/i.test(m)?'A senha precisa ter pelo menos 6 caracteres.':/fetch|network/i.test(m)?'Sem internet agora.':'Não deu certo: '+m};
 
-const AREAS=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
+const AREAS=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['habitos','Hábitos','Sua plantinha e seus hábitos da semana'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
 function abrirMais(){
   const menu=menuAtual(), outras=AREAS.filter(a=>!menu.includes(a[0]));
   const item=([v,l,s])=>`<button class="ditem ${UI.view===v?'on':''}" data-a="irMais" data-v="${v}">${ic(v)}<span>${l}<small>${s}</small></span></button>`;
@@ -2030,7 +2111,7 @@ function abrirMais(){
   $('#drawer').hidden=false;
 }
 function vMais(){
-  const todos=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
+  const todos=[['hoje','Hoje','Seu dia e o que está atrasado'],['agenda','Agenda','Dia, semana e mês'],['dinheiro','Dinheiro','Gastos, plano e metas'],['metas','Meu plano','Objetivos e próximos passos'],['habitos','Hábitos','Sua plantinha e seus hábitos da semana'],['saude','Bem-estar','Injeção, ciclo e sono'],['estudos','Estudos','Tempo por semana'],['casa','Casa & compras','Lista e rotina'],['mente','Esvaziar a mente','Despejar ideias e revisar a semana']];
   const menu=menuAtual(); const tiles=[...todos.filter(t=>!menu.includes(t[0])),['ajustes','Ajustes','Menu, aparência, sincronizar']];
   return `<section><div class="eyebrow">Mais</div><h1>Tudo do Rumo</h1></section><div class="tiles">${tiles.map(([v,l,s])=>`<button class="tile" data-a="go" data-v="${v}">${ic(v)}<b>${l}</b><span class="muted small">${s}</span></button>`).join('')}</div>`;
 }
@@ -2190,7 +2271,7 @@ const ACT={
  agendar:d=>{const i=getT(d.id);if(i)openSheet(formItem(i,'hora'))},
  delT:d=>{const i=getT(d.id);S.tarefas.items=S.tarefas.items.filter(x=>x.id!==d.id);save('tarefas');closeSheet();render();toast('Apagado',()=>{S.tarefas.items.push(i);save('tarefas');render()})},
  estadoMenu:d=>{const i=getT(d.id);if(i)openSheet(estadoHtml(i,d.d||UI.dia))},
- setEstado:d=>{const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia;setEstado(i,dia,d.e);save('tarefas');closeSheet();render();toast(d.e?({feito:'Feito ✅',pulou:'Marcado: hoje não',naofiz:'Marcado: não fiz',cancelado:'Cancelado'})[d.e]:'Voltou pra pendente')},
+ setEstado:d=>{const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia;const k0=i.tipo==='habito'?plFase(plGotas()):0;setEstado(i,dia,d.e);save('tarefas');closeSheet();render();if(i.tipo==='habito'&&d.e==='feito'){setTimeout(()=>celebraHab(i,dia,k0),50);return;}toast(d.e?({feito:'Feito ✅',pulou:'Marcado: hoje não',naofiz:'Marcado: não fiz',cancelado:'Cancelado'})[d.e]:'Voltou pra pendente')},
  toggleT:d=>{ if(d.id==='inj'){ const dia=d.d||UI.dia, j=S.saude.injecao; if(j.historico.includes(dia)){ j.historico=j.historico.filter(x=>x!==dia); j.ultima=j.historico[j.historico.length-1]||''; save('saude'); render(); toast('Injeção desmarcada'); } else { registraInj(dia); render(); toast('Injeção registrada. Próxima em '+fmtD(injStatus().prox)); } return; }
    const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia; if(estadoDe(i,dia)&&!isDone(i,dia)){setEstado(i,dia,'');save('tarefas');render();return;} toggleItem(i,dia);render()},
  pularH:d=>{const i=getT(d.id);i.feitos=i.feitos||{};const k=d.d||UI.dia; if(i.feitos[k]==='pulou') delete i.feitos[k]; else i.feitos[k]='pulou'; save('tarefas');render()},
