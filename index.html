@@ -455,6 +455,12 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
+.sdicas{gap:4px}
+.sdica{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.sdica:first-of-type{border-top:0}
+.sdica .e{font-size:22px;width:40px;height:40px;border-radius:12px;background:var(--night-soft);display:grid;place-items:center;flex:none}
+.sdica>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sbom{background:var(--good-soft);border-radius:12px;padding:10px 12px;margin:6px 0}
 :root{--pl-folha:#3E9B5F;--pl-folha2:#62B87C;--pl-seca:#B9A25A;--pl-caule:#3C7F4E;--pl-vaso:#D9805F;--pl-vaso2:#C46A4B;--pl-terra:#6B4733;--pl-flor:#F28BB0;--pl-miolo:#F6C243;--pl-semente:#8A6A4A;--pl-sombra:rgba(60,30,40,.08);--pl-ceu:#EAF5EC}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pl-ceu:#1E2A22;--pl-sombra:rgba(0,0,0,.3)}}
 :root[data-theme="dark"]{--pl-ceu:#1E2A22;--pl-sombra:rgba(0,0,0,.3)}
@@ -763,7 +769,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.9';
+const VERSAO='2026-10-30.10';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1735,6 +1741,53 @@ function sonoSvg(bed,wake){
 const sDur=(b,w)=>((w-b)+1440)%1440||1440;
 const sDurTxt=m=>Math.floor(m/60)+'h'+(m%60?pad(m%60):'');
 function sonoAtualizaDial(){ const st=UI.sono, svgEl=$('#sonoSvg'); if(!svgEl) return; svgEl.innerHTML=sonoSvg(st.bed,st.wake); $('#sonoDur').textContent=sDurTxt(sDur(st.bed,st.wake)); $('#sonoFaixa').textContent=fromMin(st.bed)+' → '+fromMin(st.wake); $('#sonoDormi').textContent=fromMin(st.bed); $('#sonoAcordei').textContent=fromMin(st.wake); }
+/* ---------- dicas de sono a partir das suas noites ---------- */
+const SDICAS=[
+ {k:'tela',e:'📱',t:'Deixa o celular longe da cama',tag:'Usei o celular na cama',pal:['celular','tela','insta','tiktok','reels','youtube','serie','netflix','rede social','whats'],
+  d:'Tente parar com tela uns 30 a 60 minutos antes de deitar e deixar o celular carregando fora do alcance da cama. A luz e o conteúdo mantêm o cérebro ligado.'},
+ {k:'cafe',e:'☕',t:'Café só até o começo da tarde',tag:'Café ou bebida à noite',pal:['cafe','coca','refrigerante','energetico','cha preto','chimarrao','vinho','cerveja','drink','bebi','alcool'],
+  d:'A cafeína fica horas no corpo, então o ideal é o último café até umas 14h. Álcool também atrapalha: dá sono no começo, mas faz acordar mais vezes de madrugada.'},
+ {k:'mente',e:'🧠',t:'Esvazia a cabeça antes de deitar',tag:'Demorei pra dormir',pal:['ansiedade','ansiosa','preocupada','pensando','pensamento','estresse','estressada','mente acelerada','nao conseguia dormir','insonia','rolando na cama'],
+  d:'Anote o que está te preocupando ou o que precisa fazer amanhã, pra não ficar repassando na cama. Se passar uns 20 minutos sem dormir, levanta, faz algo calmo com pouca luz e volta quando bater o sono.',btn:['go','Esvaziar a mente',{v:'mente'}]},
+ {k:'quarto',e:'🌙',t:'Quarto escuro, fresco e silencioso',tag:'Acordei várias vezes',pal:['barulho','calor','frio','luz','xixi','banheiro','acordei de madrugada','vizinho','cachorro','mosquito'],
+  d:'Cortina blackout ou máscara, uma temperatura confortável e tampão de ouvido ajudam bastante. Beber menos líquido nas 2 horas antes de deitar diminui as idas ao banheiro.'},
+ {k:'pesadelo',e:'🕯️',t:'Desacelera no fim do dia',tag:'Tive pesadelo',pal:['pesadelo','sonho ruim','sonhei','assustada'],
+  d:'Evite conteúdo pesado ou tenso perto da hora de dormir e crie um ritual calmo: banho morno, luz baixa, leitura leve. Se os pesadelos forem frequentes, vale conversar com sua médica.'},
+ {k:'cochilo',e:'😴',t:'Cochilo curto e cedo',tag:'Cochilei de dia',pal:['cochilo','cochilei','dormi a tarde','soneca'],
+  d:'Se for cochilar, fica em até 20 ou 30 minutos e antes das 15h, pra não roubar o sono da noite.'},
+ {k:'dor',e:'🩹',t:'Dor atrapalhando o sono',tag:'',pal:['dor','doendo','enxaqueca','colica','coluna','torcicolo','cabeca doendo'],
+  d:'Vale olhar travesseiro, colchão e a posição em que você dorme. Se a dor continuar, fale com sua médica.'}];
+function sonoDicas(){
+  const t=TODAY(), regs=S.saude.sono.filter(s=>s.data>addDays(t,-14)&&s.data<=t).sort((a,b)=>a.data<b.data?-1:1);
+  if(!regs.length) return {lista:[],regs};
+  const n=regs.length, lista=[];
+  for(const x of SDICAS){ const porT=r=>!!x.tag&&(r.tags||[]).includes(x.tag), porO=r=>x.pal.some(p=>(' '+norm(r.obs||'')+' ').includes(' '+p+' ')); const hits=regs.filter(r=>porT(r)||porO(r));
+    if(hits.length){ const t1=hits.some(porT), o1=hits.some(porO);
+      lista.push({...x,n:hits.length,pq:`Apareceu em ${hits.length} de ${n} ${plural(n,'noite','noites')}${t1?` (“${x.tag}”${o1?' e nas suas anotações':''})`:' nas suas anotações'}.`}); } }
+  // padrões de horário
+  const durs=regs.map(r=>Math.round(sonoH(r)*60)), med=durs.reduce((a,b)=>a+b,0)/n, curtas=durs.filter(m=>m<420).length;
+  const cans=regs.filter(r=>(r.tags||[]).includes('Acordei cansada')).length;
+  if(med<420||cans>=2){ const wk=Math.round(regs.map(r=>toMin(r.acordou)).reduce((a,b)=>a+b,0)/n), alvo=(wk-450+1440)%1440;
+    lista.push({k:'tempo',e:'⏰',t:'Mais tempo de cama',n:Math.max(curtas,cans),d:`Pra dormir umas 7h30 acordando por volta das ${fromMin(Math.round(wk/5)*5)}, o ideal seria deitar perto das ${fromMin(Math.round(alvo/5)*5)}. Vale ir adiantando 15 minutos por noite até chegar lá.`,
+      pq:`Sua média foi ${sDurTxt(Math.round(med))}${cans?` e você acordou cansada em ${cans} ${plural(cans,'noite','noites')}`:''}.`}); }
+  if(n>=4){ const bs=regs.map(r=>(toMin(r.deitou)-720+1440)%1440), mn=Math.min(...bs), mx=Math.max(...bs);
+    if(mx-mn>=90) lista.push({k:'regular',e:'🗓️',t:'Horário parecido todo dia',n:2,d:'Deitar e acordar perto do mesmo horário, inclusive no fim de semana, ajuda o corpo a pegar no sono mais rápido.',pq:`Seu horário de deitar variou de ${fromMin((mn+720)%1440)} a ${fromMin((mx+720)%1440)}.`}); }
+  lista.sort((a,b)=>b.n-a.n);
+  // o que funcionou
+  const boas=regs.filter(r=>+r.q>=4);
+  const bom=boas.length>=2?`Nas suas noites boas você deitou em média às ${fromMin(Math.round((boas.map(r=>(toMin(r.deitou)-720+1440)%1440).reduce((a,b)=>a+b,0)/boas.length+720)/5)*5%1440)} e dormiu ${sDurTxt(Math.round(boas.reduce((a,r)=>a+sonoH(r)*60,0)/boas.length))}.`:'';
+  return {lista,regs,bom};
+}
+function sonoDicasCard(){
+  const {lista,regs,bom}=sonoDicas(), todas=UI.sDicasTodas;
+  let out=`<section class="card sdicas"><div><h2>Pra dormir melhor</h2><p class="tiny muted">Dicas a partir das suas últimas noites e do que você anotou.</p></div>`;
+  if(!regs.length) return out+`<p class="small muted">Registre algumas noites e marque como foi, que eu te mostro dicas baseadas no que acontece com você.</p></section>`;
+  if(!lista.length) out+=`<div class="sdica"><span class="e">✨</span><div><b>Suas noites estão indo bem</b><p class="small">Nada nas suas noites recentes pede atenção. Continua com o que você está fazendo.</p></div></div>`;
+  out+=(todas?lista:lista.slice(0,2)).map(x=>`<div class="sdica"><span class="e">${x.e}</span><div class="grow"><b>${x.t}</b><p class="small">${x.d}</p><p class="tiny muted">${esc(x.pq)}</p>${x.btn?`<button class="btn sm" data-a="${x.btn[0]}" ${dataAttrs(x.btn[2])} style="align-self:flex-start;margin-top:4px">${x.btn[1]}</button>`:''}</div></div>`).join('');
+  if(lista.length>2) out+=`<button class="linkbtn" data-a="sDicasTodas" style="align-self:flex-start">${todas?'Mostrar menos':`Mais ${lista.length-2} ${plural(lista.length-2,'dica','dicas')}`}</button>`;
+  if(bom) out+=`<p class="small sbom">💚 ${bom}</p>`;
+  return out+`<p class="tiny muted">São dicas gerais de sono e não substituem orientação médica. Se você dormir mal por várias semanas, procure sua médica.</p></section>`;
+}
 function sSono(){
   const st=sonoEstado(), t=TODAY(), dias=[...Array(7)].map((_,i)=>addDays(t,i-6)), by={}; S.saude.sono.forEach(s=>by[s.data]=s);
   const regs=dias.map(d=>by[d]).filter(Boolean), durs=regs.map(r=>Math.round(sonoH(r)*60));
@@ -1752,6 +1805,7 @@ function sSono(){
     <label class="f" style="margin-top:10px"><span class="sr">Anotações</span><textarea id="sonoObs" data-c="sonoObs" rows="2" placeholder="Anote o que quiser: sonhos, barulho, se acordou com dor…">${esc(st.obs||'')}</textarea></label></div>
    <div class="row wrap"><button class="btn pri grow" data-a="sonoSalvar">${jaTem?'Atualizar a noite':'Salvar a noite'}</button>${jaTem?`<button class="btn ghost danger" data-a="sonoApagar">Apagar</button>`:''}</div>
    <p class="muted tiny">Arraste a lua e o sol no relógio. Os horários andam de 5 em 5 minutos.</p></section>
+  ${sonoDicasCard()}
   <section class="card"><div class="row between"><h2>Últimos 7 dias</h2><span class="stag">meta 8h</span></div>
    <div class="sstats"><div><b>${media?sDurTxt(media):'—'}</b><small>média</small></div><div><b>${bedMed!==null?fromMin(bedMed):'—'}</b><small>dorme, em média</small></div><div><b>${regs.length?boas+' de '+regs.length:'—'}</b><small>noites com 7h+</small></div></div>
    <div class="stack" style="gap:10px">${dias.map(d=>{const r=by[d];if(!r) return `<button class="slinha ${d===st.data?'sel':''}" data-a="sonoEditar" data-d="${d}"><span class="d">${DOW[parseD(d).getDay()]}</span><span class="strilho"></span><span class="t muted">—</span></button>`;const a=toMin(r.deitou),b=toMin(r.acordou),du=sDur(a,b),ini=pos(a);let fim=pos(b);if(fim<ini)fim=100;
@@ -2248,6 +2302,7 @@ const ACT={
  go:d=>{ if(d.v==='ajustes') UI.aj=''; go(d.v); },
  ajPag:d=>{ UI.aj=d.p||''; render(); window.scrollTo(0,0); },
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
+ sDicasTodas:()=>{UI.sDicasTodas=!UI.sDicasTodas;render()},
  catsTodas:()=>{UI.catsTodas=!UI.catsTodas;render()},
  catVer:d=>{UI.txcat=d.c;UI.txq='';UI.sub.dinheiro='transacoes';render();window.scrollTo(0,0)},
  dsub:d=>{UI.sub.dinheiro=d.s;UI.dlast=UI.dlast||{};UI.dlast[grupoDe(d.s).k]=d.s;UI.decIdx=0;render();window.scrollTo(0,0)},
