@@ -202,7 +202,11 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .item .t{font-weight:600}
 .item .meta{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .open{background:none;border:0;padding:0;text-align:left;cursor:pointer;flex:1;min-width:0;color:inherit;font:inherit}
-.prio{color:var(--bad);font-weight:800}
+.prio{display:inline-block;font-weight:900;font-size:.82em;letter-spacing:-.5px;border-radius:6px;padding:0 5px;margin-right:6px;line-height:1.5;vertical-align:1px}
+.prio.p-alta{background:var(--bad-soft);color:var(--bad)}
+.prio.p-media{background:var(--warn-soft);color:var(--warn)}
+.prio.p-baixa{background:var(--sunk);color:var(--muted)}
+.prioleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .cob{border:1.5px solid var(--accent)}
 .cob .head{display:flex;align-items:center;gap:8px}
 .cobi{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
@@ -634,7 +638,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.1';
+const VERSAO='2026-10-30.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -727,7 +731,10 @@ function injItem(d){
   if(!mostra) return null;
   return {id:'inj',virt:'inj',tipo:'tarefa',titulo:'Tomar a '+(j.nome||'injeção'),data:d,hora:j.hora||'',dur:15,rep:'nao',prioridade:'alta',feito:feita,feitos:{},passos:[],etiqueta:st.prox<t&&!feita?'atrasada '+(-st.falta)+' '+plural(-st.falta,'dia','dias'):'Bem-estar'};
 }
-const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); return l.sort((a,b)=>(a.hora||'99')<(b.hora||'99')?-1:1); };
+const PRIO={alta:['!!!','Alta',3],media:['!!','Média',2],baixa:['!','Baixa',1]};
+const prioN=i=>(PRIO[i.prioridade]||[,,0])[2];
+const prioTag=i=>PRIO[i.prioridade]?`<span class="prio p-${i.prioridade}" title="Prioridade ${PRIO[i.prioridade][1].toLowerCase()}" aria-label="Prioridade ${PRIO[i.prioridade][1].toLowerCase()}">${PRIO[i.prioridade][0]}</span>`:'';
+const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); return l.sort((a,b)=>{ const ha=a.hora||'99', hb=b.hora||'99'; if(ha!==hb) return ha<hb?-1:1; return prioN(b)-prioN(a); }); };
 const isDone=(i,d)=>isRep(i)?i.feitos?.[d]===true:!!i.feito;
 const obsDe=(i,d)=>isRep(i)?((i.obsDia||{})[d]||''):(i.obs||'');
 const ESTADOS={pulou:['Hoje não','➖'],naofiz:['Não fiz','✖'],cancelado:['Cancelado','🚫']};
@@ -878,7 +885,7 @@ function itemHtml(i,d){
   const done=isDone(i,d),est=estadoDe(i,d),st=i.tipo==='habito'?streak(i,d):0, e=ESTADOS[est];
   return `<div class="item t-${i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
-    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${i.prioridade==='alta'?'<span class="prio">!</span> ':''}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
+    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
     ${i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
   </div>`;
 }
@@ -920,7 +927,7 @@ function onboardCard(){
 /* ================= VIEW: Agenda ================= */
 function filtraQ(its){ const q=norm(UI.ag.q); return q?its.filter(i=>norm(i.titulo).includes(q)):its; }
 function agCard(i,d){ const done=isDone(i,d);
-  return `<div class="agcard t-${i.tipo} ${done?'done':''}"><button class="open" data-a="editT" data-id="${i.id}"><span class="typ">${TIPOS[i.tipo][0]}</span><b>${esc(i.titulo)}</b><small>${esc([i.hora,i.etiqueta].filter(Boolean).join(' · '))||'&nbsp;'}</small></button><button class="check ${done?'on':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="Marcar como feito">${svg('check')}</button></div>`; }
+  return `<div class="agcard t-${i.tipo} ${done?'done':''}"><button class="open" data-a="editT" data-id="${i.id}"><span class="typ">${TIPOS[i.tipo][0]}</span><b>${prioTag(i)}${esc(i.titulo)}</b><small>${esc([i.hora,i.etiqueta].filter(Boolean).join(' · '))||'&nbsp;'}</small></button><button class="check ${done?'on':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="Marcar como feito">${svg('check')}</button></div>`; }
 const diaTitulo=d=>cap(DOWL[parseD(d).getDay()])+', '+fmtD(d);
 function vAgenda(){
   const A=UI.ag, t=TODAY();
@@ -971,7 +978,7 @@ function timeline(d,its){
   let h=`<div class="tlwrap" id="tlwrap" data-scroll="${Math.max(0,Math.round((foco/60-0.5)*PX))}"><div class="tl" style="height:${H}px">`;
   for(let x=START;x<END;x++) h+=`<div class="hr" style="top:${(x-START)*PX}px"><span>${pad(x)}:00</span></div>`;
   for(const ev of evs){ const i=ev.i, done=isDone(i,d);
-    h+=`<button class="blk t-${i.tipo} ${done?'done':''}" data-a="editT" data-id="${i.id}" style="top:${ev.s*PX/60+1}px;height:${Math.max(22,(ev.e-ev.s)*PX/60-2)}px;left:calc(52px + (100% - 58px)*${ev.col}/${ev.n});width:calc((100% - 58px)/${ev.n} - 4px)"><b>${esc(i.hora)} ${esc(i.titulo)}</b>${(ev.e-ev.s)>=40?`<small>${esc([durTxt(defDur(i)),i.etiqueta].filter(Boolean).join(' · '))}</small>`:''}</button>`; }
+    h+=`<button class="blk t-${i.tipo} ${done?'done':''}" data-a="editT" data-id="${i.id}" style="top:${ev.s*PX/60+1}px;height:${Math.max(22,(ev.e-ev.s)*PX/60-2)}px;left:calc(52px + (100% - 58px)*${ev.col}/${ev.n});width:calc((100% - 58px)/${ev.n} - 4px)"><b>${esc(i.hora)} ${prioTag(i)}${esc(i.titulo)}</b>${(ev.e-ev.s)>=40?`<small>${esc([durTxt(defDur(i)),i.etiqueta].filter(Boolean).join(' · '))}</small>`:''}</button>`; }
   if(d===TODAY()&&nowMin>=0) h+=`<div class="now" style="top:${nowMin*PX/60}px"></div>`;
   if(!evs.length) h+=`<p class="muted small" style="position:absolute;top:${2*PX+8}px;left:60px;right:12px">Nada com horário neste dia.</p>`;
   return h+`</div></div>`;
