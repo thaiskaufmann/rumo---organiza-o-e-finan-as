@@ -634,7 +634,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-24.2';
+const VERSAO='2026-10-30.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -655,6 +655,8 @@ function drawBanner(){
 function migrar(){
   if(S.agenda.eventos&&S.agenda.eventos.length){ S.agenda.eventos.forEach(e=>S.tarefas.items.push({id:e.id||uid(),titulo:e.titulo,tipo:'compromisso',data:e.data,hora:e.hora||'',dur:60,local:e.local||'',rep:'nao',feito:!!e.feito,feitos:{},passos:[]})); S.agenda.eventos=[]; save('agenda'); save('tarefas'); }
   for(const i of S.tarefas.items){ if(i.tipo==='habito'&&(!i.rep||i.rep==='nao')) i.rep='dias'; }
+  let mudouObs=false; for(const i of S.tarefas.items){ if(isRep(i)&&i.obs){ const ds=Object.keys(i.feitos||{}).filter(k=>/^\d{4}-\d\d-\d\d$/.test(k)).sort(); const d=ds.length?ds[ds.length-1]:TODAY(); i.obsDia={...(i.obsDia||{}),[d]:(i.obsDia||{})[d]||i.obs}; delete i.obs; mudouObs=true; } }
+  if(mudouObs&&!REAL) save('tarefas');
 }
 
 /* ================= estado de tela ================= */
@@ -727,6 +729,7 @@ function injItem(d){
 }
 const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); return l.sort((a,b)=>(a.hora||'99')<(b.hora||'99')?-1:1); };
 const isDone=(i,d)=>isRep(i)?i.feitos?.[d]===true:!!i.feito;
+const obsDe=(i,d)=>isRep(i)?((i.obsDia||{})[d]||''):(i.obs||'');
 const ESTADOS={pulou:['Hoje não','➖'],naofiz:['Não fiz','✖'],cancelado:['Cancelado','🚫']};
 const estadoDe=(i,d)=>isDone(i,d)?'feito':(isRep(i)?(ESTADOS[i.feitos?.[d]]?i.feitos[d]:''):(ESTADOS[i.estado]?i.estado:''));
 const isSkip=(i,d)=>['pulou','cancelado'].includes(estadoDe(i,d));
@@ -875,7 +878,7 @@ function itemHtml(i,d){
   const done=isDone(i,d),est=estadoDe(i,d),st=i.tipo==='habito'?streak(i,d):0, e=ESTADOS[est];
   return `<div class="item t-${i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
-    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${i.prioridade==='alta'?'<span class="prio">!</span> ':''}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${i.obs?`<div class="obs">📝 ${esc(i.obs)}</div>`:''}</button>
+    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${i.prioridade==='alta'?'<span class="prio">!</span> ':''}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
     ${i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
   </div>`;
 }
@@ -983,7 +986,7 @@ function estadoHtml(i,d){
   return `${sheetHead(esc(i.titulo),(d===TODAY()?'Hoje':cap(fmtD(d)))+(i.hora?' · '+i.hora:''))}
   <div class="stack"><span class="eyebrow">Como foi?</span><div class="estgrid">${op.map(([k,ic,l])=>`<button class="${est===k?'on':''}" data-a="setEstado" data-id="${i.id}" data-d="${d}" data-e="${k}"><span>${ic}</span>${l}</button>`).join('')}</div>
    ${est?`<button class="linkbtn" data-a="setEstado" data-id="${i.id}" data-d="${d}" data-e="" style="align-self:flex-start">Voltar pra pendente</button>`:''}
-   <form data-f="obs" data-id="${i.id}" class="stack"><label class="f">Observação<textarea name="obs" id="obsTxt" rows="3" placeholder="Ex.: remarcar pra sexta, levar documento…">${esc(i.obs||'')}</textarea></label><div class="row between"><button class="btn sm">Salvar observação</button><button type="button" class="btn ghost sm" data-a="editT" data-id="${i.id}">Editar ${TIPOS[i.tipo][0].toLowerCase()}</button></div></form></div>`;
+   <form data-f="obs" data-id="${i.id}" data-d="${d}" class="stack"><label class="f">Observação${isRep(i)?' deste dia':''}<textarea name="obs" id="obsTxt" rows="3" placeholder="Ex.: remarcar pra sexta, levar documento…">${esc(obsDe(i,d))}</textarea></label><div class="row between"><button class="btn sm">Salvar observação</button><button type="button" class="btn ghost sm" data-a="editT" data-id="${i.id}">Editar ${TIPOS[i.tipo][0].toLowerCase()}</button></div></form></div>`;
 }
 function formItem(i,focus){
   i=i||{tipo:'tarefa'}; const tipo=i.tipo||'tarefa'; const rep=repDe(i); const passos=i.passos||[];
@@ -1007,7 +1010,7 @@ function formItem(i,focus){
     <div class="frow col"><span>Passos</span><div id="passosBox" class="stack">${passos.map((p,k)=>`<div class="row"><input type="checkbox" name="pok" value="${k}" ${p.ok?'checked':''} aria-label="Passo feito"><input type="text" name="passo" value="${esc(p.t)}" id="ps-${k}"></div>`).join('')}<div class="row"><input type="text" name="passo" id="psNovo" placeholder="Adicionar passo e apertar Enter"></div></div></div>
     <div class="frow col ${tipo==='compromisso'?'':'hide'}" id="fLocal"><span>Onde</span><input type="text" name="local" id="iLocal" value="${esc(i.local||'')}"></div>
     <div class="frow col"><span>Link</span><input type="url" name="link" id="iLink" value="${esc(i.link||'')}" placeholder="https://"></div>
-    <div class="frow col"><span>Observação</span><textarea name="obs" id="iObs" rows="2" placeholder="Anote o que precisar">${esc(i.obs||'')}</textarea></div>
+    <div class="frow col ${rep==='nao'?'':'hide'}" id="fObs"><span>Observação</span><textarea name="obs" id="iObs" rows="2" placeholder="Anote o que precisar">${esc(i.obs||'')}</textarea></div>
     ${i.link&&/^https?:\/\//.test(i.link)?`<div class="frow"><a href="${esc(i.link)}" target="_blank" rel="noopener">Abrir link</a></div>`:''}
    </div></div>
    <div class="row between wrap"><button class="btn pri">${i.id?'Salvar':'Adicionar'}</button>${i.id&&i.hora&&i.data?`<a class="btn sm" target="_blank" rel="noopener" href="${gcal({titulo:i.titulo,data:i.data,hora:i.hora,dur:defDur(i),detalhes:i.local})}">Google Agenda</a>`:''}${i.id?`<button type="button" class="btn danger ghost" data-a="delT" data-id="${i.id}">Apagar</button>`:''}</div>
@@ -2038,11 +2041,11 @@ const FORMS={
  item:(o,f)=>{const id=f.dataset.id; const tipo=o.tipo; let rep=o.rep||'nao'; if(tipo==='habito'&&rep==='nao') rep='diario';
    const old=id?getT(id):null; const oldP=old?.passos||[];
    const textos=arr(o.passo); const oks=new Set(arr(o.pok).map(Number)); const passos=textos.map((t,k)=>({id:oldP[k]?.id||uid(),t:String(t).trim(),ok:oks.has(k)})).filter(p=>p.t);
-   const base={titulo:String(o.titulo).trim(),tipo,rep,dias:rep==='dias'?arr(o.dias).map(Number):[],data:o.data||TODAY(),hora:o.hora||'',dur:+o.dur||0,etiqueta:o.etiqueta||'',periodo:o.periodo||'',prioridade:o.prioridade||'',local:tipo==='compromisso'?(o.local||''):'',link:o.link||'',obs:String(o.obs||'').trim(),passos};
+   const base={titulo:String(o.titulo).trim(),tipo,rep,dias:rep==='dias'?arr(o.dias).map(Number):[],data:o.data||TODAY(),hora:o.hora||'',dur:+o.dur||0,etiqueta:o.etiqueta||'',periodo:o.periodo||'',prioridade:o.prioridade||'',local:tipo==='compromisso'?(o.local||''):'',link:o.link||'',obs:rep==='nao'?String(o.obs||'').trim():'',passos};
    if(old) Object.assign(old,base); else S.tarefas.items.push({id:uid(),...base,feitos:{},criado:Date.now()});
    save('tarefas');closeSheet();render();toast(id?'Salvo':({tarefa:'Tarefa adicionada',habito:'Hábito adicionado',compromisso:'Compromisso adicionado'})[tipo])},
  pagaVar:(o,f)=>{const v=r2(+o.valor||0); if(!v) return; closeSheet(); ACT.pagarRec({id:f.dataset.id,valor:v})},
- obs:(o,f)=>{const i=getT(f.dataset.id);if(!i)return;i.obs=String(o.obs||'').trim();save('tarefas');closeSheet();render();toast('Observação salva')},
+ obs:(o,f)=>{const i=getT(f.dataset.id);if(!i)return;const txt=String(o.obs||'').trim(),d=f.dataset.d||UI.dia; if(isRep(i)){ i.obsDia={...(i.obsDia||{})}; if(txt) i.obsDia[d]=txt; else delete i.obsDia[d]; } else i.obs=txt; save('tarefas');closeSheet();render();toast(txt?'Observação salva':'Observação apagada')},
  voz:o=>{const t=String(o.t||'').trim();if(!t)return;openSheet(formItem(parseItem(t)))},
  renda:o=>{cfg().renda=+o.renda||0;save('fin');render()},
  plano:o=>{const c=cfg();c.renda=+o.renda||0;c.guardar=+o.guardar||0;c.limite=+o.limite||90;c.cats.forEach((x,i)=>{x.orc=+o['orc-'+i]||0});const n=cap(String(o.novaCat||'').trim());if(n&&!c.cats.some(x=>x.n===n))c.cats.splice(c.cats.length-1,0,{n,orc:0,cor:c.cats.length%12});save('fin');closeSheet();render();toast('Plano salvo')},
@@ -2099,6 +2102,7 @@ document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.d
   if(c==='calcIn'){const f=el.form;const cc=CALCS.find(x=>x.id===f.dataset.id);const v={};new FormData(f).forEach((val,k)=>v[k]=+val||0);let r;try{r=cc.calc(v)}catch(x){r='Confira os números.'}$('#calcRes').textContent=r}});
 document.addEventListener('change',async e=>{const el=e.target;const c=el.dataset&&el.dataset.c;if(!c)return;
   if(c==='tipoItem'){const t=el.value;$('#fLocal').classList.toggle('hide',t!=='compromisso');const rep=$('#iRep');const o=rep.querySelector('option[value=nao]');if(t==='habito'){if(rep.value==='nao')rep.value='diario';if(o)o.remove()}else if(!o){rep.insertAdjacentHTML('afterbegin','<option value="nao">Não repetir</option>')}$('#fDias').classList.toggle('hide',rep.value!=='dias');$('#lData').textContent=rep.value==='nao'?'Data':'Começa em'}
+  if(c==='repItem'){ const fo=$('#fObs'); if(fo) fo.classList.toggle('hide',el.value!=='nao'); }
   if(c==='repItem'){$('#fDias').classList.toggle('hide',el.value!=='dias');$('#lData').textContent=el.value==='nao'?'Data':'Começa em'}
   if(c==='secaoPick'){UI.secao=el.value;}
   if(c==='rotModo'){const s=el.value==='semana';$('#fRotCada').classList.toggle('hide',s);$('#fRotDias').classList.toggle('hide',!s);}
