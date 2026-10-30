@@ -465,6 +465,7 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .rleg .rtot{border-top:1px solid color-mix(in srgb,var(--ink) 15%,transparent);padding-top:10px;font-weight:700}
 .pcat{display:flex;flex-direction:column;gap:6px;border:0;background:none;font:inherit;color:inherit;text-align:left;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;width:100%}
 .pcat .bad{color:var(--bad)}
+.dg-resumo svg{max-height:170px}
 .pbar{display:block;height:6px;border-radius:99px;background:var(--sunk);overflow:hidden}
 .pbar i{display:block;height:100%;border-radius:99px}
 .plist{padding-top:6px;padding-bottom:6px}
@@ -731,7 +732,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-30.6';
+const VERSAO='2026-10-30.7';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1261,7 +1262,7 @@ function dResumo(){
   const ate=m===cur?new Date().getDate():daysInMonth(m), ateP=Math.min(ate,daysInMonth(pm));
   const g=gastoAte(m,ate), gp=gastoAte(pm,ateP), dif=g-gp;
   const fp=fin(pm), sobP=fp.ent-fp.sai-fp.guard;
-  const reserva=Math.max(+cfg().guardar||0,f.guard);
+  const reserva=Math.max(+cfg().guardar||0,f.guard); let graf=false;
   let out='';
   if(f.renda<=0&&m===cur) out+=`<section class="card"><h2>Quanto você espera receber em ${nomeMes(m)}?</h2><p class="muted small">Sua renda varia, então coloque uma previsão realista. Com ela eu calculo quanto ainda dá pra gastar.</p>
     <form data-f="renda" class="row"><input type="number" inputmode="decimal" step="0.01" name="renda" id="rendaQ" placeholder="Ex.: 4500"><button class="btn pri">Salvar</button></form></section>`;
@@ -1278,10 +1279,12 @@ function dResumo(){
       <div class="rleg">${partes.map(p=>`<div><span class="dot" style="background:${p[2]}"></span><span>${p[0]}</span><b class="num">${brl0(p[1])}</b></div>`).join('')}</div></div>
     </section>`;
   } else {
-    const sob=f.ent-f.sai-f.guard;
-    out+=`<section class="card hero"><span class="small"><b>${cap(nomeMes(m))}</b></span>
-     <div class="rleg big3">${[['Entrou',f.ent],['Saiu',f.sai],['Guardou',f.guard]].filter(p=>p[1]||p[0]!=='Guardou').map(([l,v])=>`<div><span>${l}</span><b class="num">${brl0(v)}</b></div>`).join('')}
-     <div class="rtot"><span>${sob>=0?'Sobrou':'Faltou'}</span><b class="num" style="color:${sob>=0?'var(--good)':'var(--bad)'}">${brl0(Math.abs(sob))}</b></div></div></section>`;
+    const sob=f.ent-f.sai-f.guard; graf=true;
+    out+=`<section class="card hero"><span class="small"><b>Você gastou em ${nomeMes(m)}${m===cur?' até dia '+ate:''}</b></span>
+     <div class="big num">${brlBig(f.sai)}</div>
+     ${chartMes(m)}
+     <div class="rbox"><div class="rleg">${f.ent?`<div><span>Entrou</span><b class="num">${brl0(f.ent)}</b></div>`:''}<div><span>Gastou</span><b class="num">${brl0(f.sai)}</b></div>${f.guard?`<div><span>Guardou</span><b class="num">${brl0(f.guard)}</b></div>`:''}
+     ${f.ent?`<div class="rtot"><span>${sob>=0?'Sobrou':'Faltou'}</span><b class="num" style="color:${sob>=0?'var(--good)':'var(--bad)'}">${brl0(Math.abs(sob))}</b></div>`:`<span class="tiny muted">Sem entradas lançadas${m===cur?'. Coloque sua renda acima pra eu mostrar quanto ainda dá pra gastar':''}.</span>`}</div></div></section>`;
   }
   // 2) contas
   out+=contasMesCard(m);
@@ -1299,7 +1302,7 @@ function dResumo(){
   // 4) comparação, por último
   if(gp||txMes(pm).length) out+=`<section class="card"><h2>Comparando com ${nomeMes(pm)}</h2>
    <p class="small">Até o dia ${ate}, você gastou <b style="color:${dif>0?'var(--bad)':'var(--good)'}">${brl0(Math.abs(dif))} ${dif>0?'a mais':'a menos'}</b> que no mesmo dia de ${nomeMes(pm)}.</p>
-   ${chartMes(m)}
+   ${graf?"":chartMes(m)}
    <div class="row between small" style="border-top:1px solid var(--line);padding-top:10px"><span class="muted">${cap(nomeMes(pm))} fechou com</span><b class="num" style="color:${sobP>=0?'var(--good)':'var(--bad)'}">${sobP>=0?'sobra de ':'falta de '}${brl0(Math.abs(sobP))}</b></div></section>`;
   return out;
 }
