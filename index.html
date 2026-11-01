@@ -144,9 +144,9 @@ a{color:var(--accent)}
 .segtabs button{border:0;background:transparent;border-radius:999px;padding:9px 6px;font-weight:600;color:var(--muted);cursor:pointer;font-size:14px}
 .segtabs button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 
-input[type=text],input[type=number],input[type=date],input[type=time],input[type=search],input[type=url],select,textarea{width:100%;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;font-size:16px}
+input[type=text],input[type=number],input[type=date],input[type=month],input[type=time],input[type=search],input[type=url],select,textarea{width:100%;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;font-size:16px}
 textarea{resize:vertical;min-height:70px}
-input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-height:46px;line-height:1.25;text-align:left;color:var(--ink)}
+input[type=date],input[type=month],input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-height:46px;line-height:1.25;text-align:left;color:var(--ink)}
 input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.25em}
 input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{opacity:.5}
 select{-webkit-appearance:none;appearance:none;min-height:46px;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238C7B84' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;color:var(--ink)}
@@ -882,7 +882,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-31.2';
+const VERSAO='2026-10-31.3';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1529,7 +1529,7 @@ function formTx(t){
    <div class="fgrid"><label class="f full">Descrição<input type="text" name="desc" id="txDesc" value="${esc(t.desc||'')}" required></label>
    <label class="f">Valor${t.id?'':' (total)'}<input type="number" inputmode="decimal" step="0.01" min="0" name="valor" id="txValor" value="${t.valor??''}" required data-c="txValor"></label>
    <label class="f">Dia${t.id?'':' da compra'}<input type="date" name="data" id="txData" value="${esc(t.data)}" required></label>
-   ${t.id?'':`<label class="f full ${t.tipo==='entrada'?'hide':''}" id="fPag">Pagamento<select name="parc" id="txParc" data-c="txParc">${[1,2,3,4,5,6,7,8,9,10,11,12,18,24].map(n=>`<option value="${n}">${n===1?'À vista':'Parcelado em '+n+'x'}</option>`).join('')}</select></label><p class="tiny muted full hide" id="txParcInfo"></p>`}
+   ${t.id?'':`<label class="f full ${t.tipo==='entrada'?'hide':''}" id="fPag">Pagamento<select name="parc" id="txParc" data-c="txParc">${[1,2,3,4,5,6,7,8,9,10,11,12,18,24].map(n=>`<option value="${n}">${n===1?'À vista':'Parcelado em '+n+'x'}</option>`).join('')}</select></label><label class="f full hide" id="fPrim">Primeira parcela<select name="prim" id="txPrim" data-c="txParc"><option value="prox">No mês que vem (cartão de crédito)</option><option value="agora">Neste mês (já paguei a 1ª)</option></select></label><p class="tiny muted full hide" id="txParcInfo"></p>`}
    <label class="f full">Categoria<select name="cat" id="txCat">${cats.map(c=>`<option ${c===t.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
    <div class="row between"><button class="btn pri">Salvar</button>${t.id?`<button type="button" class="btn danger ghost" data-a="delTx" data-id="${t.id}">Apagar</button>`:''}</div></form>`;
 }
@@ -1615,12 +1615,14 @@ function formRec(r){
   <label class="f">Dia de vencimento<input type="number" min="1" max="31" name="dia" id="rDia" value="${r.dia||''}"></label>
   <label class="f ${r.tipo==='parcela'?'':'hide'}" id="fParc1">Total de parcelas<input type="number" min="1" name="total" id="rTotal" value="${r.total||''}"></label>
   <label class="f ${r.tipo==='parcela'?'':'hide'}" id="fParc2">Já paguei quantas<input type="number" min="0" name="pagasAntes" id="rPagas" value="${r.pagasAntes||0}"></label>
+  <label class="f full ${r.tipo==='parcela'?'':'hide'}" id="fParc3">${+r.pagasAntes?'Mês da próxima parcela':'Mês da 1ª parcela'}<input type="month" name="inicio" id="rInicio" value="${esc(r.inicioMes||TODAY().slice(0,7))}"><span class="tiny muted" style="font-weight:400">No cartão de crédito, a 1ª parcela costuma vir na fatura do mês seguinte à compra.${r.id&&r.tipo==='parcela'&&r.total?` Hoje: ${cap(nomeMes(TODAY().slice(0,7)))} ${recAtivo(r,TODAY().slice(0,7))?`é a parcela ${parcelaNum(r,TODAY().slice(0,7))} de ${r.total}`:'não tem parcela'}.`:''}</span></label>
   <label class="f full">Categoria<select name="cat" id="rCat">${catNames().map(c=>`<option ${c===r.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
   <div class="row between wrap"><button class="btn pri">Salvar</button>${det}${r.id?`<button type="button" class="btn danger ghost" data-a="delRec" data-id="${r.id}">Apagar</button>`:''}</div></form>`;
 }
 function parcInfo(){ const s=$('#txParc'), pi=$('#txParcInfo'); if(!s||!pi) return; const n=+s.value||1, v=+($('#txValor')||{}).value||0;
-  if(n<=1){ pi.classList.add('hide'); return; } pi.classList.remove('hide');
-  pi.innerHTML=v>0?`<b>${n}x de ${brl(r2(v/n))}</b>. A 1ª entra no mês da compra e as outras ${n-1} aparecem sozinhas nas Contas fixas, uma por mês.`:`Coloque o valor total da compra que eu divido em ${n}x.`; }
+  const fp=$('#fPrim'); if(fp) fp.classList.toggle('hide',n<=1);
+  if(n<=1){ pi.classList.add('hide'); return; } pi.classList.remove('hide'); const prox=(($('#txPrim')||{}).value||'prox')==='prox';
+  pi.innerHTML=v>0?(prox?`<b>${n}x de ${brl(r2(v/n))}</b>. As ${n} parcelas aparecem nas Contas fixas a partir do mês que vem, uma por mês.`:`<b>${n}x de ${brl(r2(v/n))}</b>. A 1ª entra agora e as outras ${n-1} aparecem sozinhas nas Contas fixas, uma por mês.`):`Coloque o valor total da compra que eu divido em ${n}x.`; }
 function proxVenc(dia){ const t=TODAY(); let m=t.slice(0,7); let d=m+'-'+pad(Math.min(dia,daysInMonth(m))); if(d<t){ m=addMonth(m,1); d=m+'-'+pad(Math.min(dia,daysInMonth(m))); } return d; }
 
 /* ---------- Decidir ---------- */
@@ -2769,13 +2771,16 @@ const FORMS={
    const t=addTx({id:uid(),data:p.data,desc:p.desc,valor:r2(p.valor),tipo:p.tipo,cat,origem:'rapido',ok:cat!=='Outros'});UI.mes=p.data.slice(0,7);closeSheet();render();
    toast(`${p.tipo==='entrada'?'+':'−'} ${brl(t.valor)} · ${t.desc} · ${t.cat}`,()=>{delTx(t.id,t.data.slice(0,7));render()})},
  tx:(o,f)=>{const id=f.dataset.id; const np=+o.parc||1;
-   if(!id&&o.tipo!=='entrada'&&np>1){ const tot=r2(Math.abs(+o.valor||0)), p=r2(tot/np), mes=o.data.slice(0,7), nome=String(o.desc).trim();
+   if(!id&&o.tipo!=='entrada'&&np>1){ const tot=r2(Math.abs(+o.valor||0)), p=r2(tot/np), mes=o.data.slice(0,7), nome=String(o.desc).trim(), prox=(o.prim||'prox')==='prox';
+     if(prox){ S.fin.recorrentes.push({id:uid(),nome,valor:p,dia:Math.min(28,+o.data.slice(8)),cat:o.cat,tipo:'parcela',total:np,pagasAntes:0,inicioMes:addMonth(mes,1),pagos:{}}); save('fin');
+       closeSheet(); render(); toast(`${nome}: ${np}x de ${brl(p)}. A 1ª aparece em ${nomeMes(addMonth(mes,1))} nas Contas.`); return; }
      addTx({id:uid(),data:o.data,desc:`${nome} (1/${np})`,valor:p,tipo:'saida',cat:o.cat,origem:'compra',ok:true});
      S.fin.recorrentes.push({id:uid(),nome,valor:p,dia:Math.min(28,+o.data.slice(8)),cat:o.cat,tipo:'parcela',total:np,pagasAntes:0,inicioMes:mes,pagos:{[mes]:true}}); save('fin');
      closeSheet(); render(); toast(`${nome}: ${np}x de ${brl(p)}. As próximas estão nas Contas fixas.`); return; }const b={desc:String(o.desc).trim(),valor:r2(Math.abs(+o.valor||0)),tipo:o.tipo,cat:o.cat,data:o.data,ok:true};
    if(id){const [t,m]=findTx(id);if(m!==b.data.slice(0,7)){delTx(id,m);addTx({...t,...b})}else{Object.assign(t,b);save('m:'+m)}} else addTx({id:uid(),...b,origem:'manual'});closeSheet();render()},
  rec:(o,f)=>{const id=f.dataset.id;const tipo=o.tipo||'conta';const b={nome:String(o.nome).trim(),valor:r2(+o.valor||0),dia:+o.dia||null,cat:o.cat,tipo,total:tipo==='parcela'?(+o.total||0):0,pagasAntes:tipo==='parcela'?(+o.pagasAntes||0):0,variavel:tipo!=='parcela'&&!!o.variavel};
-   if(id){const r=S.fin.recorrentes.find(x=>x.id===id);Object.assign(r,b);if(!r.inicioMes)r.inicioMes=TODAY().slice(0,7)}else S.fin.recorrentes.push({id:uid(),...b,inicioMes:TODAY().slice(0,7),pagos:{}});save('fin');closeSheet();render()},
+   const ini=/^\d{4}-\d{2}$/.test(o.inicio||'')?o.inicio:'';
+   if(id){const r=S.fin.recorrentes.find(x=>x.id===id);Object.assign(r,b);if(tipo==='parcela'&&ini)r.inicioMes=ini;if(!r.inicioMes)r.inicioMes=TODAY().slice(0,7)}else S.fin.recorrentes.push({id:uid(),...b,inicioMes:(tipo==='parcela'&&ini)||TODAY().slice(0,7),pagos:{}});save('fin');closeSheet();render()},
  comprar:o=>{const c={nome:String(o.nome).trim(),valor:r2(+o.valor||0),cat:o.cat,parcelas:+o.parcelas||1};c.res=avaliaCompra(c.valor,c.cat,c.parcelas);UI.compra=c;openSheet(compraHtml())},
  metaF:(o,f)=>{const id=f.dataset.id;
    if(id==='reserva'){const r=S.fin.reserva;r.guardado=+o.guardado||0;r.meses=+o.meses||6;r.prazo=o.prazo||'';r.foto=o.foto||'';if(!r.criado)r.criado=TODAY();}
@@ -2840,7 +2845,7 @@ document.addEventListener('change',async e=>{const el=e.target;const c=el.datase
   if(c==='notifInj'){ NC().inj=el.value==='1'; save('perfil'); }
   if(c==='notifContas'){ NC().contas=el.value==='1'; save('perfil'); }
   if(c==='sonoData'){ if(el.value){ ACT.sonoDia({d:el.value}); } }
-  if(c==='tipoRec'){const p=el.value==='parcela';$('#fParc1').classList.toggle('hide',!p);$('#fParc2').classList.toggle('hide',!p);$('#fVar').classList.toggle('hide',p)}
+  if(c==='tipoRec'){const p=el.value==='parcela';$('#fParc1').classList.toggle('hide',!p);$('#fParc2').classList.toggle('hide',!p);const f3=$('#fParc3');if(f3)f3.classList.toggle('hide',!p);$('#fVar').classList.toggle('hide',p)}
   if(c==='recVar'){$('#lValor').textContent=el.checked?'Valor médio (estimativa)':'Valor por mês';$('#rValor').required=!el.checked}
   if(c==='metodo'){cfg().metodo=el.value;save('fin');openSheet(planoDivHtml());pendingRender=true}
   if(c==='extra'){cfg().extraDivida=+el.value||0;save('fin');openSheet(planoDivHtml());pendingRender=true}
