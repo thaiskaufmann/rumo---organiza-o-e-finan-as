@@ -455,6 +455,15 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
+.rtotais{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--sunk);border-radius:14px;padding:12px}
+.rtotais div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rtotais b{font-size:17px}
+.rfim{background:var(--good-soft);border-radius:12px;padding:8px 12px;margin:0}
+.compprev{white-space:pre-wrap;font:inherit;font-size:14px;background:var(--sunk);border-radius:14px;padding:14px;margin:0;max-height:300px;overflow:auto}
+.btn.wa{background:#1FA855;border-color:#1FA855;color:#fff;justify-content:center;text-align:center;text-decoration:none}
+.proxlink{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 16px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;width:100%}
+.proxlink>span{display:flex;flex-direction:column;gap:2px}
+.proxlink svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;color:var(--muted)}
 .qpick{display:flex;flex-wrap:wrap;gap:6px}
 .qpick label{position:relative}
 .qpick input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
@@ -873,7 +882,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-10-31.1';
+const VERSAO='2026-10-31.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1446,6 +1455,7 @@ function dResumo(){
   }
   // 2) contas
   out+=contasMesCard(m);
+  if(m===cur){ const nm=addMonth(m,1), rsN=recDoMes(nm), totN=rsN.reduce((a,r)=>a+recValor(r,nm),0); if(rsN.length) out+=`<button class="proxlink" data-a="irContasProx"><span class="grow"><span class="tiny muted">Próximo mês</span><b>${cap(nomeMes(nm))}: ${rsN.some(r=>r.variavel)?'~':''}${brl0(totN)} em ${rsN.length} ${plural(rsN.length,'conta','contas')}</b></span>${svg('r')}</button>`; }
   if(m===cur){ const rep=repetidos();
     if(rep.length){ const r=rep[0]; out+=`<section class="card"><div class="row top">${ic('assistente')}<div class="grow"><b>Achei um gasto que se repete: ${brl(r.med)} por mês em ${esc(cap(r.k))}.</b><p class="muted small">${brl0(r.anual)} por ano. É assinatura ou conta fixa?</p></div></div><div class="row"><button class="btn acc sm" data-a="repVer">Ver</button><button class="btn ghost sm" data-a="repIgn" data-k="${esc(r.k)}">Agora não</button></div></section>`; }
   }
@@ -1560,11 +1570,40 @@ function dRecorrentes(){
   const naSemana=rs.filter(r=>r.dia&&sem.includes(venc(r))); const totSem=naSemana.filter(r=>!(r.pagos||{})[m]).reduce((a,r)=>a+(+r.valor||0),0);
   out+=`<section class="card"><span class="small muted">Esta semana · ${parseD(sem[0]).getDate()} a ${fmtD(sem[6])}</span><span class="bigstat num" style="font-size:28px">${totSem?'−'+brl(totSem):'Nada a pagar'}</span>
    <div class="week" style="grid-template-columns:repeat(7,1fr)">${sem.map(d=>`<div class="wd ${d===t?'on':''}" style="cursor:default">${DOW[parseD(d).getDay()]}<b>${parseD(d).getDate()}</b>${naSemana.some(r=>venc(r)===d)?'<span class="mk"></span>':'<span style="height:7px"></span>'}</div>`).join('')}</div></section>`;
-  const falta=rs.filter(r=>!(r.pagos||{})[m]);
-  out+=`<section class="card"><div class="row between"><div><h2>Contas</h2><span class="small muted">${falta.length?`Faltam ${brl(falta.reduce((a,r)=>a+(+r.valor||0),0))} em ${falta.length} ${plural(falta.length,'conta','contas')}`:rs.length?'Tudo pago neste mês':''}</span></div><button class="btn sm" data-a="novaRec">+ Adicionar</button></div>
-   ${rs.length?rs.map(r=>{const p=(r.pagos||{})[m];return `<div class="lrow"><span class="dot" style="background:${catCor(r.cat)}"></span><button class="open" data-a="editRec" data-id="${r.id}"><b style="${p?'text-decoration:line-through;color:var(--muted)':''}">${esc(r.nome)}</b><div class="muted tiny">${p?'Pago':r.dia?'Vence dia '+r.dia:'Sem dia'} · ${r.tipo==='parcela'&&r.total?`parcela ${parcelaNum(r,m)} de ${r.total}`:r.tipo==='assinatura'?'assinatura':r.variavel?'valor muda':'valor fixo'}</div></button><span class="num" style="${p?'text-decoration:line-through;color:var(--muted)':''}">${r.variavel&&!p?'~':''}${brl0(p&&r.valores&&r.valores[m]?r.valores[m]:r.valor)}</span>${p?'':`<button class="btn sm" data-a="pagarRec" data-id="${r.id}">Paguei</button>`}</div>`}).join(''):'<p class="empty">Aluguel, internet, plano, assinaturas, parcelas do cartão. Cadastre uma vez e elas aparecem todo mês.</p>'}</section>`;
+  out+=contasLista(UI.recProx?addMonth(m,1):m);
   return out;
 }
+function recDoMes(mm){ return S.fin.recorrentes.filter(r=>recAtivo(r,mm)).sort((a,b)=>(+a.dia||32)-(+b.dia||32)); }
+const recValor=(r,mm)=>{ const p=(r.pagos||{})[mm]; return p&&r.valores&&r.valores[mm]?+r.valores[mm]:+r.valor||0; };
+function contasLista(mm){
+  const m=TODAY().slice(0,7), rs=recDoMes(mm), prox=mm!==m;
+  const tot=rs.reduce((a,r)=>a+recValor(r,mm),0), falta=rs.filter(r=>!(r.pagos||{})[mm]), totF=falta.reduce((a,r)=>a+recValor(r,mm),0), est=rs.some(r=>r.variavel&&!(r.pagos||{})[mm]);
+  const acaba=rs.filter(r=>r.tipo==='parcela'&&r.total&&parcelaNum(r,mm)===+r.total);
+  return `<section class="card"><div class="row between wrap" style="gap:8px"><h2>Contas</h2><div class="row" style="gap:6px"><button class="btn sm" data-a="compContas" data-m="${mm}">${svg('up')}Compartilhar</button><button class="btn sm" data-a="novaRec">+ Adicionar</button></div></div>
+   <div class="segtabs"><button class="${prox?'':'on'}" data-a="recMes" data-p="">${cap(nomeMes(m))}</button><button class="${prox?'on':''}" data-a="recMes" data-p="1">${cap(nomeMes(addMonth(m,1)))} (próximo)</button></div>
+   <div class="rtotais"><div><span class="tiny muted">${prox?'Previsto':'Total do mês'}</span><b class="num">${est?'~':''}${brl0(tot)}</b></div><div><span class="tiny muted">Falta pagar</span><b class="num" style="${totF?'':'color:var(--good)'}">${totF?(est?'~':'')+brl0(totF):'Tudo pago'}</b></div><div><span class="tiny muted">Contas</span><b class="num">${rs.length}</b></div></div>
+   ${prox?`<p class="tiny muted">${est?'Os valores com ~ são estimativa: a conta que muda todo mês aparece com o valor da última. ':''}Você já pode marcar como paga se pagar antes.</p>`:''}
+   ${acaba.length?`<p class="small rfim">🎉 ${acaba.map(r=>esc(r.nome)).join(', ')}: última parcela em ${nomeMes(mm)}.</p>`:''}
+   ${rs.length?rs.map(r=>{const p=(r.pagos||{})[mm];return `<div class="lrow"><span class="dot" style="background:${catCor(r.cat)}"></span><button class="open" data-a="editRec" data-id="${r.id}"><b style="${p?'text-decoration:line-through;color:var(--muted)':''}">${esc(r.nome)}</b><div class="muted tiny">${p?'Pago':r.dia?'Vence dia '+r.dia:'Sem dia'} · ${r.tipo==='parcela'&&r.total?`parcela ${parcelaNum(r,mm)} de ${r.total}`:r.tipo==='assinatura'?'assinatura':r.variavel?'valor muda':'valor fixo'}</div></button><span class="num" style="${p?'text-decoration:line-through;color:var(--muted)':''}">${r.variavel&&!p?'~':''}${brl0(recValor(r,mm))}</span>${p?'':`<button class="btn sm" data-a="pagarRec" data-id="${r.id}" data-m="${mm}">Paguei</button>`}</div>`}).join(''):'<p class="empty">Aluguel, internet, plano, assinaturas, parcelas do cartão. Cadastre uma vez e elas aparecem todo mês.</p>'}</section>`;
+}
+function textoContas(mm,soFalta){
+  const rs=recDoMes(mm).filter(r=>!soFalta||!(r.pagos||{})[mm]);
+  const tot=rs.reduce((a,r)=>a+recValor(r,mm),0), pago=rs.filter(r=>(r.pagos||{})[mm]).reduce((a,r)=>a+recValor(r,mm),0);
+  const [y]=mm.split('-');
+  let s=`*Contas de ${nomeMes(mm)}/${y}* 🧾\n\n`;
+  s+=rs.map(r=>{const p=(r.pagos||{})[mm]; return `${p?'✅':'⏳'} ${r.nome}: ${r.variavel&&!p?'~':''}${brl(recValor(r,mm))}${r.dia?` (dia ${r.dia})`:''}${r.tipo==='parcela'&&r.total?` · ${parcelaNum(r,mm)}/${r.total}`:''}`}).join('\n');
+  s+=`\n\n*Total:* ${brl(tot)}`; if(!soFalta) s+=`\n*Pago:* ${brl(pago)}\n*Falta:* ${brl(tot-pago)}`;
+  if(rs.some(r=>r.variavel&&!(r.pagos||{})[mm])) s+=`\n_~ = valor estimado_`;
+  return s;
+}
+function compHtml(){ const c=UI.comp, txt=textoContas(c.m,c.so), m=TODAY().slice(0,7);
+  return `${sheetHead('Compartilhar contas','Manda a lista pra quem divide as contas com você.')}
+  <div class="stack"><div class="segtabs"><button class="${c.m===m?'on':''}" data-a="compOpt" data-k="m" data-v="${m}">${cap(nomeMes(m))}</button><button class="${c.m!==m?'on':''}" data-a="compOpt" data-k="m" data-v="${addMonth(m,1)}">${cap(nomeMes(addMonth(m,1)))}</button></div>
+   <div class="qpick"><label><input type="radio" name="compSo" ${!c.so?'checked':''} data-a="compOpt" data-k="so" data-v=""><span>Todas</span></label><label><input type="radio" name="compSo" ${c.so?'checked':''} data-a="compOpt" data-k="so" data-v="1"><span>Só as que faltam pagar</span></label></div>
+   <div class="compprev">${esc(txt).replace(/\*([^*\n]+)\*/g,'<b>$1</b>').replace(/(^|\n)_([^_\n]+)_/g,'$1<i>$2</i>')}</div>
+   <a class="btn pri wa" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Enviar no WhatsApp</a>
+   <div class="row" style="gap:8px"><button class="btn grow" data-a="compCopiar">Copiar texto</button>${navigator.share?'<button class="btn grow" data-a="compShare">Outros apps</button>':''}</div>
+   <p class="tiny muted">No WhatsApp você escolhe a conversa. O texto vai com negrito e os ✅ do que já foi pago.</p></div>`; }
 function formRec(r){
   r=r||{cat:'Contas da casa',tipo:'conta'};
   const det=r.id&&r.dia?`<a class="btn sm" target="_blank" rel="noopener" href="${gcal({titulo:'Pagar '+r.nome+' ('+brl(r.valor)+')',data:proxVenc(r.dia),rrule:'FREQ=MONTHLY;BYMONTHDAY='+r.dia,detalhes:'Lembrete do Rumo'})}">Lembrete no Google Agenda</a>`:'';
@@ -2597,6 +2636,12 @@ const ACT={
  novaRec:()=>openSheet(formRec()),
  editRec:d=>openSheet(formRec(S.fin.recorrentes.find(r=>r.id===d.id))),
  delRec:d=>{S.fin.recorrentes=S.fin.recorrentes.filter(r=>r.id!==d.id);save('fin');closeSheet();render()},
+ recMes:d=>{UI.recProx=!!d.p;render()},
+ compContas:d=>{UI.comp={m:d.m||TODAY().slice(0,7),so:false};openSheet(compHtml())},
+ compOpt:d=>{UI.comp[d.k]=d.k==='so'?!!d.v:d.v;$('#sheetBody').innerHTML=compHtml()},
+ compCopiar:()=>{const t=textoContas(UI.comp.m,UI.comp.so);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Texto copiado')).catch(()=>toast('Não deu pra copiar aqui. Seleciona o texto e copia.'))},
+ compShare:()=>{try{navigator.share({text:textoContas(UI.comp.m,UI.comp.so)}).catch(()=>{})}catch(e){}},
+ irContasProx:()=>{UI.recProx=true;UI.sub.dinheiro='recorrentes';render();window.scrollTo(0,0)},
  pagarRec:d=>{ const rr=S.fin.recorrentes.find(x=>x.id===d.id); if(rr&&rr.variavel&&!d.valor){ openSheet(`${sheetHead('Quanto veio a conta de '+esc(rr.nome)+'?',cap(nomeMes(d.m||TODAY().slice(0,7))))}<form data-f="pagaVar" data-id="${rr.id}" data-m="${d.m||''}" class="stack"><label class="f">Valor desta conta<input type="number" inputmode="decimal" step="0.01" min="0" name="valor" id="pvValor" value="" placeholder="${rr.valor?'Mês passado: '+brl(rr.valor):'0,00'}" required autofocus></label><button class="btn pri">Marcar como paga</button></form>`); return; }
    if(d.valor){ rr.valores={...(rr.valores||{}),[d.m||TODAY().slice(0,7)]:+d.valor}; rr.valor=+d.valor; }const r=S.fin.recorrentes.find(x=>x.id===d.id);if(!r)return;const m=d.m||TODAY().slice(0,7);r.pagos=r.pagos||{};r.pagos[m]=true;const t=addTx({id:uid(),data:TODAY(),desc:r.nome,valor:+r.valor||0,tipo:'saida',cat:r.cat,origem:'recorrente',ok:true});save('fin');render();toast(`${r.nome} marcada como paga`,()=>{delete r.pagos[m];delTx(t.id,m);save('fin');render()})},
  perdido:()=>{const rep=repetidos();openSheet(`${sheetHead('Dinheiro perdido','Gastos que aparecem todo mês e não estão nas suas contas fixas. Assinatura esquecida costuma morar aqui.')}${rep.map(r=>`<div class="card"><div class="row between"><b>${esc(cap(r.k))}</b><b class="num">${brl(r.med)}/mês</b></div><span class="small muted">${brl0(r.anual)} por ano · ${r.n} meses seguidos</span><div class="row wrap"><button class="btn sm pri" data-a="repVira" data-k="${esc(r.k)}" data-t="assinatura">Assinatura</button><button class="btn sm" data-a="repVira" data-k="${esc(r.k)}" data-t="conta">Conta fixa</button><button class="btn sm ghost" data-a="repCancelar" data-k="${esc(r.k)}">Vou cancelar</button><button class="btn sm ghost" data-a="repIgn" data-k="${esc(r.k)}">Não é</button></div></div>`).join('')||'<p>Nada achado.</p>'}`)},
