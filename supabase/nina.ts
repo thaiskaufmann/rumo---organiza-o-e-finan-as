@@ -193,11 +193,11 @@ function parseLinha(l) {
 /* ====================== lista de compras ====================== */
 const SECAO_KW = {
   Hortifruti: ["banana", "maca", "laranja", "limao", "tomate", "alface", "cebola", "alho", "batata", "cenoura", "fruta", "legume", "verdura", "abacate", "mamao", "uva", "morango", "melancia", "abobrinha", "brocolis", "couve", "pepino", "pimentao", "manga", "abacaxi", "ovo", "ovos", "rucula", "espinafre", "beterraba", "chuchu", "mandioca", "aipim", "salsinha", "cebolinha", "coentro"],
-  Limpeza: ["detergente", "sabao", "amaciante", "desinfetante", "agua sanitaria", "candida", "esponja", "vassoura", "rodo", "pano", "multiuso", "lustra", "limpa", "saco de lixo", "lixo", "alcool", "veja", "omo", "ype", "papel toalha", "luva"],
-  Higiene: ["shampoo", "xampu", "condicionador", "sabonete", "pasta de dente", "creme dental", "escova", "desodorante", "papel higienico", "absorvente", "fio dental", "cotonete", "algodao", "hidratante", "protetor", "lamina", "barbeador", "creme"],
+  Limpeza: ["detergente", "sabao", "amaciante", "desinfetante", "agua sanitaria", "candida", "esponja", "vassoura", "rodo", "pano", "multiuso", "lustra", "limpa", "saco de lixo", "lixo", "alcool", "veja", "omo", "ype", "papel toalha", "luva", "cif", "bombril", "lysoform", "pinho sol", "tira manchas", "vanish", "lava loucas"],
+  Higiene: ["shampoo", "xampu", "condicionador", "sabonete", "pasta de dente", "creme dental", "escova", "desodorante", "papel higienico", "absorvente", "fio dental", "cotonete", "algodao", "hidratante", "protetor", "lamina", "barbeador", "creme de pentear", "creme para pentear", "sabonete liquido"],
   "Farmácia": ["remedio", "dipirona", "paracetamol", "ibuprofeno", "vitamina", "curativo", "band aid", "termometro", "soro", "dorflex", "neosaldina", "pomada"],
 };
-function secaoDe(item) { const n = " " + norm(item) + " "; for (const [s, ks] of Object.entries(SECAO_KW)) if (ks.some((k) => n.includes(" " + k))) return s; return "Mercado"; }
+function secaoDe(item) { const n = " " + norm(item) + " "; for (const [s, ks] of Object.entries(SECAO_KW)) if (ks.some((k) => n.includes(" " + k + " ") || n.includes(" " + k + "s "))) return s; return "Mercado"; }
 const CAB_COMPRAS = /^(?:minha\s+)?(?:lista(?:\s+de\s+compras?|\s+do\s+mercado|\s+do\s+supermercado)?|compras?|mercado|supermercado|feira|pra comprar|para comprar|comprar|preciso comprar|falta comprar)\s*:?$/;
 function itensCompra(txt) {
   return txt.split(/\n|,|;|\s+e\s+(?=\S)/i).map((x) => x.replace(/^\s*[-•*·☐✅▫️]+\s*/, "").replace(/^\s*\d+[.)]\s+/, "").trim()).filter((x) => x && x.length < 80).map(cap);
@@ -261,7 +261,7 @@ async function resumoDia(uid, d, manha) {
 
 /* ====================== o que fazer com cada mensagem ====================== */
 async function processar(conta, texto) {
-  const chat = conta.chat_id, uid = conta.user_id, s = texto.trim(), n = norm(s), t = TODAY(), m = t.slice(0, 7);
+  const chat = conta.chat_id, uid = conta.user_id, s0 = texto.trim(), s = s0.replace(/^(?:(?:oi|olá|ola|ei|ou|e aí|e ai|bom dia|boa tarde|boa noite)[\s,!]+)?nina\b[\s,:!.-]*/i, "").trim() || s0, n = norm(s), t = TODAY(), m = t.slice(0, 7);
   let mm;
 
   // lista de compras
@@ -294,7 +294,7 @@ async function processar(conta, texto) {
     return falar(chat, txt, [[["✅ Colocar no Rumo", "lista:ok"], ["Cancelar", "lista:no"]]]);
   }
 
-  if (/^\/?(start|oi|ola|ajuda|help|menu|comandos|bom dia|boa tarde|boa noite)\b/.test(n)) {
+  if (/^\/?(start|oi|ola|ajuda|help|menu|comandos|bom dia|boa tarde|boa noite|nina)\b/.test(n)) {
     const D = await carregar(uid, ["perfil"]);
     return falar(chat, ajudaTxt(D.perfil.nome || "Thais"));
   }
