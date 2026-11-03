@@ -72,6 +72,7 @@ const DEFS = {
   tarefas: { items: [] },
   fin: FIN0,
   saude: { ciclo: { registros: [] }, injecao: { intervalo: 30, ultima: "", historico: [], nome: "", hora: "" }, sono: [] },
+  casa: { compras: [], rotina: [] },
 };
 // carrega os documentos da pessoa; muda só o que precisar e grava de volta com hora nova
 async function carregar(uid, chaves) {
@@ -189,9 +190,54 @@ function parseLinha(l) {
   return { n: cap(n), v: r2(parseNum(mv[1])), d };
 }
 
+/* ====================== lista de compras ====================== */
+const SECAO_KW = {
+  Hortifruti: ["banana", "maca", "laranja", "limao", "tomate", "alface", "cebola", "alho", "batata", "cenoura", "fruta", "legume", "verdura", "abacate", "mamao", "uva", "morango", "melancia", "abobrinha", "brocolis", "couve", "pepino", "pimentao", "manga", "abacaxi", "ovo", "ovos", "rucula", "espinafre", "beterraba", "chuchu", "mandioca", "aipim", "salsinha", "cebolinha", "coentro"],
+  Limpeza: ["detergente", "sabao", "amaciante", "desinfetante", "agua sanitaria", "candida", "esponja", "vassoura", "rodo", "pano", "multiuso", "lustra", "limpa", "saco de lixo", "lixo", "alcool", "veja", "omo", "ype", "papel toalha", "luva"],
+  Higiene: ["shampoo", "xampu", "condicionador", "sabonete", "pasta de dente", "creme dental", "escova", "desodorante", "papel higienico", "absorvente", "fio dental", "cotonete", "algodao", "hidratante", "protetor", "lamina", "barbeador", "creme"],
+  "Farmácia": ["remedio", "dipirona", "paracetamol", "ibuprofeno", "vitamina", "curativo", "band aid", "termometro", "soro", "dorflex", "neosaldina", "pomada"],
+};
+function secaoDe(item) { const n = " " + norm(item) + " "; for (const [s, ks] of Object.entries(SECAO_KW)) if (ks.some((k) => n.includes(" " + k))) return s; return "Mercado"; }
+const CAB_COMPRAS = /^(?:minha\s+)?(?:lista(?:\s+de\s+compras?|\s+do\s+mercado|\s+do\s+supermercado)?|compras?|mercado|supermercado|feira|pra comprar|para comprar|comprar|preciso comprar|falta comprar)\s*:?$/;
+function itensCompra(txt) {
+  return txt.split(/\n|,|;|\s+e\s+(?=\S)/i).map((x) => x.replace(/^\s*[-•*·☐✅▫️]+\s*/, "").replace(/^\s*\d+[.)]\s+/, "").trim()).filter((x) => x && x.length < 80).map(cap);
+}
+async function addCompras(conta, itens) {
+  const D = await carregar(conta.user_id, ["casa"]); const L = D.casa.compras = D.casa.compras || [];
+  const ja = new Set(L.filter((x) => !x.ok).map((x) => norm(x.item)));
+  const novos = [], repetidos = [];
+  for (const it of itens) { if (ja.has(norm(it))) { repetidos.push(it); continue; } ja.add(norm(it)); const x = { id: novoId(), item: it, secao: secaoDe(it), ok: false }; L.push(x); novos.push(x); }
+  await gravar(conta.user_id, "casa", D.casa);
+  await sb.from("rumo_telegram").update({ pendente: { tipo: "comprasDesfazer", ids: novos.map((x) => x.id) } }).eq("user_id", conta.user_id);
+  const falta = L.filter((x) => !x.ok).length;
+  let t = novos.length ? `🛒 <b>Coloquei ${novos.length} ${plural(novos.length, "item", "itens")} na lista de compras</b>\n\n${novos.map((x) => `• ${esc(x.item)} <i>(${x.secao})</i>`).join("\n")}` : "Esses itens já estavam na lista 😉";
+  if (repetidos.length && novos.length) t += `\n\nJá estavam na lista: ${repetidos.map(esc).join(", ")}`;
+  t += `\n\nAgora são ${falta} ${plural(falta, "coisa", "coisas")} pra comprar. Manda <b>lista</b> pra ver tudo.`;
+  return falar(conta.chat_id, t, novos.length ? [[["↩️ Desfazer", "compras:undo"]]] : undefined);
+}
+async function verCompras(conta) {
+  const D = await carregar(conta.user_id, ["casa"]); const L = (D.casa.compras || []).filter((x) => !x.ok);
+  if (!L.length) return falar(conta.chat_id, `Sua lista de compras está vazia 🌿\n\nPra colocar coisas, manda assim:\n<code>lista de compras\narroz\nfeijão\ndetergente</code>`);
+  const por = {}; for (const x of L) (por[x.secao || "Mercado"] = por[x.secao || "Mercado"] || []).push(x);
+  const ic = { Mercado: "🛒", Hortifruti: "🥦", Limpeza: "🧽", Higiene: "🧴", "Farmácia": "💊", Outros: "📦" };
+  let t = `🛒 <b>Lista de compras</b> · ${L.length} ${plural(L.length, "item", "itens")}\n`;
+  for (const [s, xs] of Object.entries(por)) t += `\n${ic[s] || "•"} <b>${esc(s)}</b>\n${xs.map((x) => `▫️ ${esc(x.item)}`).join("\n")}\n`;
+  t += `\nQuando comprar, manda <b>comprei arroz e leite</b> que eu risco da lista.`;
+  return falar(conta.chat_id, t);
+}
+async function riscarCompras(conta, itens) {
+  const D = await carregar(conta.user_id, ["casa"]); const L = D.casa.compras || [];
+  const ok = [];
+  for (const it of itens) { const n = norm(it); const x = L.find((y) => !y.ok && (norm(y.item) === n || norm(y.item).includes(n) || n.includes(norm(y.item)))); if (x) { x.ok = true; ok.push(x.item); } }
+  if (!ok.length) return null;
+  await gravar(conta.user_id, "casa", D.casa);
+  const falta = L.filter((x) => !x.ok).length;
+  return falar(conta.chat_id, `✅ Risquei da lista: ${ok.map(esc).join(", ")}${falta ? `\nFaltam ${falta} ${plural(falta, "coisa", "coisas")}.` : "\nLista completa! 🎉"}`);
+}
+
 /* ====================== respostas ====================== */
 function ajudaTxt(nome) {
-  return `Oi, ${esc(nome)}! Eu sou a <b>Nina</b>, sua assistente do Rumo 💜\nMe manda o que precisar que eu anoto tudo pra você:\n\n<b>Pra anotar</b>\n• gastei 45 mercado\n• recebi 1200 cliente\n• dentista amanhã 15h\n• comprar ração sábado\n• tomei a injeção\n• feito academia\n• paguei a luz  ·  paguei a luz 152 (se o valor muda)\n\n<b>Lista (uma coisa por linha)</b>\n<code>contas fixas\nAluguel 1700 dia 5\nInternet 119,90 dia 10</code>\n\n<b>Pra perguntar</b>\n• hoje  ·  amanhã\n• contas\n• quanto posso gastar\n• posso comprar tênis 300\n\nTudo que você manda aqui aparece no app na hora ✨`;
+  return `Oi, ${esc(nome)}! Eu sou a <b>Nina</b>, sua assistente do Rumo 💜\nMe manda o que precisar que eu anoto tudo pra você:\n\n<b>Pra anotar</b>\n• gastei 45 mercado\n• recebi 1200 cliente\n• dentista amanhã 15h\n• comprar ração sábado\n• tomei a injeção\n• feito academia\n• paguei a luz  ·  paguei a luz 152 (se o valor muda)\n\n<b>Lista de compras</b>\n<code>lista de compras\narroz\nfeijão\ndetergente</code>\nou: <b>coloca leite e pão na lista</b>\n• <b>lista</b> pra ver  ·  <b>comprei arroz</b> pra riscar\n\n<b>Contas fixas (uma por linha)</b>\n<code>contas fixas\nAluguel 1700 dia 5\nInternet 119,90 dia 10</code>\n\n<b>Pra perguntar</b>\n• hoje  ·  amanhã\n• contas\n• quanto posso gastar\n• posso comprar tênis 300\n\nTudo que você manda aqui aparece no app na hora ✨`;
 }
 const naoEntendi = () => `Ops, essa eu não entendi 🙈 Me manda assim que eu consigo:\n\n• <b>gastei 45 mercado</b>\n• <b>dentista amanhã 15h</b>\n• <b>feito academia</b>\n• <b>hoje</b>  ·  <b>contas</b>  ·  <b>quanto posso gastar</b>\n\nOu manda <b>ajuda</b> pra ver tudo.`;
 
@@ -218,8 +264,20 @@ async function processar(conta, texto) {
   const chat = conta.chat_id, uid = conta.user_id, s = texto.trim(), n = norm(s), t = TODAY(), m = t.slice(0, 7);
   let mm;
 
-  // listas: primeira linha diz o que é, depois uma coisa por linha
+  // lista de compras
   const linhas = s.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  const cab0 = norm(linhas[0] || "").replace(/[:!]+$/, "").trim();
+  if (linhas.length > 1 && CAB_COMPRAS.test(cab0)) return addCompras(conta, itensCompra(linhas.slice(1).join("\n")));
+  if (linhas.length === 1) {
+    if (/^(?:minha\s+)?(?:lista(?:\s+de\s+compras?|\s+do\s+mercado)?|compras|o que (?:tem|falta) (?:na lista|comprar)|ver lista)\??$/.test(n)) return verCompras(conta);
+    let mc = s.match(/^\s*(?:minha\s+)?(?:lista(?:\s+de\s+compras?|\s+do\s+mercado)?|compras|mercado|pra comprar|preciso comprar|falta comprar)\s*:\s*(.+)$/i)
+      || s.match(/^\s*(?:adiciona|adicionar|add|coloca|colocar|coloque|bota|botar|põe|poe|por|inclui|incluir|anota|anotar)\s+(?:na|no|à|a)?\s*(?:minha\s+)?(?:lista(?:\s+de\s+compras?|\s+do\s+mercado)?|mercado)\s*:?\s*(.+)$/i)
+      || s.match(/^\s*(?:adiciona|adicionar|add|coloca|colocar|coloque|bota|botar|põe|poe|inclui|incluir|anota|anotar)\s+(.+?)\s+(?:na|no)\s+(?:minha\s+)?(?:lista(?:\s+de\s+compras?|\s+do\s+mercado)?|mercado)\s*$/i);
+    if (mc) return addCompras(conta, itensCompra(mc[1]));
+    if ((mc = s.match(/^\s*(?:comprei|ja comprei|já comprei|peguei)\s+(.+)$/i)) && !NUM.test(mc[1])) { const r = await riscarCompras(conta, itensCompra(mc[1])); if (r) return r; }
+  }
+
+  // listas: primeira linha diz o que é, depois uma coisa por linha
   if (linhas.length > 1 && /(conta|fixa|gasto|despesa|compra|lancamento|lanca)/.test(norm(linhas[0])) && !NUM.test(linhas[0].replace(/\b(19|20)\d\d\b/, ""))) {
     const fixa = /(conta|fixa|mensal|todo mes)/.test(norm(linhas[0])) && !/gasto/.test(norm(linhas[0]));
     const ok = [], ruim = [];
@@ -357,6 +415,13 @@ async function botao(conta, q) {
   const uid = conta.user_id, chat = conta.chat_id;
   const fecha = (txt) => tg("answerCallbackQuery", { callback_query_id: q.id, text: txt || "" });
   const tiraBotoes = () => q.message && tg("editMessageReplyMarkup", { chat_id: chat, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } });
+  if (acao === "compras") {
+    const p = conta.pendente; await tiraBotoes();
+    if (!p || p.tipo !== "comprasDesfazer") { await fecha(); return; }
+    const D = await carregar(uid, ["casa"]); D.casa.compras = (D.casa.compras || []).filter((x) => !p.ids.includes(x.id));
+    await gravar(uid, "casa", D.casa); await sb.from("rumo_telegram").update({ pendente: null }).eq("user_id", uid); await fecha("Desfeito");
+    return falar(chat, "Desfeito, tirei da lista 👍");
+  }
   if (acao === "lista") {
     const p = conta.pendente; await tiraBotoes();
     if (a !== "ok" || !p) { await sb.from("rumo_telegram").update({ pendente: null }).eq("user_id", uid); await fecha(); return falar(chat, "Cancelado, nada foi salvo 👍"); }
