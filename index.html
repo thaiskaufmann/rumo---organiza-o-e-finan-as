@@ -894,7 +894,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-08.4';
+const VERSAO='2026-11-08.5';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -2332,6 +2332,63 @@ function compListaHtml(){ const so=UI.compSo, txt=textoCompras(so);
 function listasHtml(){ const LS=S.casa.listas||[];
   return `${sheetHead('Listas salvas','Toca em Usar e os itens entram na sua lista de compras.')}<div class="stack">${LS.length?LS.map(l=>{const tot=l.itens.reduce((a,x)=>a+(+x.preco||0),0);
     return `<div class="lsal"><div class="grow"><b>${esc(l.nome)}</b><span class="tiny muted">${l.itens.length} ${plural(l.itens.length,'item','itens')}${tot?' · ~'+brl0(tot):''}${l.usada?' · usada em '+fmtDs(l.usada):''}</span></div><button class="btn pri sm" data-a="listaUsar" data-id="${l.id}">Usar</button><button class="iconbtn sm" data-a="listaApagar" data-id="${l.id}" aria-label="Apagar lista">${svg('x')}</button></div>`}).join(''):'<p class="empty">Nenhuma lista salva ainda.</p>'}</div>`; }
+/* ================= widget (Scriptable) ================= */
+const SITE_RUMO='https://thaiskaufmann.github.io/rumo---organiza-o-e-finan-as/';
+function widgetScript(tk){ const api=SB.cfg.url.replace(/\/$/,'')+'/functions/v1/nina?acao=widget&t='+tk;
+return `// Rumo · widget das tarefas do dia (Scriptable)
+// Feito pelo app Rumo. Não compartilhe este código: ele tem a sua chave do widget.
+const API = "${api}";
+const ABRIR = "${SITE_RUMO}";
+const fam = config.widgetFamily || "large";
+const MAX = { small: 3, medium: 4, large: 11, extraLarge: 14 }[fam] || 11;
+const C = { fundo1: "#2A1A2E", fundo2: "#4A2C5E", texto: "#FFFFFF", fraco: "#CDBFD6", rosa: "#F28BB0", verde: "#7FD49B" };
+let d = null;
+try { const r = new Request(API); r.timeoutInterval = 15; d = await r.loadJSON(); } catch (e) { d = null; }
+const w = new ListWidget();
+w.url = ABRIR;
+w.refreshAfterDate = new Date(Date.now() + 15 * 60000);
+const g = new LinearGradient(); g.colors = [new Color(C.fundo1), new Color(C.fundo2)]; g.locations = [0, 1]; w.backgroundGradient = g;
+w.setPadding(14, 14, 14, 14);
+const txt = (st, s, tam, cor, peso) => { const t = st.addText(s); t.font = peso === "b" ? Font.boldSystemFont(tam) : peso === "m" ? Font.mediumSystemFont(tam) : Font.systemFont(tam); t.textColor = new Color(cor); t.lineLimit = 1; return t; };
+if (!d || d.erro) {
+  txt(w, "Rumo", 13, C.rosa, "b"); w.addSpacer(6);
+  txt(w, d && d.erro === "chave" ? "Widget desligado. Crie de novo em Ajustes › Widget." : "Sem conexão agora. Tento de novo daqui a pouco.", 12, C.fraco).lineLimit = 3;
+} else {
+  const topo = w.addStack(); topo.centerAlignContent();
+  txt(topo, "Rumo", 12, C.rosa, "b"); topo.addSpacer();
+  txt(topo, d.feitos + "/" + d.total, 12, d.total && d.feitos === d.total ? C.verde : C.fraco, "b");
+  w.addSpacer(2);
+  txt(w, fam === "small" ? "Hoje" : "Hoje · " + d.dia, fam === "small" ? 17 : 15, C.texto, "b");
+  w.addSpacer(8);
+  const pend = d.itens.filter((i) => !i.ok);
+  const lista = fam === "small" ? pend : d.itens;
+  if (!d.itens.length) txt(w, "Nada marcado. Dia livre 🌿", 13, C.fraco);
+  else if (!lista.length) txt(w, "Tudo feito por hoje! ✨", 13, C.verde, "m");
+  for (const i of lista.slice(0, MAX)) {
+    const l = w.addStack(); l.centerAlignContent(); l.spacing = 6;
+    txt(l, i.ok ? "✓" : "○", 12, i.ok ? C.verde : C.fraco, "b");
+    if (fam !== "small") { const q = txt(l, i.h || i.p, 11, C.fraco, "m"); q.minimumScaleFactor = 0.8; }
+    const n = txt(l, i.t, 13, i.ok ? C.fraco : C.texto, i.ok ? "" : "m"); n.minimumScaleFactor = 0.85;
+    w.addSpacer(fam === "large" ? 5 : 4);
+  }
+  const resto = lista.length - MAX;
+  if (resto > 0) txt(w, "+ " + resto + " no app", 11, C.fraco);
+  w.addSpacer();
+}
+if (config.runsInWidget) Script.setWidget(w); else await (fam === "small" ? w.presentSmall() : fam === "medium" ? w.presentMedium() : w.presentLarge());
+Script.complete();
+`; }
+function widgetCard(){
+  if(!SB.user) return `<section class="card"><h2>Widget na tela de início</h2><p class="small">Pra usar o widget, entre na sua conta em <b>Conta e sincronização</b> primeiro.</p></section>`;
+  const tk=S.perfil.widget;
+  if(!tk) return `<section class="card"><h2>Widget na tela de início</h2><p class="small">Mostra as tarefas, compromissos e hábitos de hoje num quadrinho na tela do iPhone, usando o app gratuito <b>Scriptable</b>.</p>
+   <p class="tiny muted">O widget só consegue <b>ver</b> as coisas de hoje. Ele não muda nada no seu Rumo.</p><button class="btn pri" data-a="widgetCriar">🧩 Criar widget</button></section>`;
+  return `<section class="card"><h2>Widget na tela de início</h2>
+   <ol class="small passos"><li>Toque em <b>Copiar código</b> aqui embaixo.</li><li>Abra o <b>Scriptable</b>, toque no <b>+</b> (canto de cima), cole o código e, no topo, mude o nome pra <b>Rumo</b>. Toque em <b>Done</b>.</li><li>Toque no script <b>Rumo</b> uma vez pra ver a prévia e testar.</li><li>Na tela de início do iPhone, segure num espaço vazio até os ícones tremerem e toque no <b>+</b> (ou em <b>Editar › Adicionar widget</b>).</li><li>Procure <b>Scriptable</b>, escolha o tamanho (pequeno, médio ou grande) e toque em <b>Adicionar widget</b>.</li><li>Com os ícones tremendo, toque no widget, em <b>Script</b> escolha <b>Rumo</b> e em <b>When Interacting</b> escolha <b>Open URL</b>. Toque fora pra fechar.</li></ol>
+   <button class="btn pri" data-a="widgetCopiar">📋 Copiar código</button>
+   <p class="tiny muted">O iPhone atualiza o widget sozinho, mais ou menos a cada 15 a 30 minutos. Tocando nele, o Rumo abre.</p>
+   <button class="btn ghost danger" data-a="widgetDesligar" style="align-self:flex-start">Desligar widget</button></section>`;
+}
 function vMente(){
   const tab=UI.menteTab||'despejar', M2=S.mente;
   let out=`<section><div class="eyebrow">Esvaziar a mente</div><h1>Tira da cabeça, põe aqui</h1></section>
@@ -2498,11 +2555,12 @@ function vMais(){
 const AJ={
  perfil:['Perfil','👤','#C2185B'], conta:['Conta e sincronização','☁️','#3D7BD9'],
  aparencia:['Aparência','🎨','#8E3FA6'], menu:['Menu de baixo','🧭','#E0812B'],
- notif:['Notificações','🔔','#E5484D'], nina:['Nina no Telegram','💬','#2AABEE'],
+ notif:['Notificações','🔔','#E5484D'], nina:['Nina no Telegram','💬','#2AABEE'], widget:['Widget na tela de início','🧩','#6E56CF'],
  dados:['Seus dados','🗂️','#2F9E6E'], demo:['Ver como funciona','✨','#D4A017'],
  iphone:['Instalar no iPhone','📱','#5B6470'], sobre:['Sobre o app','ℹ️','#7A7F87']};
 function ajResumo(k){
   if(k==='perfil') return esc(S.perfil.nome||'');
+  if(k==='widget') return S.perfil.widget?'Ligado':'Desligado';
   if(k==='conta') return SB.user?(SB.estado==='erro'?'Sem conexão':'Ligada'):'Desligada';
   if(k==='aparencia') return ({auto:'Automático',claro:'Claro',escuro:'Escuro'})[S.perfil.tema||'auto'];
   if(k==='menu') return menuAtual().map(v=>NOMEMENU[v]).join(', ');
@@ -2518,7 +2576,7 @@ function vAjustes(){
     const [t]=AJ[p];
     const corpo={perfil:()=>`<section class="card"><h2>Seu nome</h2><form data-f="perfil" class="row"><input type="text" name="nome" id="pNome" value="${esc(S.perfil.nome||'')}"><button class="btn">Salvar</button></form></section>`,
       conta:()=>syncCard(), aparencia:()=>`<section class="card"><h2>Aparência</h2><p class="small muted">Automático segue o claro ou escuro do seu celular.</p><div class="segtabs">${[['auto','Automático'],['claro','Claro'],['escuro','Escuro']].map(([k,l])=>`<button class="${(S.perfil.tema||'auto')===k?'on':''}" data-a="tema" data-t="${k}">${l}</button>`).join('')}</div></section>`, menu:()=>`<section class="card"><h2>Menu de baixo</h2><p class="small muted">Escolha as 4 telas que ficam na barra. O resto fica em Mais.</p><div class="flist">${menuAtual().map((v,i)=>`<div class="frow"><span>Posição ${i+1}</span><select data-c="menuPos" data-i="${i}" id="menu-${i}">${Object.entries(NOMEMENU).map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}<div class="frow"><span>Posição 5</span><span class="muted small" style="flex:none">Mais (fixo)</span></div></div></section>`,
-      notif:()=>notifCard(), nina:()=>ninaCard(), dados:()=>`<section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
+      notif:()=>notifCard(), nina:()=>ninaCard(), widget:()=>widgetCard(), dados:()=>`<section class="card"><h2>Seus dados</h2><p class="small">${SB.user?'Salvos neste aparelho e na sua conta do Supabase.':'Salvos só neste aparelho. Faça uma cópia de vez em quando.'}</p>
    <div class="row wrap"><button class="btn" data-a="backup">Baixar cópia de segurança</button><label class="btn" for="restFile">Restaurar cópia</label><input type="file" id="restFile" accept=".json,application/json" data-c="restaurar" hidden></div>
    ${UI.confirmApagar?`<div class="stack" style="padding:12px;border-radius:10px;background:var(--bad-soft)"><b style="color:var(--bad)">Apagar tudo mesmo?</b><span class="small">Tarefas, finanças, saúde, tudo. Não dá pra desfazer. Baixe uma cópia antes.</span><div class="row"><button class="btn danger" data-a="apagarTudo">Sim, apagar tudo</button><button class="btn ghost" data-a="cancelApagar">Cancelar</button></div></div>`:`<button class="btn ghost danger" style="align-self:flex-start" data-a="pedeApagar">Apagar todos os dados</button>`}</section>`, demo:()=>`<section class="card"><h2>Ver como funciona</h2><p class="small">Abre o app cheio de dados de exemplo pra você testar tudo à vontade. Seus dados ficam guardados e voltam quando você sair.</p><button class="btn pri" style="align-self:flex-start" data-a="${REAL?'sairDemo':'entrarDemo'}">${REAL?'Sair da demonstração':'Abrir demonstração'}</button></section>`,
       iphone:()=>`<section class="card"><h2>Deixar o Rumo como app</h2><ol class="small passos"><li>Abra o Rumo no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b> (o quadrado com a setinha).</li><li>Escolha <b>Adicionar à Tela de Início</b>.</li><li>Abra sempre pelo ícone: é assim que as notificações funcionam.</li></ol></section>`,
@@ -2531,7 +2589,7 @@ function vAjustes(){
   <button class="ajperfil" data-a="ajPag" data-p="perfil"><span class="ajav">${esc(ini)}</span><span class="grow"><b>${esc(S.perfil.nome||'Seu nome')}</b><span class="small muted">${SB.user?esc(SB.user.email||''):'Toque pra mudar seu nome'}</span></span><span class="chev">›</span></button>
   ${grupo('Conta',['conta'])}
   ${grupo('Aparência',['aparencia','menu'])}
-  ${grupo('Avisos',['notif','nina'])}
+  ${grupo('Avisos',['notif','nina','widget'])}
   ${grupo('Dados',['dados'])}
   ${grupo('Ajuda',['demo','iphone','sobre'])}`;
 }
@@ -2639,6 +2697,10 @@ const ACT={
  focoTodos:()=>{UI.focoTodos=!UI.focoTodos;render()},
  focoEscolher:()=>{ const t=TODAY(), its=itensDoDia(t).filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)).sort((a,b)=>(a.tipo==='tarefa'?0:1)-(b.tipo==='tarefa'?0:1)||prioN(b)-prioN(a));
    openSheet(`${sheetHead('Focar em quê?','Escolhe uma coisa só. As outras esperam.')}<div class="stack">${its.map(i=>`<button class="fesc" data-a="focoAbrir" data-id="${i.id}" data-d="${t}"><span class="grow">${prioTag(i)}${esc(i.titulo)}</span><span class="tiny muted">${PER.find(p=>p[0]===(i.periodo||periodoDe(i.hora)))[1]}</span></button>`).join('')}</div>`); },
+ widgetCriar:async()=>{ if(!SB.user) return; const AB='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', rnd=crypto.getRandomValues(new Uint32Array(40)); const tk=[...rnd].map(n=>AB[n%AB.length]).join('');
+   try{ const {error}=await SB.client.from('rumo_widget').insert({token:tk}); if(error) throw error; S.perfil.widget=tk; save('perfil'); render(); toast('Widget criado. Agora copie o código 🧩'); }catch(e){ toast('Não consegui criar o widget agora. Tenta de novo daqui a pouco.'); } },
+ widgetCopiar:()=>{ const t=widgetScript(S.perfil.widget); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Código copiado. Cole no Scriptable 📋')).catch(()=>{ openSheet(`${sheetHead('Copie o código','Segure no texto, toque em Selecionar tudo e depois em Copiar.')}<textarea readonly rows="12" style="width:100%;font:12px ui-monospace,monospace">${esc(t)}</textarea>`); }); },
+ widgetDesligar:async()=>{ const tk=S.perfil.widget; if(!tk) return; try{ await SB.client.from('rumo_widget').delete().eq('token',tk); }catch(e){} S.perfil.widget=''; save('perfil'); render(); toast('Widget desligado'); },
  sDicasTodas:()=>{UI.sDicasTodas=!UI.sDicasTodas;render()},
  catsTodas:()=>{UI.catsTodas=!UI.catsTodas;render()},
  catVer:d=>{UI.txcat=d.c;UI.txq='';UI.sub.dinheiro='transacoes';render();window.scrollTo(0,0)},
