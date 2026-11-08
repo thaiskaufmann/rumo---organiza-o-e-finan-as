@@ -203,6 +203,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .item.est-naofiz .t{color:var(--muted)}
 .check.x{background:var(--sunk);border-color:var(--line)}
 .check.x span{display:block;color:var(--ink);font-size:14px;line-height:1;opacity:1}
+.item .nota{font-size:12.5px;color:var(--ink);font-weight:500;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
 .item .obs{font-size:12.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iconbtn.sm{width:34px;height:34px;font-size:18px;font-weight:700;flex:none}
 .estgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -892,7 +893,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-03.1';
+const VERSAO='2026-11-08.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1149,7 +1150,7 @@ function itemHtml(i,d){
   const done=isDone(i,d),est=estadoDe(i,d),st=i.tipo==='habito'?streak(i,d):0, e=ESTADOS[est];
   return `<div class="item t-${i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
-    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${(i.focos||{})[d]?` · 🎯 ${i.focos[d]} ${plural(i.focos[d],'bloco','blocos')}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
+    <button class="open" data-a="editT" data-id="${i.id}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${(i.focos||{})[d]?` · 🎯 ${i.focos[d]} ${plural(i.focos[d],'bloco','blocos')}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${i.nota?`<div class="nota">📌 ${esc(i.nota)}</div>`:''}${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
     ${i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
   </div>`;
 }
@@ -1310,6 +1311,7 @@ function formItem(i,focus){
    </div></div>
    <div class="fsec"><span class="eyebrow">Detalhes</span><div class="flist">
     <div class="frow col"><span>Passos</span><div id="passosBox" class="stack">${passos.map((p,k)=>`<div class="row"><input type="checkbox" name="pok" value="${k}" ${p.ok?'checked':''} aria-label="Passo feito"><input type="text" name="passo" value="${esc(p.t)}" id="ps-${k}"></div>`).join('')}<div class="row"><input type="text" name="passo" id="psNovo" placeholder="Adicionar passo e apertar Enter"></div></div></div>
+    <div class="frow col"><span>📌 Nota fixa <small class="muted" style="font-weight:400">aparece todo dia no item</small></span><input type="text" name="nota" id="iNota" value="${esc(i.nota||'')}" placeholder="Ex.: depois do almoço, levar a apostila, link da aula" maxlength="140"></div>
     <div class="frow col ${tipo==='habito'?'':'hide'}" id="fMin"><span>Versão mínima (pros dias difíceis)</span><input type="text" name="minimo" id="iMin" value="${esc(i.minimo||'')}" placeholder="Ex.: 10 min de caminhada, 1 página, 1 copo d'água"></div>
     <div class="frow col ${tipo==='compromisso'?'':'hide'}" id="fLocal"><span>Onde</span><input type="text" name="local" id="iLocal" value="${esc(i.local||'')}"></div>
     <div class="frow col"><span>Link</span><input type="url" name="link" id="iLink" value="${esc(i.link||'')}" placeholder="https://"></div>
@@ -2804,7 +2806,7 @@ const FORMS={
  item:(o,f)=>{const id=f.dataset.id; const tipo=o.tipo; let rep=o.rep||'nao'; if(tipo==='habito'&&rep==='nao') rep='diario';
    const old=id?getT(id):null; const oldP=old?.passos||[];
    const textos=arr(o.passo); const oks=new Set(arr(o.pok).map(Number)); const passos=textos.map((t,k)=>({id:oldP[k]?.id||uid(),t:String(t).trim(),ok:oks.has(k)})).filter(p=>p.t);
-   const base={titulo:String(o.titulo).trim(),tipo,rep,dias:rep==='dias'?arr(o.dias).map(Number):[],data:o.data||TODAY(),hora:o.quando?(o.quando==='hora'?(o.hora||''):''):(o.hora||''),dur:+o.dur||0,etiqueta:o.etiqueta||'',periodo:['manha','tarde','noite'].includes(o.quando)?o.quando:(o.quando?'':(o.periodo||'')),minimo:tipo==='habito'?String(o.minimo||'').trim():'',prioridade:o.prioridade||'',local:tipo==='compromisso'?(o.local||''):'',link:o.link||'',obs:rep==='nao'?String(o.obs||'').trim():'',passos};
+   const base={titulo:String(o.titulo).trim(),tipo,rep,dias:rep==='dias'?arr(o.dias).map(Number):[],data:o.data||TODAY(),hora:o.quando?(o.quando==='hora'?(o.hora||''):''):(o.hora||''),dur:+o.dur||0,etiqueta:o.etiqueta||'',periodo:['manha','tarde','noite'].includes(o.quando)?o.quando:(o.quando?'':(o.periodo||'')),minimo:tipo==='habito'?String(o.minimo||'').trim():'',nota:String(o.nota||'').trim(),prioridade:o.prioridade||'',local:tipo==='compromisso'?(o.local||''):'',link:o.link||'',obs:rep==='nao'?String(o.obs||'').trim():'',passos};
    if(old) Object.assign(old,base); else S.tarefas.items.push({id:uid(),...base,feitos:{},criado:Date.now()});
    if(UI.convFrom&&!id){ const c=UI.convFrom; if(c.k==='dump') S.mente.dump=S.mente.dump.filter(x=>x.id!==c.id); else { const x=(S.mente.semanas[c.seg]?.[c.k]||[]).find(y=>y.id===c.id); if(x) x.virou=true; } save('mente'); } UI.convFrom=null;
    save('tarefas');closeSheet();render();toast(id?'Salvo':({tarefa:'Tarefa adicionada',habito:'Hábito adicionado',compromisso:'Compromisso adicionado'})[tipo])},
