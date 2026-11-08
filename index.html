@@ -456,6 +456,7 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
+.rprox{background:var(--sunk);border-radius:12px;padding:10px 12px;margin:0;font-size:14px}
 .ctools{display:flex;flex-wrap:wrap;gap:6px}
 .ctools:empty{display:none}
 .ctot{gap:10px}
@@ -893,7 +894,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-08.2';
+const VERSAO='2026-11-08.3';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1000,7 +1001,7 @@ function casaItens(d){
     else if(d===t){ if(r.adiadoAte&&r.adiadoAte>t) mostra=false; else if(r.adiadoAte===t) mostra=true; else { const f=rotF(r,t); if(f<=0){ mostra=true; atraso=-f; } } }
     else if(d>t){ if(r.adiadoAte&&r.adiadoAte>t) mostra=r.adiadoAte===d;
       else if(r.modo==='semana'&&(r.dias||[]).length) mostra=r.dias.map(Number).includes(parseD(d).getDay());
-      else { const f=Math.max(1,rotF(r,t)), p=addDays(t,f), c=+r.cada||7; mostra=d>=p&&diffDays(p,d)%c===0; } }
+      else { const f=rotF(r,t); let q=f<=0?rotDepois(r,t):addDays(t,f), n=0; while(q<d&&n++<400) q=rotDepois(r,q); mostra=q===d; } }
     if(!mostra) continue;
     out.push({id:'casa:'+r.id,virt:'casa',rid:r.id,tipo:'tarefa',titulo:r.nome,data:d,hora:'',periodo:r.periodo||'',dur:30,rep:'nao',prioridade:'',feito,feitos:{},passos:[],
       etiqueta:[r.comodo,atraso&&!feito?`atrasada ${atraso} ${plural(atraso,'dia','dias')}`:''].filter(Boolean).join(' · ')});
@@ -2155,9 +2156,13 @@ function rotF(r,t){
     if(!r.ultima) return ds.includes(wd(t))?0:prox();
     for(let k=0;k<7;k++){ const x=addDays(t,-k); if(ds.includes(wd(x))) return r.ultima<x?-k:prox(); }
     return prox(); }
+  if(r.diaSem!==undefined&&r.diaSem!==''&&r.diaSem!==null){ const base=r.ultima?addDays(r.ultima,+r.cada||7):t; return diffDays(t,rotNoDia(base,+r.diaSem)); }
   return r.ultima?diffDays(t,addDays(r.ultima,+r.cada||7)):0;
 }
-const rotQuando=r=>r.modo==='semana'&&(r.dias||[]).length?[1,2,3,4,5,6,0].filter(w=>r.dias.map(Number).includes(w)).map(w=>DOW[w]).join(', '):`a cada ${r.cada} ${plural(+r.cada,'dia','dias')}`;
+const rotNoDia=(d,w)=>addDays(d,(w-parseD(d).getDay()+7)%7);
+const temDiaSem=r=>r.modo!=='semana'&&r.diaSem!==undefined&&r.diaSem!==''&&r.diaSem!==null;
+const rotDepois=(r,x)=>{ const n=addDays(x,+r.cada||7); return temDiaSem(r)?rotNoDia(n,+r.diaSem):n; };
+const rotQuando=r=>r.modo==='semana'&&(r.dias||[]).length?[1,2,3,4,5,6,0].filter(w=>r.dias.map(Number).includes(w)).map(w=>DOW[w]).join(', '):`a cada ${r.cada} ${plural(+r.cada,'dia','dias')}`+(temDiaSem(r)?`, ${DOWL[+r.diaSem]}`:'');
 function obsSemana(seg){
   const dias=semanaDe(seg), out=[];
   for(const i of S.tarefas.items){
@@ -2397,9 +2402,14 @@ function formRot(r){ r=r||{cada:7}; return `${sheetHead(r.id?'Editar':'Nova tare
  <div class="f"><span>Em que período do dia?</span><div class="qpick">${[['manha','Manhã'],['tarde','Tarde'],['noite','Noite'],['','Qualquer hora']].map(([v,l])=>`<label><input type="radio" name="periodo" value="${v}" ${(r.periodo||'')===v?'checked':''}><span>${l}</span></label>`).join('')}</div><span class="tiny muted" style="font-weight:400">Ela aparece no seu dia, na tela inicial, nesse período.</span></div>
  <label class="f">Cômodo<select name="comodo" id="rotCo"><option value="">Nenhum</option>${['Cozinha','Sala','Quarto','Banheiro','Área de serviço','Varanda'].map(c=>`<option ${r.comodo===c?'selected':''}>${c}</option>`).join('')}</select></label>
  <div class="seg"><label><input type="radio" name="modo" value="cada" ${r.modo!=='semana'?'checked':''} data-c="rotModo"><span>A cada X dias</span></label><label><input type="radio" name="modo" value="semana" ${r.modo==='semana'?'checked':''} data-c="rotModo"><span>Dias da semana</span></label></div>
- <label class="f ${r.modo==='semana'?'hide':''}" id="fRotCada">Repetir a cada (dias)<input type="number" min="1" name="cada" id="rotC" value="${r.cada||7}"></label>
- <div class="f ${r.modo==='semana'?'':'hide'}" id="fRotDias"><span>Quais dias</span><div class="daypick">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}" ${(r.dias||[]).map(Number).includes(w)?'checked':''}><span>${DOW[w]}</span></label>`).join('')}</div></div><label class="f">Última vez que fez<input type="date" name="ultima" id="rotU" value="${esc(r.ultima||'')}"></label>
+ <div class="f ${r.modo==='semana'?'hide':''}" id="fRotCada"><label class="f">Repetir a cada (dias)<input type="number" min="1" name="cada" id="rotC" value="${r.cada||7}" data-c="rotPrev"></label>
+  <span>Em que dia da semana? <small class="muted" style="font-weight:400">(opcional)</small></span><div class="qpick">${[['','Qualquer dia'],...[1,2,3,4,5,6,0].map(w=>[String(w),DOW[w]])].map(([v,l])=>`<label><input type="radio" name="diaSem" value="${v}" ${String(r.diaSem??'')===v?'checked':''} data-c="rotPrev"><span>${l}</span></label>`).join('')}</div>
+  <span class="tiny muted" style="font-weight:400">Se escolher um dia, ela cai sempre nesse dia da semana, depois de passar os dias de intervalo.</span></div>
+ <div class="f ${r.modo==='semana'?'':'hide'}" id="fRotDias"><span>Quais dias</span><div class="daypick">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}" ${(r.dias||[]).map(Number).includes(w)?'checked':''} data-c="rotPrev"><span>${DOW[w]}</span></label>`).join('')}</div></div><label class="f">Última vez que fez<input type="date" name="ultima" id="rotU" value="${esc(r.ultima||'')}" data-c="rotPrev"></label>
+ <p class="rprox" id="rotProx">${rotProxTxt(r)}</p>
  <div class="row between"><button class="btn pri">Salvar</button>${r.id?`<button type="button" class="btn danger ghost" data-a="delRot" data-id="${r.id}">Apagar</button>`:''}</div></form>`; }
+function rotProxTxt(r){ if(!r||(r.modo==='semana'&&!(r.dias||[]).length)) return ''; const t=TODAY(), f=rotF(r,t), d=addDays(t,Math.max(0,f));
+  return `📅 Próxima vez: <b>${f<0?'hoje (está atrasada)':f===0?'hoje':cap(DOWL[parseD(d).getDay()])+', '+fmtDs(d)}</b>`; }
 const PAR={timer:null,codigo:null,stream:null,raf:null};
 const PARFN=q=>SB.cfg.url.replace(/\/$/,'')+'/functions/v1/rumo-par'+(q?'?'+q:'');
 function carregaScript(src){ return new Promise((ok,erro)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=erro; document.head.appendChild(s); }); }
@@ -2886,7 +2896,7 @@ const FORMS={
    if(/^(gastei|paguei|comprei|recebi|ganhei|entrou|caiu|vendi)\b/.test(n)){ const p=parseLanc(t); openSheet(formTx({tipo:p.tipo,desc:p.desc,valor:p.valor||'',data:p.data,cat:p.tipo==='entrada'?ENTCATS[0]:categorizar(p.desc)})); }
    else openSheet(formItem(parseItem(t))); const i=$('#pcAdd'); if(i) i.value=''; },
  item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{const pr=(S.casa.precos||{})[norm(x)];S.casa.compras.push({id:uid(),item:cap(x),secao:o.secao||UI.secao||'Mercado',ok:false,...(pr?{preco:pr,est:true}:{})})});save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
- rot:(o,f)=>{const id=f.dataset.id;const modo=o.modo==='semana'?'semana':'cada';const dias=arr(o.dias).map(Number);if(modo==='semana'&&!dias.length){toast('Escolha pelo menos um dia da semana');return}const b={nome:String(o.nome).trim(),modo,dias:modo==='semana'?dias:[],cada:+o.cada||7,ultima:o.ultima||'',comodo:o.comodo||'',periodo:['manha','tarde','noite'].includes(o.periodo)?o.periodo:''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
+ rot:(o,f)=>{const id=f.dataset.id;const modo=o.modo==='semana'?'semana':'cada';const dias=arr(o.dias).map(Number);if(modo==='semana'&&!dias.length){toast('Escolha pelo menos um dia da semana');return}const b={nome:String(o.nome).trim(),modo,dias:modo==='semana'?dias:[],cada:+o.cada||7,diaSem:modo==='cada'&&o.diaSem!==''&&o.diaSem!=null?+o.diaSem:'',ultima:o.ultima||'',comodo:o.comodo||'',periodo:['manha','tarde','noite'].includes(o.periodo)?o.periodo:''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
  sbcfg:o=>{ const url=String(o.url||'').trim().replace(/\/+$/,''), key=String(o.key||'').trim(); if(!/^https:\/\/.+/.test(url)||key.length<20){toast('Confira a URL e a chave.');return} SB.cfg={url,key}; try{localStorage.setItem(LSCFG,JSON.stringify(SB.cfg))}catch(e){} initSync(); render(); },
  login:async o=>{ const {error}=await SB.client.auth.signInWithPassword({email:String(o.email).trim(),password:String(o.senha)}); if(error) toast(erroSB(error)); else toast('Entrou. Sincronizando…'); },
  perfil:o=>{S.perfil.nome=String(o.nome||'').trim();save('perfil');render();toast('Salvo')},
@@ -2916,6 +2926,7 @@ document.addEventListener('change',async e=>{const el=e.target;const c=el.datase
   if(c==='secaoPick'){UI.secao=el.value;}
   if(c==='menteNotas'){const s=el.dataset.s;const w=S.mente.semanas[s]=S.mente.semanas[s]||{certo:[],melhorar:[],notas:''};w.notas=el.value;save('mente');}
   if(c==='rotModo'){const s=el.value==='semana';$('#fRotCada').classList.toggle('hide',s);$('#fRotDias').classList.toggle('hide',!s);}
+  if(c==='rotPrev'||c==='rotModo'||(el.name==='dias'&&el.closest('form[data-f=rot]'))){ const fm=el.closest('form'); const o=Object.fromEntries(new FormData(fm)); const r={modo:o.modo==='semana'?'semana':'cada',cada:+o.cada||7,diaSem:o.diaSem??'',ultima:o.ultima||'',dias:[...fm.querySelectorAll('input[name=dias]:checked')].map(x=>+x.value)}; const p=$('#rotProx'); if(p) p.innerHTML=rotProxTxt(r); }
   if(c==='tipoTx'){const fp=$('#fPag'); if(fp) fp.classList.toggle('hide',el.value==='entrada'); const pi=$('#txParcInfo'); if(pi&&el.value==='entrada') pi.classList.add('hide');}
   if(c==='txParc') parcInfo();
   if(c==='tipoTx'){const sel=$('#txCat');const cats=el.value==='entrada'?ENTCATS:[...catNames(),GUARD];sel.innerHTML=cats.map(x=>`<option>${esc(x)}</option>`).join('')}
