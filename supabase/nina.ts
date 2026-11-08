@@ -119,7 +119,7 @@ function ocorre(i, d) {
   if (r === "mensal") return parseD(d).getUTCDate() === parseD(ini).getUTCDate();
   return false;
 }
-const isDone = (i, d) => (isRep(i) ? i.feitos?.[d] === true : !!i.feito);
+const isDone = (i, d) => (isRep(i) ? (i.feitos?.[d] === true || i.feitos?.[d] === "minimo") : !!i.feito);
 const ESTADOS = { pulou: "➖", naofiz: "✖", cancelado: "🚫" };
 const estadoDe = (i, d) => (isDone(i, d) ? "feito" : isRep(i) ? (ESTADOS[i.feitos?.[d]] ? i.feitos[d] : "") : (ESTADOS[i.estado] ? i.estado : ""));
 const isSkip = (i, d) => ["pulou", "cancelado"].includes(estadoDe(i, d));
@@ -550,6 +550,39 @@ async function enviarAvisos() {
   return n;
 }
 
+/* ====================== widget (Scriptable) ====================== */
+function rotF(r, t) {
+  const wd = (x) => parseD(x).getUTCDay();
+  if (r.modo === "semana" && (r.dias || []).length) { const ds = r.dias.map(Number);
+    const prox = () => { for (let k = 1; k <= 7; k++) if (ds.includes(wd(addDays(t, k)))) return k; return 7; };
+    if (r.ultima === t) return prox(); if (!r.ultima) return ds.includes(wd(t)) ? 0 : prox();
+    for (let k = 0; k < 7; k++) { const x = addDays(t, -k); if (ds.includes(wd(x))) return r.ultima < x ? -k : prox(); } return prox(); }
+  if (r.diaSem !== undefined && r.diaSem !== "" && r.diaSem !== null) { const b = r.ultima ? addDays(r.ultima, +r.cada || 7) : t; return diffDays(t, addDays(b, (+r.diaSem - wd(b) + 7) % 7)); }
+  return r.ultima ? diffDays(t, addDays(r.ultima, +r.cada || 7)) : 0;
+}
+async function widgetDados(tk) {
+  if (!/^[A-Za-z0-9]{24,64}$/.test(tk)) return { erro: "chave" };
+  const { data: w } = await sb.from("rumo_widget").select("user_id").eq("token", tk).maybeSingle();
+  if (!w) return { erro: "chave" };
+  const d = TODAY(), D = await carregar(w.user_id, ["tarefas", "saude", "casa"]);
+  const per = (i) => i.periodo || (!i.hora ? "" : +i.hora.slice(0, 2) < 12 ? "manha" : +i.hora.slice(0, 2) < 18 ? "tarde" : "noite");
+  const NP = { manha: "Manhã", tarde: "Tarde", noite: "Noite", "": "Livre" }, OP = { manha: 0, tarde: 1, noite: 2, "": 3 };
+  const its = [];
+  for (const i of D.tarefas.items || []) { if (!ocorre(i, d) || isSkip(i, d)) continue; its.push({ t: i.titulo, h: i.hora || "", p: per(i), ok: isDone(i, d), tipo: i.tipo }); }
+  const st = injStatus(D.saude); const j = D.saude.injecao;
+  if (st && (st.prox === d || st.prox < d) && !(j.historico || []).includes(d)) its.push({ t: "Tomar a " + (j.nome || "injeção"), h: j.hora || "", p: "", ok: false, tipo: "tarefa" });
+  else if ((j.historico || []).includes(d)) its.push({ t: "Tomar a " + (j.nome || "injeção"), h: j.hora || "", p: "", ok: true, tipo: "tarefa" });
+  for (const r of D.casa.rotina || []) {
+    if (r.ultima === d) { its.push({ t: r.nome, h: "", p: r.periodo || "", ok: true, tipo: "casa" }); continue; }
+    if (r.adiadoAte && r.adiadoAte > d) continue;
+    if (r.adiadoAte === d || rotF(r, d) <= 0) its.push({ t: r.nome, h: "", p: r.periodo || "", ok: false, tipo: "casa" });
+  }
+  const pk = (x) => OP[x.p || ""] ?? 3;
+  its.sort((a, b) => pk(a) - pk(b) || (a.h && b.h ? (a.h < b.h ? -1 : a.h > b.h ? 1 : 0) : a.h ? -1 : b.h ? 1 : 0));
+  const itens = its.map((x) => ({ ...x, p: NP[x.p] || "Livre" }));
+  return { data: d, dia: fmtD(d), total: itens.length, feitos: itens.filter((x) => x.ok).length, itens };
+}
+
 /* ====================== portas de entrada ====================== */
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
 const json = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { ...cors, "Content-Type": "application/json" } });
@@ -570,6 +603,7 @@ Deno.serve(async (req) => {
     return json({ webhook: w.ok, descricao: w.description, usuario: me.result?.username });
   }
   if (acao === "cron") { return json({ enviados: await enviarAvisos() }); }
+  if (acao === "widget") { const r = await widgetDados(url.searchParams.get("t") || ""); return json(r, r.erro ? 401 : 200); }
 
   // daqui pra baixo só o Telegram entra
   if (req.headers.get("x-telegram-bot-api-secret-token") !== (await segredo())) return json({ erro: "proibido" }, 403);
