@@ -894,7 +894,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-08.3';
+const VERSAO='2026-11-08.4';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -2057,7 +2057,7 @@ function geraLembretes(){
 let lembT=null;
 function agendaLembretes(){ clearTimeout(lembT); lembT=setTimeout(syncLembretes,2500); }
 async function syncLembretes(){
-  if(REAL||!SB.user||!(NC().on||S.perfil.telegram)) return;
+  if(REAL||!SB.user) return; // agenda sempre: a Nina e o celular usam a mesma fila
   try{
     const novos=geraLembretes().map(x=>({...x,user_id:SB.user.id}));
     const {data:ex,error}=await SB.client.from('rumo_lembretes').select('id,chave').eq('enviado',false).gt('quando',new Date().toISOString()); if(error) throw error;
