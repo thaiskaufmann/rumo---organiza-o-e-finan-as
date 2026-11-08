@@ -492,7 +492,35 @@ async function botao(conta, q) {
 }
 
 /* ====================== avisos agendados (resumo, lembretes, injeção, contas) ====================== */
+// rede de segurança: cria no servidor os lembretes de horário que o app não chegou a agendar
+// (ex.: compromisso criado pela Nina ou app sem abrir). Não mexe nos que já existem.
+async function garantirLembretes() {
+  try {
+    const [{ data: tg }, { data: subs }] = await Promise.all([
+      sb.from("rumo_telegram").select("user_id").not("chat_id", "is", null),
+      sb.from("rumo_push_subs").select("user_id"),
+    ]);
+    const comTg = new Set((tg || []).map((x) => x.user_id)), comPush = new Set((subs || []).map((x) => x.user_id));
+    const agora = Date.now(), t = TODAY(), amanha = addDays(t, 1), novos = [];
+    for (const uid of new Set([...comTg, ...comPush])) {
+      const D = await carregar(uid, ["tarefas", "perfil"]); const N = (D.perfil && D.perfil.notif) || {};
+      if (!comTg.has(uid) && !N.on) continue;
+      const antes = N.antes === undefined || N.antes === "" ? 10 : +N.antes || 0;
+      for (const d of [t, amanha]) for (const i of D.tarefas.items || []) {
+        if (!i.hora || !/^\d\d:\d\d$/.test(i.hora) || !ocorre(i, d) || isFechado(i, d)) continue;
+        const q = new Date(`${d}T${i.hora}:00-03:00`).getTime() - antes * 60000;
+        if (q < agora - 20 * 60000 || q > agora + 90 * 60000) continue;
+        const quando = antes ? `em ${antes} min (${i.hora})` : `agora, ${i.hora}`;
+        novos.push({ user_id: uid, chave: `i:${i.id}:${d}`, quando: new Date(q).toISOString(), titulo: i.titulo,
+          corpo: (i.tipo === "compromisso" ? "Compromisso " : i.tipo === "habito" ? "Hábito " : "") + quando + (i.local ? " · " + i.local : "") });
+      }
+    }
+    if (novos.length) await sb.from("rumo_lembretes").upsert(novos, { onConflict: "user_id,chave", ignoreDuplicates: true });
+    return novos.length;
+  } catch (_) { return 0; }
+}
 async function enviarAvisos() {
+  await garantirLembretes();
   const agora = new Date(), desde = new Date(agora.getTime() - 30 * 60000).toISOString();
   await sb.from("rumo_lembretes").update({ enviado_tg: true }).eq("enviado_tg", false).lt("quando", desde);
   const { data: devidos } = await sb.from("rumo_lembretes").update({ enviado_tg: true }).eq("enviado_tg", false).lte("quando", agora.toISOString()).select("id,user_id,titulo,corpo,chave");
