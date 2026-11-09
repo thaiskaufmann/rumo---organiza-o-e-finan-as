@@ -457,6 +457,20 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .dgrupos .pill{font-size:10px;padding:1px 6px}
 .dsubs{display:flex;flex-direction:column;gap:8px}
 .rprox{background:var(--sunk);border-radius:12px;padding:10px 12px;margin:0;font-size:14px}
+.t-est{--tc:var(--night);--ts:var(--night-soft)}
+.ecard{gap:12px}
+.ecard .bar i{background:var(--night)}
+.ecard .bar.good i{background:var(--good)}
+.ehoje{display:flex;flex-direction:column;gap:6px;background:var(--sunk);border-radius:14px;padding:10px 12px}
+.esem{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.esem>div{display:flex;flex-direction:column;align-items:center;gap:3px}
+.edot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:var(--sunk)}
+.edot.ok{background:var(--night)}
+.edot.parc{background:var(--night-soft);box-shadow:inset 0 0 0 2px var(--night)}
+.edot.no{background:var(--bad-soft)}
+.edot.hoje{background:var(--surface);box-shadow:inset 0 0 0 2px var(--night)}
+.edot.fut{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
+.edot.off{width:6px;height:6px;margin:9px 0;background:var(--line)}
 .ctools{display:flex;flex-wrap:wrap;gap:6px}
 .ctools:empty{display:none}
 .ctot{gap:10px}
@@ -894,7 +908,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-08.8';
+const VERSAO='2026-11-09.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1011,7 +1025,7 @@ function casaItens(d){
 const PRIO={alta:['!!!','Alta',3],media:['!!','Média',2],baixa:['!','Baixa',1]};
 const prioN=i=>(PRIO[i.prioridade]||[,,0])[2];
 const prioTag=i=>PRIO[i.prioridade]?`<span class="prio p-${i.prioridade}" title="Prioridade ${PRIO[i.prioridade][1].toLowerCase()}" aria-label="Prioridade ${PRIO[i.prioridade][1].toLowerCase()}">${PRIO[i.prioridade][0]}</span>`:'';
-const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); l.push(...casaItens(d)); return l.sort((a,b)=>{ const ha=a.hora||'99', hb=b.hora||'99'; if(ha!==hb) return ha<hb?-1:1; return prioN(b)-prioN(a); }); };
+const itensDoDia=d=>{ const l=S.tarefas.items.filter(i=>ocorre(i,d)); const ij=injItem(d); if(ij) l.push(ij); l.push(...casaItens(d)); l.push(...estItens(d)); return l.sort((a,b)=>{ const ha=a.hora||'99', hb=b.hora||'99'; if(ha!==hb) return ha<hb?-1:1; return prioN(b)-prioN(a); }); };
 const isDone=(i,d)=>isRep(i)?(i.feitos?.[d]===true||i.feitos?.[d]==='minimo'):!!i.feito;
 const isMin=(i,d)=>isRep(i)&&i.feitos?.[d]==='minimo';
 const obsDe=(i,d)=>isRep(i)?((i.obsDia||{})[d]||''):(i.obs||'');
@@ -1153,7 +1167,7 @@ function cobrancas(){
     const txtR=({r,f})=>f<0?`${r.nome} está atrasado ${-f} ${plural(-f,'dia','dias')}`:`Hoje: ${r.nome}`;
     if(dev.length&&dev.length<=2) dev.forEach(x=>out.push({n:x.f<0?'media':'info',txt:txtR(x),sub:'Casa'+(x.r.comodo?' · '+x.r.comodo:''),acts:[['rotinaFeita','Feito','pri',{id:x.r.id}],['rotinaAdia','Amanhã','',{id:x.r.id}]]}));
     else if(dev.length) out.push({n:dev.some(x=>x.f<0)?'media':'info',txt:`${dev.length} coisas da casa pra hoje`,sub:dev.slice(0,3).map(x=>x.r.nome+(x.f<0?' (atrasado)':'')).join(' · ')+(dev.length>3?' …':''),acts:[['go','Ver a casa','pri',{v:'casa'}]]}); }
-  for(const e of S.estudos.materias){ if(!+e.meta) continue; const ult=(e.sessoes||[]).map(s=>s.data).sort().pop(); if(!ult||diffDays(ult,t)>=4) out.push({n:'info',txt:`${e.nome}: ${ult?`${diffDays(ult,t)} dias sem estudar`:'nenhuma sessão ainda'}`,sub:'Estudos',acts:[['go','Estudar','',{v:'estudos'}]]}); }
+  for(const e of S.estudos.materias){ if(!metaDia(e)) continue; const ult=(e.sessoes||[]).map(s=>s.data).sort().pop(); if(!ult||diffDays(ult,t)>=4) out.push({n:'info',txt:`${e.nome}: ${ult?`${diffDays(ult,t)} dias sem estudar`:'nenhuma sessão ainda'}`,sub:'Estudos',acts:[['go','Estudar','',{v:'estudos'}]]}); }
   for(const g of S.metas.items){ if(!g.prazo) continue; const tot=(g.etapas||[]).length,ok=(g.etapas||[]).filter(e=>e.ok).length; const f3=diffDays(t,g.prazo); if(f3>=0&&f3<=14&&(!tot||ok<tot)) out.push({n:'media',txt:`“${g.titulo}” vence em ${f3} ${plural(f3,'dia','dias')}`,sub:tot?`${ok} de ${tot} etapas feitas`:'Ainda sem etapas',acts:[['go','Ver','',{v:'metas'}]]}); }
   { const wd=parseD(t).getDay(), seg=semanaDe(t)[0], w=S.mente.semanas[seg]; if((wd===0||wd===6)&&!(w&&((w.certo||[]).length||(w.melhorar||[]).length||w.notas))) out.push({n:'info',txt:'Que tal revisar sua semana?',sub:'5 minutinhos: o que deu certo e o que dá pra melhorar.',acts:[['irMente','Revisar','pri']]}); if(wd===0){ const prox=addDays(seg,7), n=semanaDe(prox).reduce((a,d)=>a+planDoDia(d).length,0); if(n<3) out.push({n:'info',txt:'Bora planejar a semana?',sub:'Despeja tudo que precisa fazer e distribui pelos dias. Uns 15 minutinhos.',acts:[['irPlanejar','Planejar','pri']]}); } }
   const ord={alta:0,media:1,info:2}; return out.sort((a,b)=>ord[a.n]-ord[b.n]);
@@ -1164,10 +1178,10 @@ const actBtns=acts=>acts.map(([a,l,k,data])=>`<button class="btn sm ${k||''}" da
 function saudacao(){const h=new Date().getHours();return h<5?'Boa noite':h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}
 function itemHtml(i,d){
   const done=isDone(i,d),est=estadoDe(i,d),st=i.tipo==='habito'?streak(i,d):0, e=ESTADOS[est];
-  return `<div class="item t-${i.virt==='casa'?'casa':i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
+  return `<div class="item t-${i.virt==='casa'?'casa':i.virt==='est'?'est':i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
-    <button class="open" data-a="${i.virt==='casa'?'casaMenu':'editT'}" data-id="${i.virt==='casa'?i.rid:i.id}" data-d="${d}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${i.virt==='casa'?'🏠 Casa':TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${(i.focos||{})[d]?` · 🎯 ${i.focos[d]} ${plural(i.focos[d],'bloco','blocos')}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${i.nota?`<div class="nota">📌 ${esc(i.nota)}</div>`:''}${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
-    ${i.virt==='casa'?`<button class="iconbtn sm" data-a="casaMenu" data-id="${i.rid}" data-d="${d}" aria-label="Mais opções">⋯</button>`:i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
+    <button class="open" data-a="${i.virt==='casa'?'casaMenu':i.virt==='est'?'estMenu':'editT'}" data-id="${i.virt==='casa'?i.rid:i.virt==='est'?i.mid:i.id}" data-d="${d}"><div class="t">${prioTag(i)}${esc(i.titulo)}</div><div class="meta"><span class="typ">${i.virt==='casa'?'🏠 Casa':i.virt==='est'?'📚 Estudo':TIPOS[i.tipo][0]}</span>${esc(metaLinha(i))}${st>1?` · ${st} seguidos`:''}${(i.focos||{})[d]?` · 🎯 ${i.focos[d]} ${plural(i.focos[d],'bloco','blocos')}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</div>${i.nota?`<div class="nota">📌 ${esc(i.nota)}</div>`:''}${obsDe(i,d)?`<div class="obs">📝 ${esc(obsDe(i,d))}</div>`:''}</button>
+    ${i.virt==='casa'?`<button class="iconbtn sm" data-a="casaMenu" data-id="${i.rid}" data-d="${d}" aria-label="Mais opções">⋯</button>`:i.virt==='est'?`<button class="iconbtn sm" data-a="estMenu" data-id="${i.mid}" data-d="${d}" aria-label="Mais opções">⋯</button>`:i.virt?'':`<button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>`}
   </div>`;
 }
 function pcWidgets(t){
@@ -2133,21 +2147,33 @@ function notifCard(){
    </div></section>`;
 }
 /* ================= VIEW: Estudos / Casa / Mais / Ajustes ================= */
+const metaDia=x=>x.metaDia!==undefined&&x.metaDia!==''?+x.metaDia||0:(+x.meta?Math.max(10,Math.round(+x.meta/5/5)*5):0);
+const minDia=(x,d)=>(x.sessoes||[]).filter(s=>s.data===d).reduce((a,s)=>a+(+s.min||0),0);
+const estDia=(x,d)=>(x.dias||[]).map(Number).includes(parseD(d).getDay());
+const feitoEst=(x,d)=>{ const f=(x.feitos||{})[d]; if(f===false) return false; return !!f||(metaDia(x)>0&&minDia(x,d)>=metaDia(x)); };
+const diasTxt=x=>(x.dias||[]).length?[1,2,3,4,5,6,0].filter(w=>x.dias.map(Number).includes(w)).map(w=>DOW[w]).join(', '):'sem dia marcado';
+function estItens(d){ return S.estudos.materias.filter(x=>estDia(x,d)).map(x=>{ const m=minDia(x,d), mt=metaDia(x);
+  return {id:'est:'+x.id,virt:'est',mid:x.id,tipo:'tarefa',titulo:'Estudar '+x.nome,data:d,hora:'',periodo:x.periodo||'',dur:mt||30,rep:'nao',prioridade:'',feito:feitoEst(x,d),feitos:{},passos:[],etiqueta:mt?`${m} de ${mt} min`:(m?m+' min':'')}; }); }
 function vEstudos(){
-  const t=TODAY(), seg=semanaDe(t)[0];
-  let out=`<section><div class="eyebrow">Estudos</div><h1>Um pouco por vez</h1></section>`;
-  if(UI.timer){ const rest=Math.max(0,Math.round((UI.timer.fim-Date.now())/1000)); const mat=S.estudos.materias.find(x=>x.id===UI.timer.id);
-    out+=`<section class="card" style="background:var(--ink);color:var(--bg);border:0"><span class="small">Estudando ${esc(mat?.nome||'')}</span><div class="big num" id="timerTxt">${pad(Math.floor(rest/60))}:${pad(rest%60)}</div><div class="row"><button class="btn" data-a="pararTimer">Parar e registrar</button><button class="btn ghost" style="color:var(--bg)" data-a="cancelaTimer">Cancelar</button></div></section>`; }
-  out+=`<div><button class="btn pri" data-a="novaMat">${svg('plus')}Matéria ou curso</button></div>`;
-  if(!S.estudos.materias.length) out+=`<section class="card flat"><b>Nada aqui ainda.</b><span class="muted small">Cadastre um curso ou assunto e uma meta de minutos por semana. Se passar 4 dias sem estudar, aparece na tela Hoje.</span></section>`;
-  for(const x of S.estudos.materias){ const sem=(x.sessoes||[]).filter(s=>s.data>=seg).reduce((a,s)=>a+(+s.min||0),0); const meta=+x.meta||0;
-    out+=`<section class="card"><div class="row between"><div class="grow"><h2>${esc(x.nome)}</h2><p class="muted small num">${sem} min esta semana${meta?` de ${meta}`:''}</p></div><button class="btn ghost sm" data-a="editMat" data-id="${x.id}">Editar</button></div>
-    ${meta?`<div class="bar ${sem>=meta?'good':''}"><i style="width:${Math.min(100,sem/meta*100)}%"></i></div>`:''}
-    <div class="row wrap"><button class="btn soft" data-a="timer" data-id="${x.id}" data-m="25">Foco de 25 min</button><form data-f="sessao" data-id="${x.id}" class="row"><input type="number" name="min" id="ses-${x.id}" placeholder="min" style="width:80px" min="1"><button class="btn sm">Registrar</button></form></div></section>`; }
+  const t=TODAY(), sem=semanaDe(t);
+  let out=`<section><div class="eyebrow">Estudos</div><h1>Um pouco por dia</h1></section>`;
+  out+=`<div><button class="btn pri" data-a="novaMat">${svg('plus')}Curso ou matéria</button></div>`;
+  if(!S.estudos.materias.length) out+=`<section class="card flat"><b>Nada aqui ainda.</b><span class="muted small">Cadastre um curso, escolha os dias e quanto tempo por dia. Ele aparece no seu Hoje nesses dias, e o tempo do Modo Foco conta sozinho.</span></section>`;
+  for(const x of S.estudos.materias){ const mt=metaDia(x), m=minDia(x,t), hoje=estDia(x,t), ok=feitoEst(x,t);
+    out+=`<section class="card ecard"><div class="row between top"><div class="grow"><h2>${esc(x.nome)}</h2><p class="tiny muted">📅 ${diasTxt(x)}${x.periodo?' · '+PER.find(p=>p[0]===x.periodo)[1]:''}${mt?` · ${mt} min por dia`:''}</p></div><button class="btn ghost sm" data-a="editMat" data-id="${x.id}">Editar</button></div>
+     ${hoje||m?`<div class="ehoje"><div class="row between"><span class="small"><b>Hoje</b>${ok?' · feito ✅':''}</span><b class="num small">${m}${mt?` de ${mt}`:''} min</b></div>${mt?`<div class="bar ${ok?'good':''}"><i style="width:${Math.min(100,m/mt*100)}%"></i></div>`:''}</div>`:`<p class="small muted">Hoje é folga desse curso 🌿</p>`}
+     <div class="esem">${sem.map(d=>{ const dia=estDia(x,d), mm=minDia(x,d), c=feitoEst(x,d)?'ok':mm?'parc':!dia?'off':d<t?'no':d===t?'hoje':'fut';
+       return `<div><span class="tiny muted">${DOW[parseD(d).getDay()][0].toUpperCase()}</span><span class="edot ${c}" title="${fmtDs(d)}: ${mm} min">${c==='ok'?'✓':''}</span></div>`}).join('')}</div>
+     <div class="row wrap" style="gap:8px"><button class="btn pri" data-a="focoMat" data-id="${x.id}">🎯 Estudar agora</button><form data-f="sessao" data-id="${x.id}" class="row" style="gap:6px"><input type="number" name="min" id="ses-${x.id}" placeholder="min" min="1" style="width:76px"><button class="btn sm">+ Registrar</button></form></div></section>`; }
   return out;
 }
-function formMat(x){ x=x||{}; return `${sheetHead(x.id?'Editar':'Nova matéria ou curso')}<form data-f="mat" class="stack" data-id="${x.id||''}"><label class="f">Nome<input type="text" name="nome" id="matN" value="${esc(x.nome||'')}" required autofocus placeholder="Ex.: curso de edição"></label>
- <label class="f">Meta por semana (minutos)<input type="number" name="meta" id="matM" value="${x.meta||''}" placeholder="Ex.: 120"></label><div class="row between"><button class="btn pri">Salvar</button>${x.id?`<button type="button" class="btn danger ghost" data-a="delMat" data-id="${x.id}">Apagar</button>`:''}</div></form>`; }
+function formMat(x){ x=x||{}; const dias=(x.dias||[]).map(Number);
+  return `${sheetHead(x.id?'Editar curso':'Novo curso ou matéria')}<form data-f="mat" class="stack" data-id="${x.id||''}">
+  <label class="f">Nome<input type="text" name="nome" id="matN" value="${esc(x.nome||'')}" placeholder="Ex.: Curso de marketing, Inglês" required></label>
+  <div class="f"><span>Em que dias você quer estudar?</span><div class="daypick">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}" ${dias.includes(w)?'checked':''}><span>${DOW[w]}</span></label>`).join('')}</div><span class="tiny muted" style="font-weight:400">Nesses dias ele aparece no seu Hoje.</span></div>
+  <div class="f"><span>Em que período?</span><div class="qpick">${[['manha','Manhã'],['tarde','Tarde'],['noite','Noite'],['','Qualquer hora']].map(([v,l])=>`<label><input type="radio" name="periodo" value="${v}" ${(x.periodo||'')===v?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
+  <label class="f">Quanto tempo por dia? (minutos)<input type="number" name="metaDia" id="matM" min="0" value="${metaDia(x)||''}" placeholder="Ex.: 30"><span class="tiny muted" style="font-weight:400">Quando você chega nesse tempo, o dia fica feito sozinho.</span></label>
+  <div class="row between"><button class="btn pri">Salvar</button>${x.id?`<button type="button" class="btn danger ghost" data-a="delMat" data-id="${x.id}">Apagar</button>`:''}</div></form>`; }
 const SECOES=['Mercado','Hortifruti','Limpeza','Higiene','Farmácia','Outros'];
 function rotF(r,t){
   if(r.modo==='semana'&&(r.dias||[]).length){ const ds=r.dias.map(Number), wd=x=>parseD(x).getDay();
@@ -2238,7 +2264,7 @@ function focoIniciar(fase,min){ const F=UI.foco; F.fase=fase; F.min=min; F.total
 function focoRest(){ const F=UI.foco; return Math.max(0,Math.round(((F.pausado||F.fim)-(F.pausado?0:Date.now()))/1000)); }
 function focoTick(){ const F=UI.foco; if(!F||F.pausado) return; const r=Math.max(0,Math.round((F.fim-Date.now())/1000));
   if(r<=0){ clearInterval(FOCO.t); focoBeep();
-    if(F.fase==='foco'){ const i=F.id?getT(F.id):null; if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } S.foco.sessoes.push({data:TODAY(),min:F.min,t:i?i.titulo:(F.titulo||'Foco'),id:F.id||''}); if(S.foco.sessoes.length>600) S.foco.sessoes=S.foco.sessoes.slice(-600); save('foco'); F.blocos=(F.blocos||0)+1; F.fase='fimFoco'; }
+    if(F.fase==='foco'){ const i=F.id?getT(F.id):null; if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } if(F.mat){ const x=S.estudos.materias.find(y=>y.id===F.mat); if(x){ x.sessoes=x.sessoes||[]; x.sessoes.push({data:TODAY(),min:F.min}); save('estudos'); } } S.foco.sessoes.push({data:TODAY(),min:F.min,t:i?i.titulo:(F.titulo||'Foco'),id:F.id||''}); if(S.foco.sessoes.length>600) S.foco.sessoes=S.foco.sessoes.slice(-600); save('foco'); F.blocos=(F.blocos||0)+1; F.fase='fimFoco'; }
     else F.fase='fimPausa';
     focoRender(); return; }
   const tx=document.getElementById('focoT'); if(tx) tx.textContent=fmtMS(r);
@@ -2629,7 +2655,7 @@ function demoData(){
   D.saude.injecao={intervalo:30,ultima:addDays(t,-27),historico:[addDays(t,-87),addDays(t,-57),addDays(t,-27)],nome:''};
   D.saude.ciclo.registros=[{inicio:addDays(t,-60),fim:addDays(t,-56)},{inicio:addDays(t,-31),fim:addDays(t,-27)},{inicio:addDays(t,-2)}];
   D.saude.sono=[...Array(7)].map((_,k)=>({data:addDays(t,-k),deitou:['23:30','00:10','22:50','23:45','01:20','23:00','23:20'][k],acordou:['06:00','06:10','06:00','06:30','07:00','06:00','06:15'][k],q:4}));
-  D.estudos.materias=[{id:uid(),nome:'Curso de edição de vídeo',meta:120,sessoes:[{data:addDays(t,-5),min:40}]}];
+  D.estudos.materias=[{id:uid(),nome:'Curso de edição de vídeo',metaDia:30,dias:[1,3,5],periodo:'tarde',sessoes:[{data:addDays(t,-5),min:40}]}];
   D.casa.compras=[{id:uid(),item:'Café',secao:'Mercado',ok:false},{id:uid(),item:'Leite',secao:'Mercado',ok:true},{id:uid(),item:'Detergente',secao:'Limpeza',ok:false},{id:uid(),item:'Banana',secao:'Hortifruti',ok:false}];
   D.casa.rotina=[{id:uid(),nome:'Passar pano',comodo:'Cozinha',cada:3,ultima:addDays(t,-5)},{id:uid(),nome:'Trocar roupa de cama',comodo:'Quarto',cada:7,ultima:addDays(t,-3)}];
   D.metas.items=[{id:uid(),titulo:'Fechar 3 clientes de UGC',motivo:'renda mais estável',prazo:addMonth(m,2)+'-15',etapas:[{id:uid(),t:'Atualizar portfólio',ok:true},{id:uid(),t:'Listar 20 marcas',ok:false},{id:uid(),t:'Mandar 5 propostas por semana',ok:false}]}];
@@ -2649,7 +2675,7 @@ const ACT={
  focoGo:()=>focoIniciar('foco',UI.foco.min),
  focoDescansar:()=>focoIniciar('pausa',5),
  focoPausa:()=>{ const F=UI.foco; if(F.pausado){ F.fim=Date.now()+F.pausado*1000; F.pausado=0; } else F.pausado=Math.max(1,Math.round((F.fim-Date.now())/1000)); focoRender(); },
- focoFeito:()=>{ const F=UI.foco, i=F.id?getT(F.id):null; if(i){ setEstado(i,F.d,'feito'); save('tarefas'); } focoFechar(); toast('Feito ✅ Mandou bem!'); },
+ focoFeito:()=>{ const F=UI.foco, i=F.id?getT(F.id):null; if(F.mat){ const x=S.estudos.materias.find(y=>y.id===F.mat); if(x){ x.feitos=x.feitos||{}; x.feitos[F.d]=true; save('estudos'); } } if(i){ setEstado(i,F.d,'feito'); save('tarefas'); } focoFechar(); toast('Feito ✅ Mandou bem!'); },
  focoFechar:()=>focoFechar(),
  focoMinTab:d=>{ UI.focoMinTab=+d.m; try{localStorage.setItem('rumo-foco-min',d.m)}catch(e){} const x=$('#focoLivreTxt'); if(x) UI.focoTxt=x.value; render(); },
  focoTodos:()=>{UI.focoTodos=!UI.focoTodos;render()},
@@ -2684,7 +2710,10 @@ const ACT={
  delT:d=>{const i=getT(d.id);S.tarefas.items=S.tarefas.items.filter(x=>x.id!==d.id);save('tarefas');closeSheet();render();toast('Apagado',()=>{S.tarefas.items.push(i);save('tarefas');render()})},
  estadoMenu:d=>{const i=getT(d.id);if(i)openSheet(estadoHtml(i,d.d||UI.dia))},
  setEstado:d=>{const i=getT(d.id);if(!i)return;const dia=d.d||UI.dia;const k0=i.tipo==='habito'?plFase(plGotas()):0;setEstado(i,dia,d.e);save('tarefas');closeSheet();render();if(i.tipo==='habito'&&(d.e==='feito'||d.e==='minimo')){setTimeout(()=>celebraHab(i,dia,k0),50);return;}toast(d.e?({feito:'Feito ✅',pulou:'Marcado: hoje não',naofiz:'Marcado: não fiz',cancelado:'Cancelado'})[d.e]:'Voltou pra pendente')},
- toggleT:d=>{ if(String(d.id).startsWith('casa:')){ const r=S.casa.rotina.find(x=>'casa:'+x.id===d.id); if(!r) return; const dia=d.d||UI.dia;
+ toggleT:d=>{ if(String(d.id).startsWith('est:')){ const x=S.estudos.materias.find(y=>'est:'+y.id===d.id); if(!x) return; const dia=d.d||UI.dia; x.feitos=x.feitos||{};
+   if(feitoEst(x,dia)){ delete x.feitos[dia]; if(minDia(x,dia)>=metaDia(x)&&metaDia(x)) x.feitos[dia]=false; toast(x.nome+': desmarcado'); } else { x.feitos[dia]=true; toast('Estudo feito 📚'); }
+   save('estudos'); closeSheet(); render(); return; }
+   if(String(d.id).startsWith('casa:')){ const r=S.casa.rotina.find(x=>'casa:'+x.id===d.id); if(!r) return; const dia=d.d||UI.dia;
    if(r.ultima===dia){ r.ultima=r.ultimaAnt||''; delete r.ultimaAnt; save('casa'); render(); toast(r.nome+': desmarcado'); }
    else { r.ultimaAnt=r.ultima||''; r.ultima=dia; delete r.adiadoAte; save('casa'); render(); toast(r.nome+': feito 🏠 Próxima em '+fmtD(addDays(dia,rotF(r,dia)))); } return; }
    if(d.id==='inj'){ const dia=d.d||UI.dia, j=S.saude.injecao; if(j.historico.includes(dia)){ j.historico=j.historico.filter(x=>x!==dia); j.ultima=j.historico[j.historico.length-1]||''; save('saude'); render(); toast('Injeção desmarcada'); } else { registraInj(dia); render(); toast('Injeção registrada. Próxima em '+fmtD(injStatus().prox)); } return; }
@@ -2761,6 +2790,14 @@ const ACT={
  etapa:d=>{const g=S.metas.items.find(x=>x.id===d.g);const e=g.etapas.find(x=>x.id===d.id);e.ok=!e.ok;save('metas');render()},
  etapaHoje:d=>{const g=S.metas.items.find(x=>x.id===d.g);const e=g.etapas.find(x=>x.id===d.id);S.tarefas.items.push({id:uid(),titulo:e.t,tipo:'tarefa',data:TODAY(),hora:'',rep:'nao',feitos:{},passos:[],meta:g.id});save('tarefas');toast('Foi pra sua lista de hoje')},
  novaMat:()=>openSheet(formMat()),
+ focoMat:d=>{ const x=S.estudos.materias.find(y=>y.id===d.id); if(!x) return; closeSheet(); const falta=Math.max(0,metaDia(x)-minDia(x,TODAY()));
+   UI.foco={id:'',mat:x.id,titulo:'Estudar '+x.nome,d:TODAY(),fase:'pronto',min:falta&&[10,15,25,45].includes(falta)?falta:focoMinPadrao(),blocos:0}; focoRender(); },
+ estMenu:d=>{ const x=S.estudos.materias.find(y=>y.id===d.id); if(!x) return; const dia=d.d||UI.dia, ok=feitoEst(x,dia), mt=metaDia(x), m=minDia(x,dia);
+   openSheet(`${sheetHead(esc(x.nome),`${m}${mt?` de ${mt}`:''} min ${dia===TODAY()?'hoje':'em '+fmtDs(dia)}`)}<div class="stack">
+    ${dia===TODAY()?`<button class="btn pri" data-a="focoMat" data-id="${x.id}">🎯 Estudar agora</button>`:''}
+    <button class="btn" data-a="toggleT" data-id="est:${x.id}" data-d="${dia}">${ok?'Desmarcar':'✅ Marcar como feito'}</button>
+    <form data-f="sessao" data-id="${x.id}" data-d="${dia}" class="row" style="gap:8px"><input type="number" name="min" id="esm-${x.id}" placeholder="Minutos que você estudou" min="1" class="grow"><button class="btn">Registrar</button></form>
+    <button class="btn ghost" data-a="editMat" data-id="${x.id}">✏️ Editar curso</button></div>`); },
  editMat:d=>openSheet(formMat(S.estudos.materias.find(x=>x.id===d.id))),
  delMat:d=>{S.estudos.materias=S.estudos.materias.filter(x=>x.id!==d.id);save('estudos');closeSheet();render()},
  timer:d=>{UI.timer={id:d.id,ini:Date.now(),fim:Date.now()+(+d.m)*60000};render();tick()},
@@ -2905,8 +2942,8 @@ const FORMS={
  inj:o=>{const j=S.saude.injecao;j.intervalo=+o.intervalo||30;j.tol=+o.tol||0;j.nome=o.nome||'';j.hora=o.hora||'';if(o.ultima)registraInj(o.ultima);save('saude');render();toast('Salvo')},
  menst:o=>{S.saude.ciclo.registros.push({inicio:o.inicio,...(o.fim?{fim:o.fim}:{})});save('saude');closeSheet();render()},
  sono:o=>{const d=o.data||TODAY();S.saude.sono=S.saude.sono.filter(s=>s.data!==d);S.saude.sono.push({data:d,deitou:o.deitou,acordou:o.acordou,q:+o.q||3});S.saude.sono.sort((a,b)=>a.data<b.data?-1:1);if(S.saude.sono.length>400)S.saude.sono=S.saude.sono.slice(-400);save('saude');render();toast('Noite registrada')},
- mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),meta:+o.meta||0};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
- sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes.push({data:TODAY(),min});save('estudos');render();toast(`${min} min registrados`)},
+ mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),metaDia:+o.metaDia||0,dias:[...f.querySelectorAll('input[name=dias]:checked')].map(x=>+x.value),periodo:['manha','tarde','noite'].includes(o.periodo)?o.periodo:''};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
+ sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes=x.sessoes||[];x.sessoes.push({data:f.dataset.d||TODAY(),min});save('estudos');closeSheet();render();toast(`${min} min registrados`)},
  dump:o=>{const ls=String(o.t||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!ls.length)return;ls.forEach(t=>S.mente.dump.unshift({id:uid(),t,criado:TODAY()}));save('mente');render();toast(ls.length===1?'Guardado':ls.length+' coisas guardadas')},
  focoLivre:o=>{ const t=String(o.t||'').trim()||'Foco'; UI.focoTxt=''; UI.foco={id:'',titulo:cap(t),d:TODAY(),fase:'pronto',min:UI.focoMinTab||focoMinPadrao(),blocos:0}; focoIniciar('foco',UI.foco.min); },
  focoNota:o=>{ const t=String(o.t||'').trim(); if(!t) return; S.mente.dump.unshift({id:uid(),t,criado:TODAY()}); save('mente'); const x=$('#focoNota'); if(x){ x.value=''; x.focus(); } toast('Anotado. Volta pro foco 🎯'); },
