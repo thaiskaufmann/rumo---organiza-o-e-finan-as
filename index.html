@@ -515,6 +515,13 @@ body.focoon{overflow:hidden}
 .fmins button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .fmins button.on small{color:var(--bg);opacity:.8}
 .fbig{padding:16px;font-size:17px}
+.fpomo{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.fpomo>span.grow{display:flex;flex-direction:column;gap:2px}
+.fsw{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.fsw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.fpomo.on .fsw{background:var(--good)}
+.fpomo.on .fsw i{left:21px}
+.frod{text-align:center;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em}
 .fanel{position:relative;width:min(270px,75vw);aspect-ratio:1;margin:6px auto}
 .fanel svg{width:100%;height:100%}
 .fanel>div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -908,7 +915,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-09.1';
+const VERSAO='2026-11-09.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -2258,14 +2265,17 @@ const FOCO={t:null,lock:null,ac:null};
 const fmtMS=s=>pad(Math.floor(s/60))+':'+pad(s%60);
 function focoBeep(){ try{ FOCO.ac=FOCO.ac||new (window.AudioContext||window.webkitAudioContext)(); const ac=FOCO.ac; [0,0.25,0.5].forEach(t0=>{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(0.0001,ac.currentTime+t0); g.gain.exponentialRampToValueAtTime(0.25,ac.currentTime+t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t0+0.2); o.start(ac.currentTime+t0); o.stop(ac.currentTime+t0+0.22); }); }catch(e){} try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
 function focoMinPadrao(){ try{ return +localStorage.getItem('rumo-foco-min')||15 }catch(e){ return 15 } }
-function focoIniciar(fase,min){ const F=UI.foco; F.fase=fase; F.min=min; F.total=min*60; F.fim=Date.now()+min*60000; F.pausado=0;
+function focoPomoPadrao(){ try{ return localStorage.getItem('rumo-pomo')==='1' }catch(e){ return false } }
+function focoIniciar(fase,min){ const F=UI.foco; F.fase=fase; if(fase==='foco') F.min=min; F.total=min*60; F.fim=Date.now()+min*60000; F.pausado=0;
   try{ if(navigator.wakeLock&&!FOCO.lock) navigator.wakeLock.request('screen').then(l=>FOCO.lock=l).catch(()=>{}); }catch(e){}
   clearInterval(FOCO.t); FOCO.t=setInterval(focoTick,1000); focoRender(); }
 function focoRest(){ const F=UI.foco; return Math.max(0,Math.round(((F.pausado||F.fim)-(F.pausado?0:Date.now()))/1000)); }
 function focoTick(){ const F=UI.foco; if(!F||F.pausado) return; const r=Math.max(0,Math.round((F.fim-Date.now())/1000));
   if(r<=0){ clearInterval(FOCO.t); focoBeep();
-    if(F.fase==='foco'){ const i=F.id?getT(F.id):null; if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } if(F.mat){ const x=S.estudos.materias.find(y=>y.id===F.mat); if(x){ x.sessoes=x.sessoes||[]; x.sessoes.push({data:TODAY(),min:F.min}); save('estudos'); } } S.foco.sessoes.push({data:TODAY(),min:F.min,t:i?i.titulo:(F.titulo||'Foco'),id:F.id||''}); if(S.foco.sessoes.length>600) S.foco.sessoes=S.foco.sessoes.slice(-600); save('foco'); F.blocos=(F.blocos||0)+1; F.fase='fimFoco'; }
-    else F.fase='fimPausa';
+    if(F.fase==='foco'){ const i=F.id?getT(F.id):null; if(i){ i.focos=i.focos||{}; i.focos[F.d]=(i.focos[F.d]||0)+1; save('tarefas'); } if(F.mat){ const x=S.estudos.materias.find(y=>y.id===F.mat); if(x){ x.sessoes=x.sessoes||[]; x.sessoes.push({data:TODAY(),min:F.min}); save('estudos'); } } S.foco.sessoes.push({data:TODAY(),min:F.min,t:i?i.titulo:(F.titulo||'Foco'),id:F.id||''}); if(S.foco.sessoes.length>600) S.foco.sessoes=S.foco.sessoes.slice(-600); save('foco'); F.blocos=(F.blocos||0)+1;
+      if(F.pomo){ focoIniciar('pausa',F.blocos%4===0?15:5); toast(F.blocos%4===0?'4 rodadas! Descanso longo de 15 min ☕':'Hora de descansar 5 min 🌿'); return; }
+      F.fase='fimFoco'; }
+    else { if(F.pomo){ focoIniciar('foco',F.min); toast('Bora pra mais uma rodada 🍅'); return; } F.fase='fimPausa'; }
     focoRender(); return; }
   const tx=document.getElementById('focoT'); if(tx) tx.textContent=fmtMS(r);
   const ar=document.getElementById('focoArc'); if(ar) ar.style.strokeDashoffset=(565.5*(1-r/F.total)).toFixed(1); }
@@ -2283,16 +2293,17 @@ function focoRender(){
     <div class="eyebrow" style="text-align:center">Quanto tempo de foco?</div>
     <div class="fmins">${[10,15,25,45].map(m=>`<button class="${F.min===m?'on':''}" data-a="focoMin" data-m="${m}">${m}<small>min</small></button>`).join('')}</div>
     <p class="tiny muted" style="text-align:center">Começando agora? 10 ou 15 minutos já é ótimo. O importante é começar.</p>
+    <button class="fpomo ${F.pomo?'on':''}" data-a="focoPomo" aria-pressed="${F.pomo?'true':'false'}"><span class="fsw"><i></i></span><span class="grow"><b>🍅 Pomodoro automático${F.mat?' <span class="pill good" style="font-size:10px">recomendado pra estudar</span>':''}</b><span class="tiny muted">${F.pomo?`${F.min} min de foco, 5 de descanso, e começa a próxima sozinho. A cada 4 rodadas, descanso de 15.`:'Liga pra o app alternar foco e descanso sozinho, sem você precisar tocar.'}</span></span></button>
     <button class="btn pri fbig" data-a="focoGo">Começar</button>`;
   else if(F.fase==='foco'){ const r=focoRest();
-    body=`<div class="feye">Focando em</div><h2 class="ftit">${nome}</h2>${anel('var(--accent)',fmtMS(r),F.pausado?'pausado':'só nisso agora',1-r/F.total)}
+    body=`${F.pomo?`<div class="frod">🍅 Rodada ${(F.blocos||0)+1} · ${'●'.repeat((F.blocos||0)%4)}${'○'.repeat(4-(F.blocos||0)%4)}</div>`:''}<div class="feye">Focando em</div><h2 class="ftit">${nome}</h2>${anel('var(--accent)',fmtMS(r),F.pausado?'pausado':'só nisso agora',1-r/F.total)}
     <div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoPausa">${F.pausado?'Continuar':'Pausar'}</button><button class="btn ghost" data-a="focoFeito">${F.id?'Terminei a tarefa':'Terminei'}</button></div>
     <form data-f="focoNota" class="fnota"><input type="text" name="t" id="focoNota" placeholder="Lembrou de outra coisa? Anota aqui e volta" autocomplete="off"><button class="btn sm">Anotar</button></form>
     <p class="tiny muted" style="text-align:center">O que você anotar vai pro Esvaziar a mente. Você vê depois.</p>`; }
   else if(F.fase==='fimFoco') body=`<div class="fok">🎉</div><h2 class="ftit">Rodada feita!</h2><p class="small" style="text-align:center">${F.blocos} ${plural(F.blocos,'rodada','rodadas')} de foco agora${i&&i.focos&&i.focos[F.d]>F.blocos?` · ${i.focos[F.d]} hoje nessa tarefa`:''}. Agora descansa um pouquinho.</p>
     <button class="btn pri fbig" data-a="focoDescansar">Descansar 5 min</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">${F.id?'Terminei a tarefa':'Terminei'}</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
-  else if(F.fase==='pausa'){ const r=focoRest(); body=`<div class="feye">Descanso</div><h2 class="ftit">Respira 🌿</h2>${anel('var(--good)',fmtMS(r),'descansando',1-r/F.total)}
-    <p class="small" style="text-align:center">Levanta, bebe água, olha pela janela. Se puder, deixa o celular de lado nesses minutos.</p><button class="btn ghost" data-a="focoGo">Pular descanso</button>`; }
+  else if(F.fase==='pausa'){ const r=focoRest(); body=`${F.pomo?`<div class="frod">🍅 ${F.blocos} ${plural(F.blocos,'rodada feita','rodadas feitas')} · a próxima começa sozinha</div>`:''}<div class="feye">${F.total>=900?'Descanso longo':'Descanso'}</div><h2 class="ftit">Respira 🌿</h2>${anel('var(--good)',fmtMS(r),'descansando',1-r/F.total)}
+    <p class="small" style="text-align:center">Levanta, bebe água, olha pela janela. Se puder, deixa o celular de lado nesses minutos.</p><div class="row" style="justify-content:center;gap:8px"><button class="btn ghost" data-a="focoGo">Pular descanso</button>${F.pomo?'<button class="btn ghost" data-a="focoFechar">Parar por agora</button>':''}</div>`; }
   else if(F.fase==='fimPausa') body=`<div class="fok">⏰</div><h2 class="ftit">Descanso acabou</h2><p class="small" style="text-align:center">Quer fazer mais uma rodada em <b>${nome}</b>?</p>
     <button class="btn pri fbig" data-a="focoGo">Mais uma rodada (${F.min} min)</button><div class="row" style="justify-content:center;gap:8px"><button class="btn" data-a="focoFeito">${F.id?'Terminei a tarefa':'Terminei'}</button><button class="btn ghost" data-a="focoFechar">Parar por agora</button></div>`;
   el.innerHTML=`<div class="fbox"><button class="iconbtn fx" data-a="focoFechar" aria-label="Sair do modo foco">${svg('x')}</button>${body}</div>`;
@@ -2670,9 +2681,10 @@ const ACT={
  go:d=>{ if(d.v==='ajustes') UI.aj=''; go(d.v); },
  ajPag:d=>{ UI.aj=d.p||''; render(); window.scrollTo(0,0); },
  goSub:d=>{ if(d.v==='dinheiro'){UI.sub.dinheiro=d.s;UI.mes=TODAY().slice(0,7);UI.decIdx=0} if(d.v==='saude') UI.sub.saude=d.s; closeSheet(); go(d.v); },
- focoAbrir:d=>{ closeSheet(); UI.foco={id:d.id,d:d.d||TODAY(),fase:'pronto',min:focoMinPadrao(),blocos:0}; focoRender(); },
+ focoAbrir:d=>{ closeSheet(); UI.foco={id:d.id,d:d.d||TODAY(),fase:'pronto',min:focoPomoPadrao()?25:focoMinPadrao(),blocos:0,pomo:focoPomoPadrao()}; focoRender(); },
  focoMin:d=>{ UI.foco.min=+d.m; try{localStorage.setItem('rumo-foco-min',d.m)}catch(e){} focoRender(); },
  focoGo:()=>focoIniciar('foco',UI.foco.min),
+ focoPomo:()=>{ const F=UI.foco; F.pomo=!F.pomo; if(F.pomo&&F.min<25) F.min=25; try{localStorage.setItem(F.mat?'rumo-pomo-est':'rumo-pomo',F.pomo?'1':'0')}catch(e){} focoRender(); },
  focoDescansar:()=>focoIniciar('pausa',5),
  focoPausa:()=>{ const F=UI.foco; if(F.pausado){ F.fim=Date.now()+F.pausado*1000; F.pausado=0; } else F.pausado=Math.max(1,Math.round((F.fim-Date.now())/1000)); focoRender(); },
  focoFeito:()=>{ const F=UI.foco, i=F.id?getT(F.id):null; if(F.mat){ const x=S.estudos.materias.find(y=>y.id===F.mat); if(x){ x.feitos=x.feitos||{}; x.feitos[F.d]=true; save('estudos'); } } if(i){ setEstado(i,F.d,'feito'); save('tarefas'); } focoFechar(); toast('Feito ✅ Mandou bem!'); },
@@ -2791,7 +2803,7 @@ const ACT={
  etapaHoje:d=>{const g=S.metas.items.find(x=>x.id===d.g);const e=g.etapas.find(x=>x.id===d.id);S.tarefas.items.push({id:uid(),titulo:e.t,tipo:'tarefa',data:TODAY(),hora:'',rep:'nao',feitos:{},passos:[],meta:g.id});save('tarefas');toast('Foi pra sua lista de hoje')},
  novaMat:()=>openSheet(formMat()),
  focoMat:d=>{ const x=S.estudos.materias.find(y=>y.id===d.id); if(!x) return; closeSheet(); const falta=Math.max(0,metaDia(x)-minDia(x,TODAY()));
-   UI.foco={id:'',mat:x.id,titulo:'Estudar '+x.nome,d:TODAY(),fase:'pronto',min:falta&&[10,15,25,45].includes(falta)?falta:focoMinPadrao(),blocos:0}; focoRender(); },
+   let pm=true; try{ pm=localStorage.getItem('rumo-pomo-est')!=='0' }catch(e){} UI.foco={id:'',mat:x.id,titulo:'Estudar '+x.nome,d:TODAY(),fase:'pronto',min:pm?25:(falta&&[10,15,25,45].includes(falta)?falta:focoMinPadrao()),blocos:0,pomo:pm}; focoRender(); },
  estMenu:d=>{ const x=S.estudos.materias.find(y=>y.id===d.id); if(!x) return; const dia=d.d||UI.dia, ok=feitoEst(x,dia), mt=metaDia(x), m=minDia(x,dia);
    openSheet(`${sheetHead(esc(x.nome),`${m}${mt?` de ${mt}`:''} min ${dia===TODAY()?'hoje':'em '+fmtDs(dia)}`)}<div class="stack">
     ${dia===TODAY()?`<button class="btn pri" data-a="focoMat" data-id="${x.id}">🎯 Estudar agora</button>`:''}
@@ -2945,7 +2957,7 @@ const FORMS={
  mat:(o,f)=>{const id=f.dataset.id;const b={nome:String(o.nome).trim(),metaDia:+o.metaDia||0,dias:[...f.querySelectorAll('input[name=dias]:checked')].map(x=>+x.value),periodo:['manha','tarde','noite'].includes(o.periodo)?o.periodo:''};if(id)Object.assign(S.estudos.materias.find(x=>x.id===id),b);else S.estudos.materias.push({id:uid(),...b,sessoes:[]});save('estudos');closeSheet();render()},
  sessao:(o,f)=>{const min=+o.min||0;if(!min)return;const x=S.estudos.materias.find(y=>y.id===f.dataset.id);x.sessoes=x.sessoes||[];x.sessoes.push({data:f.dataset.d||TODAY(),min});save('estudos');closeSheet();render();toast(`${min} min registrados`)},
  dump:o=>{const ls=String(o.t||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!ls.length)return;ls.forEach(t=>S.mente.dump.unshift({id:uid(),t,criado:TODAY()}));save('mente');render();toast(ls.length===1?'Guardado':ls.length+' coisas guardadas')},
- focoLivre:o=>{ const t=String(o.t||'').trim()||'Foco'; UI.focoTxt=''; UI.foco={id:'',titulo:cap(t),d:TODAY(),fase:'pronto',min:UI.focoMinTab||focoMinPadrao(),blocos:0}; focoIniciar('foco',UI.foco.min); },
+ focoLivre:o=>{ const t=String(o.t||'').trim()||'Foco'; UI.focoTxt=''; UI.foco={id:'',titulo:cap(t),d:TODAY(),fase:'pronto',min:UI.focoMinTab||focoMinPadrao(),blocos:0,pomo:focoPomoPadrao()}; focoIniciar('foco',UI.foco.min); },
  focoNota:o=>{ const t=String(o.t||'').trim(); if(!t) return; S.mente.dump.unshift({id:uid(),t,criado:TODAY()}); save('mente'); const x=$('#focoNota'); if(x){ x.value=''; x.focus(); } toast('Anotado. Volta pro foco 🎯'); },
  menteAdd:(o,f)=>{const t=String(o.t||'').trim();if(!t)return;const seg=UI.menteSem||semanaDe(TODAY())[0];const w=S.mente.semanas[seg]=S.mente.semanas[seg]||{certo:[],melhorar:[],notas:''};(w[f.dataset.k]=w[f.dataset.k]||[]).push({id:uid(),t});save('mente');render();setTimeout(()=>{const i=document.querySelector(`form[data-f=menteAdd][data-k=${f.dataset.k}] input`);if(i)i.focus()},30)},
  parCodigo:o=>parAprovar(o.c),
