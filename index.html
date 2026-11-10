@@ -471,6 +471,13 @@ form[data-f=item2] input[type=text]{min-width:0;flex:1}
 .edot.hoje{background:var(--surface);box-shadow:inset 0 0 0 2px var(--night)}
 .edot.fut{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
 .edot.off{width:6px;height:6px;margin:9px 0;background:var(--line)}
+.cqtd{color:var(--accent);font-weight:800}
+.cnome{border:0;background:none;font:inherit;color:inherit;text-align:left;padding:4px 0;cursor:pointer;min-width:0}
+.qstep{display:flex;align-items:center;gap:8px}
+.qstep button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:22px;font-weight:700;color:var(--ink);cursor:pointer}
+.qstep input{width:80px;text-align:center;font-size:18px;font-weight:700}
+.iptot{display:flex;justify-content:space-between;align-items:baseline;background:var(--sunk);border-radius:12px;padding:12px 14px}
+.iptot b{font-size:20px}
 .ctools{display:flex;flex-wrap:wrap;gap:6px}
 .ctools:empty{display:none}
 .ctot{gap:10px}
@@ -915,7 +922,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-09.2';
+const VERSAO='2026-11-10.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -2356,9 +2363,18 @@ function planejarSemana(){
   return out;
 }
 /* ---------- lista de compras: valores, listas salvas, compartilhar ---------- */
-const lembraPreco=(x)=>{ if(+x.preco){ S.casa.precos=S.casa.precos||{}; S.casa.precos[norm(x.item)]=+x.preco; } };
+const qtdDe=x=>Math.max(1,+x.qtd||1);
+const unitDe=x=>+x.unit||(+x.preco?r2(+x.preco/qtdDe(x)):0);
+const lembraPreco=(x)=>{ const u=unitDe(x); if(u){ S.casa.precos=S.casa.precos||{}; S.casa.precos[norm(x.item)]=u; } };
+function lerQtd(txt){ let t=String(txt).trim(), q=1, m;
+  if((m=t.match(/^(\d{1,3})\s*(?:x|un|unid(?:ades?)?|pct|pacotes?|cx|caixas?)?\s+(.+)$/i))&&!/^\d+\s*(kg|g|ml|l)\b/i.test(t)){ q=+m[1]; t=m[2]; }
+  else if((m=t.match(/^(.+?)\s*[x×]\s*(\d{1,3})$/i))){ t=m[1]; q=+m[2]; }
+  return {t:t.trim(),q:Math.max(1,q)}; }
+function novoItemCompra(txt,secao){ const {t,q}=lerQtd(txt), u=(S.casa.precos||{})[norm(t)];
+  return {id:uid(),item:cap(t),secao,ok:false,...(q>1?{qtd:q}:{}),...(u?{unit:u,preco:r2(u*q),est:true}:{})}; }
+function ipCalc(){ const q=Math.max(1,+($('#ipQ')||{}).value||1), v=+($('#ipV')||{}).value||0, t=$('#ipTot'); if(t) t.textContent=brl(r2(q*v)); }
 function textoCompras(so){ const L=S.casa.compras.filter(x=>!so||!x.ok); let s=`*Lista de compras* 🛒\n`;
-  for(const sc of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===sc); if(!it.length) continue; s+=`\n*${SECAO_IC[sc]} ${sc}*\n`+it.map(x=>`${x.ok?'✅':'▫️'} ${x.item}${+x.preco?` · ${x.est?'~':''}${brl(x.preco)}`:''}`).join('\n')+'\n'; }
+  for(const sc of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===sc); if(!it.length) continue; s+=`\n*${SECAO_IC[sc]} ${sc}*\n`+it.map(x=>`${x.ok?'✅':'▫️'} ${qtdDe(x)>1?qtdDe(x)+'× ':''}${x.item}${+x.preco?` · ${x.est?'~':''}${brl(x.preco)}`:''}`).join('\n')+'\n'; }
   const tot=L.reduce((a,x)=>a+(+x.preco||0),0); if(tot) s+=`\n*Total previsto:* ${brl(tot)}`; return s.trim(); }
 function compListaHtml(){ const so=UI.compSo, txt=textoCompras(so);
   return `${sheetHead('Compartilhar lista','Manda pra quem vai no mercado com você (ou por você).')}<div class="stack">
@@ -2446,7 +2462,7 @@ function vCasa(){
        <div class="bar good"><i style="width:${Math.round(pegos/L.length*100)}%"></i></div>
        ${pegos?`<div class="row" style="gap:8px"><button class="btn pri grow" data-a="compraFim">✅ Finalizar compra</button><button class="btn ghost sm" data-a="limpaLista">Só tirar os pegos</button></div>`:'<p class="tiny muted">Toque no valor de cada item pra anotar o preço. O Rumo lembra pra próxima vez.</p>'}</section>`;
       for(const s of SECOES){ const it=L.filter(x=>(x.secao||'Outros')===s); if(!it.length) continue; const ord=[...it.filter(x=>!x.ok),...it.filter(x=>x.ok)];
-        pC+=`<section class="card" style="gap:4px"><div class="row between"><b>${SECAO_IC[s]} ${s}</b><span class="tiny muted">${it.filter(x=>!x.ok).length} ${plural(it.filter(x=>!x.ok).length,'item','itens')}</span></div>${ord.map(x=>`<div class="lrow" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><span class="grow" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${esc(x.item)}</span><button class="cpreco ${+x.preco?'':'vazio'}" data-a="itemPreco" data-id="${x.id}" aria-label="Valor de ${esc(x.item)}">${+x.preco?(x.est?'~':'')+brl(x.preco):'+ R$'}</button><button class="iconbtn sm" data-a="itemDel" data-id="${x.id}" aria-label="Tirar da lista">${svg('x')}</button></div>`).join('')}</section>`; } }
+        pC+=`<section class="card" style="gap:4px"><div class="row between"><b>${SECAO_IC[s]} ${s}</b><span class="tiny muted">${it.filter(x=>!x.ok).length} ${plural(it.filter(x=>!x.ok).length,'item','itens')}</span></div>${ord.map(x=>`<div class="lrow" style="padding:6px 0"><button class="check ${x.ok?'on':''}" data-a="itemOk" data-id="${x.id}" aria-label="Pegou">${svg('check')}</button><button class="grow cnome" data-a="itemPreco" data-id="${x.id}" style="${x.ok?'text-decoration:line-through;color:var(--muted)':''}">${qtdDe(x)>1?`<b class="cqtd">${qtdDe(x)}×</b> `:''}${esc(x.item)}${qtdDe(x)>1&&unitDe(x)?`<span class="tiny muted" style="display:block;text-decoration:none">${qtdDe(x)} × ${brl(unitDe(x))}</span>`:''}</button><button class="cpreco ${+x.preco?'':'vazio'}" data-a="itemPreco" data-id="${x.id}" aria-label="Valor de ${esc(x.item)}">${+x.preco?(x.est?'~':'')+brl(x.preco):'+ R$'}</button><button class="iconbtn sm" data-a="itemDel" data-id="${x.id}" aria-label="Tirar da lista">${svg('x')}</button></div>`).join('')}</section>`; } }
   }
   return out+`<div class="cgrid" data-tab="${tab}"><div class="cpan" data-p="tarefas">${pT}</div><div class="cpan" data-p="compras"><h2 class="pconly">Lista de compras</h2>${pC}</div></div>`;
 }
@@ -2838,8 +2854,17 @@ const ACT={
  qrMostrar:()=>qrMostrar(), parSim:d=>parAprovar(d.c), qrLer:()=>qrLer(),
  casaTab:d=>{UI.casaTab=d.t;render();window.scrollTo(0,0)},
  itemPreco:d=>{const x=S.casa.compras.find(y=>y.id===d.id);if(!x)return;const ult=(S.casa.precos||{})[norm(x.item)];
-   openSheet(`${sheetHead('Quanto custa?',esc(x.item))}<form data-f="itemPreco" data-id="${x.id}" class="stack"><label class="f">Valor (o total desse item)<input type="number" inputmode="decimal" step="0.01" min="0" name="v" id="ipV" value="${+x.preco&&!x.est?x.preco:''}" placeholder="${ult?'Última vez: '+brl(ult):'0,00'}" autofocus></label><p class="tiny muted">Se levar mais de um, coloca o total. Ex.: 2 pacotes de café de 18,90 = 37,80.</p><div class="row between"><button class="btn pri">Salvar</button>${+x.preco?'<button type="button" class="btn ghost" data-a="itemPrecoTira" data-id="'+x.id+'">Tirar valor</button>':''}</div></form>`)},
- itemPrecoTira:d=>{const x=S.casa.compras.find(y=>y.id===d.id);if(x){delete x.preco;delete x.est;save('casa')}closeSheet();render()},
+   const q=qtdDe(x), u=unitDe(x);
+   openSheet(`${sheetHead('Editar item','')}<form data-f="itemPreco" data-id="${x.id}" class="stack">
+    <label class="f">Item<input type="text" name="item" id="ipN" value="${esc(x.item)}" required></label>
+    <div class="f"><span>Seção</span><div class="qpick">${SECOES.map(sc=>`<label><input type="radio" name="secao" value="${sc}" ${(x.secao||'Mercado')===sc?'checked':''}><span>${SECAO_IC[sc]} ${sc}</span></label>`).join('')}</div></div>
+    <div class="f"><span>Quantidade</span><div class="qstep"><button type="button" data-a="ipMenos" aria-label="Menos um">−</button><input type="number" inputmode="numeric" min="1" step="1" name="q" id="ipQ" value="${q}" data-c="ipCalc"><button type="button" data-a="ipMais" aria-label="Mais um">+</button></div></div>
+    <label class="f">Valor por unidade<input type="number" inputmode="decimal" step="0.01" min="0" name="v" id="ipV" value="${u&&!x.est?u:''}" placeholder="${ult?'Última vez: '+brl(ult):'0,00'}" data-c="ipCalc"></label>
+    <div class="iptot"><span>Total desse item</span><b class="num" id="ipTot">${brl(r2(q*(u||0)))}</b></div>
+    <div class="row between"><button class="btn pri">Salvar</button>${+x.preco?'<button type="button" class="btn ghost" data-a="itemPrecoTira" data-id="'+x.id+'">Tirar valor</button>':''}</div></form>`)},
+ ipMenos:()=>{const i=$('#ipQ');if(i){i.value=Math.max(1,(+i.value||1)-1);ipCalc()}},
+ ipMais:()=>{const i=$('#ipQ');if(i){i.value=(+i.value||1)+1;ipCalc()}},
+ itemPrecoTira:d=>{const x=S.casa.compras.find(y=>y.id===d.id);if(x){delete x.preco;delete x.unit;delete x.est;save('casa')}closeSheet();render()},
  compraFim:()=>{const L=S.casa.compras.filter(x=>x.ok), tot=r2(L.reduce((a,x)=>a+(+x.preco||0),0));
    openSheet(`${sheetHead('Finalizar compra',`${L.length} ${plural(L.length,'item','itens')} no carrinho`)}<form data-f="compraFim" class="stack"><label class="f">Quanto deu no caixa?<input type="number" inputmode="decimal" step="0.01" min="0" name="v" id="cfV" value="${tot||''}" placeholder="0,00" required></label>
     <p class="tiny muted">${tot?`Somando os valores da lista dá ${brl(tot)}. Se o caixa deu diferente, corrige aqui.`:'Coloque o valor do cupom.'}</p>
@@ -2852,7 +2877,7 @@ const ACT={
  listaSalvar:()=>{const LS=S.casa.listas||[]; openSheet(`${sheetHead('Salvar lista','Guarda essa lista pra usar de novo outro mês.')}<form data-f="listaSalvar" class="stack"><label class="f">Nome da lista<input type="text" name="nome" id="lsN" value="${LS.length?'':'Mercado do mês'}" placeholder="Ex.: Mercado do mês, Feira da semana" required autofocus list="lsNomes"></label><datalist id="lsNomes">${LS.map(l=>`<option value="${esc(l.nome)}">`).join('')}</datalist><p class="tiny muted">Salva os ${S.casa.compras.length} itens com seção e valor. Se o nome já existir, ela é atualizada.</p><button class="btn pri">Salvar</button></form>`)},
  listasVer:()=>openSheet(listasHtml()),
  listaUsar:d=>{const l=(S.casa.listas||[]).find(x=>x.id===d.id);if(!l)return;const ja=new Set(S.casa.compras.filter(x=>!x.ok).map(x=>norm(x.item)));let n=0;
-   for(const x of l.itens){ if(ja.has(norm(x.item))) continue; const pr=(S.casa.precos||{})[norm(x.item)]||+x.preco||0; S.casa.compras.push({id:uid(),item:x.item,secao:x.secao||'Mercado',ok:false,...(pr?{preco:pr,est:true}:{})}); n++; }
+   for(const x of l.itens){ if(ja.has(norm(x.item))) continue; const q=Math.max(1,+x.qtd||1), u=(S.casa.precos||{})[norm(x.item)]||+x.unit||(+x.preco?r2(+x.preco/q):0); S.casa.compras.push({id:uid(),item:x.item,secao:x.secao||'Mercado',ok:false,...(q>1?{qtd:q}:{}),...(u?{unit:u,preco:r2(u*q),est:true}:{})}); n++; }
    l.usada=TODAY(); save('casa'); closeSheet(); render(); toast(n?`${n} ${plural(n,'item entrou','itens entraram')} na lista`:'Todos os itens já estavam na lista')},
  listaApagar:d=>{const LS=S.casa.listas||[];const k=LS.findIndex(x=>x.id===d.id);if(k<0)return;const [x]=LS.splice(k,1);save('casa');$('#sheetBody').innerHTML=listasHtml();toast('Lista apagada',()=>{LS.splice(k,0,x);save('casa');$('#sheetBody').innerHTML=listasHtml()})},
  itemOk:d=>{const x=S.casa.compras.find(y=>y.id===d.id);x.ok=!x.ok;save('casa');render()},
@@ -2913,11 +2938,11 @@ const FORMS={
    if(old) Object.assign(old,base); else S.tarefas.items.push({id:uid(),...base,feitos:{},criado:Date.now()});
    if(UI.convFrom&&!id){ const c=UI.convFrom; if(c.k==='dump') S.mente.dump=S.mente.dump.filter(x=>x.id!==c.id); else { const x=(S.mente.semanas[c.seg]?.[c.k]||[]).find(y=>y.id===c.id); if(x) x.virou=true; } save('mente'); } UI.convFrom=null;
    save('tarefas');closeSheet();render();toast(id?'Salvo':({tarefa:'Tarefa adicionada',habito:'Hábito adicionado',compromisso:'Compromisso adicionado'})[tipo])},
- itemPreco:(o,f)=>{const x=S.casa.compras.find(y=>y.id===f.dataset.id);if(!x)return;const v=r2(+o.v||0);if(v){x.preco=v;delete x.est;lembraPreco(x)}else{delete x.preco;delete x.est}save('casa');closeSheet();render()},
+ itemPreco:(o,f)=>{const x=S.casa.compras.find(y=>y.id===f.dataset.id);if(!x)return;const nn=String(o.item||'').trim();if(nn)x.item=cap(nn);if(SECOES.includes(o.secao))x.secao=o.secao;const q=Math.max(1,Math.round(+o.q||1)), v=r2(+o.v||0);if(q>1)x.qtd=q;else delete x.qtd;if(v){x.unit=v;x.preco=r2(v*q);delete x.est;lembraPreco(x)}else if(x.est&&x.unit){x.preco=r2(x.unit*q)}else{delete x.preco;delete x.unit;delete x.est}save('casa');closeSheet();render()},
  compraFim:o=>{const v=r2(+o.v||0);const L=S.casa.compras.filter(x=>x.ok);L.forEach(lembraPreco);
    if(v>0){addTx({id:uid(),data:TODAY(),desc:String(o.desc||'Mercado').trim()||'Mercado',valor:v,tipo:'saida',cat:o.cat||'Alimentação',origem:'compras',ok:true});}
    S.casa.compras=S.casa.compras.filter(x=>!x.ok);save('casa');closeSheet();render();toast(v>0?`Compra de ${brl(v)} lançada nos gastos 🛒`:'Tirei os pegos da lista')},
- listaSalvar:o=>{const nome=String(o.nome||'').trim();if(!nome)return;S.casa.listas=S.casa.listas||[];const itens=S.casa.compras.map(x=>({item:x.item,secao:x.secao,preco:+x.preco||0}));
+ listaSalvar:o=>{const nome=String(o.nome||'').trim();if(!nome)return;S.casa.listas=S.casa.listas||[];const itens=S.casa.compras.map(x=>({item:x.item,secao:x.secao,qtd:qtdDe(x),unit:unitDe(x),preco:+x.preco||0}));
    const ex=S.casa.listas.find(l=>norm(l.nome)===norm(nome)); if(ex){ex.itens=itens;ex.nome=nome}else S.casa.listas.push({id:uid(),nome,itens,criada:TODAY()});
    save('casa');closeSheet();render();toast(ex?`Lista “${nome}” atualizada`:`Lista “${nome}” salva 💾`)},
  pagaVar:(o,f)=>{const v=r2(+o.valor||0); if(!v) return; closeSheet(); ACT.pagarRec({id:f.dataset.id,valor:v,m:f.dataset.m||''})},
@@ -2964,7 +2989,7 @@ const FORMS={
  pcRapido:o=>{ const t=String(o.t||'').trim(); if(!t) return; const n=norm(t);
    if(/^(gastei|paguei|comprei|recebi|ganhei|entrou|caiu|vendi)\b/.test(n)){ const p=parseLanc(t); openSheet(formTx({tipo:p.tipo,desc:p.desc,valor:p.valor||'',data:p.data,cat:p.tipo==='entrada'?ENTCATS[0]:categorizar(p.desc)})); }
    else openSheet(formItem(parseItem(t))); const i=$('#pcAdd'); if(i) i.value=''; },
- item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{const pr=(S.casa.precos||{})[norm(x)];S.casa.compras.push({id:uid(),item:cap(x),secao:o.secao||UI.secao||'Mercado',ok:false,...(pr?{preco:pr,est:true}:{})})});save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
+ item2:o=>{String(o.item||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{S.casa.compras.push(novoItemCompra(x,o.secao||UI.secao||'Mercado'))});save('casa');render();setTimeout(()=>{const i=$('#itemN');if(i)i.focus()},30)},
  rot:(o,f)=>{const id=f.dataset.id;const modo=o.modo==='semana'?'semana':'cada';const dias=arr(o.dias).map(Number);if(modo==='semana'&&!dias.length){toast('Escolha pelo menos um dia da semana');return}const b={nome:String(o.nome).trim(),modo,dias:modo==='semana'?dias:[],cada:+o.cada||7,diaSem:modo==='cada'&&o.diaSem!==''&&o.diaSem!=null?+o.diaSem:'',ultima:o.ultima||'',comodo:o.comodo||'',periodo:['manha','tarde','noite'].includes(o.periodo)?o.periodo:''};if(id)Object.assign(S.casa.rotina.find(r=>r.id===id),b);else S.casa.rotina.push({id:uid(),...b});save('casa');closeSheet();render()},
  sbcfg:o=>{ const url=String(o.url||'').trim().replace(/\/+$/,''), key=String(o.key||'').trim(); if(!/^https:\/\/.+/.test(url)||key.length<20){toast('Confira a URL e a chave.');return} SB.cfg={url,key}; try{localStorage.setItem(LSCFG,JSON.stringify(SB.cfg))}catch(e){} initSync(); render(); },
  login:async o=>{ const {error}=await SB.client.auth.signInWithPassword({email:String(o.email).trim(),password:String(o.senha)}); if(error) toast(erroSB(error)); else toast('Entrou. Sincronizando…'); },
@@ -2984,7 +3009,7 @@ document.addEventListener('pointerdown',e=>{ const dial=e.target.closest('#sonoD
 document.addEventListener('pointermove',e=>{ if(!sonoArr||!UI.sono||!$('#sonoDial')) return; UI.sono[sonoArr]=sonoMin(e); sonoAtualizaDial(); });
 document.addEventListener('pointerup',()=>{sonoArr=null}); document.addEventListener('pointercancel',()=>{sonoArr=null});
 let buscaT=null;
-document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c; if(c==='txValor') parcInfo(); if(c==='sonoObs'&&UI.sono) UI.sono.obs=el.value;
+document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c; if(c==='txValor') parcInfo(); if(c==='ipCalc') ipCalc(); if(c==='sonoObs'&&UI.sono) UI.sono.obs=el.value;
   if(c==='agBusca'||c==='txBusca'){clearTimeout(buscaT);buscaT=setTimeout(()=>{if(c==='agBusca')UI.ag.q=el.value;else UI.txq=el.value;const pos=el.selectionStart;render();const n=document.getElementById(el.id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}},250)}
   if(c==='calcIn'){const f=el.form;const cc=CALCS.find(x=>x.id===f.dataset.id);const v={};new FormData(f).forEach((val,k)=>v[k]=+val||0);let r;try{r=cc.calc(v)}catch(x){r='Confira os números.'}$('#calcRes').textContent=r}});
 document.addEventListener('change',async e=>{const el=e.target;const c=el.dataset&&el.dataset.c;if(!c)return;
