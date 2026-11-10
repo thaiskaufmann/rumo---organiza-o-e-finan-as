@@ -922,7 +922,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.1';
+const VERSAO='2026-11-10.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -2869,6 +2869,8 @@ const ACT={
    openSheet(`${sheetHead('Finalizar compra',`${L.length} ${plural(L.length,'item','itens')} no carrinho`)}<form data-f="compraFim" class="stack"><label class="f">Quanto deu no caixa?<input type="number" inputmode="decimal" step="0.01" min="0" name="v" id="cfV" value="${tot||''}" placeholder="0,00" required></label>
     <p class="tiny muted">${tot?`Somando os valores da lista dá ${brl(tot)}. Se o caixa deu diferente, corrige aqui.`:'Coloque o valor do cupom.'}</p>
     <div class="fgrid"><label class="f">Onde<input type="text" name="desc" id="cfD" value="Mercado"></label><label class="f">Categoria<select name="cat" id="cfC">${catNames().map(c=>`<option ${c==='Alimentação'?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
+    <label class="f full" style="background:var(--sunk);border-radius:12px;padding:12px 14px"><span class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" name="salvar" id="cfS" value="1" checked style="width:22px;height:22px;flex:none;margin-top:1px" onchange="document.getElementById('cfNW').classList.toggle('hide',!this.checked)"><span><b style="color:var(--ink)">Salvar essa compra como lista</b><br><span class="tiny muted" style="font-weight:400">Pra puxar tudo de novo no próximo mercado, com quantidade e valor.</span></span></span></label>
+    <label class="f" id="cfNW">Nome da lista<input type="text" name="lnome" id="cfN" value="${esc(((S.casa.listas||[]).find(l=>norm(l.nome)===norm('Mercado do mês'))||{}).nome||'Mercado do mês')}" list="cfNomes"><datalist id="cfNomes">${(S.casa.listas||[]).map(l=>`<option value="${esc(l.nome)}">`).join('')}</datalist><span class="tiny muted" style="font-weight:400">Se já existir uma lista com esse nome, ela é atualizada.</span></label>
     <button class="btn pri">Lançar nos gastos e tirar da lista</button><button type="button" class="btn ghost" data-a="limpaLista">Só tirar da lista, sem lançar</button></form>`)},
  listaComp:()=>{UI.compSo=false;openSheet(compListaHtml())},
  clSo:d=>{UI.compSo=!!d.v;$('#sheetBody').innerHTML=compListaHtml()},
@@ -2940,8 +2942,10 @@ const FORMS={
    save('tarefas');closeSheet();render();toast(id?'Salvo':({tarefa:'Tarefa adicionada',habito:'Hábito adicionado',compromisso:'Compromisso adicionado'})[tipo])},
  itemPreco:(o,f)=>{const x=S.casa.compras.find(y=>y.id===f.dataset.id);if(!x)return;const nn=String(o.item||'').trim();if(nn)x.item=cap(nn);if(SECOES.includes(o.secao))x.secao=o.secao;const q=Math.max(1,Math.round(+o.q||1)), v=r2(+o.v||0);if(q>1)x.qtd=q;else delete x.qtd;if(v){x.unit=v;x.preco=r2(v*q);delete x.est;lembraPreco(x)}else if(x.est&&x.unit){x.preco=r2(x.unit*q)}else{delete x.preco;delete x.unit;delete x.est}save('casa');closeSheet();render()},
  compraFim:o=>{const v=r2(+o.v||0);const L=S.casa.compras.filter(x=>x.ok);L.forEach(lembraPreco);
+   let salvou=''; if(o.salvar){const nome=String(o.lnome||'').trim()||'Mercado do mês';S.casa.listas=S.casa.listas||[];const itens=S.casa.compras.map(x=>({item:x.item,secao:x.secao,qtd:qtdDe(x),unit:unitDe(x),preco:+x.preco||0}));
+     const ex=S.casa.listas.find(l=>norm(l.nome)===norm(nome)); if(ex){ex.itens=itens;ex.nome=nome;ex.usada=TODAY()}else S.casa.listas.push({id:uid(),nome,itens,criada:TODAY(),usada:TODAY()}); salvou=nome;}
    if(v>0){addTx({id:uid(),data:TODAY(),desc:String(o.desc||'Mercado').trim()||'Mercado',valor:v,tipo:'saida',cat:o.cat||'Alimentação',origem:'compras',ok:true});}
-   S.casa.compras=S.casa.compras.filter(x=>!x.ok);save('casa');closeSheet();render();toast(v>0?`Compra de ${brl(v)} lançada nos gastos 🛒`:'Tirei os pegos da lista')},
+   S.casa.compras=S.casa.compras.filter(x=>!x.ok);save('casa');closeSheet();render();toast((v>0?`Compra de ${brl(v)} lançada nos gastos 🛒`:'Tirei os pegos da lista')+(salvou?` · salva em “${salvou}”`:''))},
  listaSalvar:o=>{const nome=String(o.nome||'').trim();if(!nome)return;S.casa.listas=S.casa.listas||[];const itens=S.casa.compras.map(x=>({item:x.item,secao:x.secao,qtd:qtdDe(x),unit:unitDe(x),preco:+x.preco||0}));
    const ex=S.casa.listas.find(l=>norm(l.nome)===norm(nome)); if(ex){ex.itens=itens;ex.nome=nome}else S.casa.listas.push({id:uid(),nome,itens,criada:TODAY()});
    save('casa');closeSheet();render();toast(ex?`Lista “${nome}” atualizada`:`Lista “${nome}” salva 💾`)},
