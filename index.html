@@ -785,6 +785,10 @@ body.focoon{overflow:hidden}
 #sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
 #sheet .scrim{position:absolute;inset:0;background:rgba(20,8,14,.45)}
 #sheet .panel{position:relative;background:var(--bg);width:100%;max-width:620px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+#sheet.meio{align-items:center;padding:16px}
+#sheet.meio .panel{border-radius:24px;max-height:88%;padding-bottom:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:meioPop .28s cubic-bezier(.2,1.2,.4,1)}
+@keyframes meioPop{from{transform:scale(.92);opacity:0}}
+@media (prefers-reduced-motion: reduce){#sheet.meio .panel{animation:none}}
 @media (min-width:700px){#sheet{align-items:center}#sheet .panel{border-radius:20px;max-height:88%}}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(166px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
 #toast button{background:none;border:0;color:var(--accent);font-weight:800;cursor:pointer}
@@ -1020,7 +1024,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.4';
+const VERSAO='2026-11-10.5';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1089,7 +1093,7 @@ function render(){
 }
 
 /* ================= sheet / toast ================= */
-function openSheet(html){ $('#sheetBody').innerHTML=html; $('#sheet').hidden=false; $('#sheetBody').scrollTop=0; const f=$('#sheetBody').querySelector('[autofocus]'); if(f) setTimeout(()=>f.focus(),60); }
+function openSheet(html,op){ $('#sheet').classList.toggle('meio',!!(op&&op.meio)); $('#sheetBody').innerHTML=html; $('#sheet').hidden=false; $('#sheetBody').scrollTop=0; const f=$('#sheetBody').querySelector('[autofocus]'); if(f) setTimeout(()=>f.focus(),60); }
 function closeSheet(){ UI.convFrom=null; parParar(); $('#sheet').hidden=true; $('#sheetBody').innerHTML=''; if(pendingRender){pendingRender=false;render()} }
 let toastT=null,toastUndo=null;
 function toast(msg,undo){ const t=$('#toast'); toastUndo=undo||null; t.innerHTML=`<span>${esc(msg)}</span>${undo?'<button data-a="desfazer">Desfazer</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{t.hidden=true;toastUndo=null},undo?6000:3500); }
@@ -2414,9 +2418,9 @@ function lvVerHtml(b){ const p=lvPct(b), ss=(b.sessoes||[]).map((x,k)=>({...x,k}
    <div class="row" style="gap:8px">${b.status!=='lido'&&b.status!=='quero'?`<button class="btn ghost sm" data-a="lvTerminar" data-id="${b.id}">Terminei ✅</button>`:''}<button class="btn ghost sm" data-a="lvEditar" data-id="${b.id}">Editar</button></div></div>`; }
 function lvLerHtml(b,intro){ const L=S.livros.items.filter(x=>x.status==='lendo'||x.id===b.id), pct=b.modo==='pct';
   return `${sheetHead(intro||'Registrar leitura',intro?'Onde você parou?':'')}<form data-f="lvLer" data-id="${b.id}" class="stack">
-   ${L.length>1?`<div class="lvpick">${L.map(x=>`<button type="button" class="${x.id===b.id?'on':''}" data-a="lvLerTroca" data-id="${x.id}" data-i="${esc(intro||'')}">${lvCapa(x,'xs')}<span>${esc(x.titulo)}</span></button>`).join('')}</div>`:`<div class="row" style="gap:12px">${lvCapa(b,'sm')}<div class="stack" style="gap:2px"><b>${esc(b.titulo)}</b><span class="tiny muted">Agora: ${lvOndeTxt(b)}</span></div></div>`}
+   ${intro&&L.length>1?`<div class="lvpick">${L.map(x=>`<button type="button" class="${x.id===b.id?'on':''}" data-a="lvLerTroca" data-id="${x.id}" data-i="${esc(intro||'')}">${lvCapa(x,'xs')}<span>${esc(x.titulo)}</span></button>`).join('')}</div>`:`<div class="row" style="gap:12px">${lvCapa(b,'sm')}<div class="stack" style="gap:2px"><b>${esc(b.titulo)}</b><span class="tiny muted">Agora: ${lvOndeTxt(b)}</span></div></div>`}
    <div class="seg">${[['pag','Página'],['pct','% (Kindle)']].map(([v,l])=>`<label><input type="radio" name="modo" value="${v}" ${(b.modo||'pag')===v?'checked':''} data-c="lvModo"><span>${l}</span></label>`).join('')}</div>
-   <label class="f"><span id="lvLbl">${pct?'Em quantos % você está?':'Parei na página'}</span><input type="number" inputmode="decimal" min="0" step="any" name="v" id="lvV" data-c="lvCalc" value="" placeholder="${pct?Math.round(lvPct(b))+'%':(+b.atual||0)}" required autofocus></label>
+   <label class="f"><span id="lvLbl">${pct?'Em quantos % você está?':'Parei na página'}</span><input type="number" inputmode="decimal" min="0" step="any" name="v" id="lvV" data-c="lvCalc" value="" placeholder="${pct?Math.round(lvPct(b))+'%':(+b.atual||0)}" required></label>
    <div class="iptot"><span id="lvAnt">Antes: ${lvOndeTxt(b)}</span><b class="num" id="lvDelta">—</b></div>
    <label class="f">📝 O que ficou dessa leitura? <small class="muted" style="font-weight:400">(opcional)</small><textarea name="nota" id="lvN" rows="3" placeholder="O que você entendeu, uma frase que marcou, o que pensou dessa parte…"></textarea></label>
    <button class="btn pri">Salvar leitura</button>${intro?`<button type="button" class="btn ghost" data-a="fecharSheet">Agora não</button>`:''}</form>`; }
@@ -2432,7 +2436,7 @@ function lvMarcaHoje(b){ const t=TODAY(); let mud=false; for(const i of itensDoD
 function lvFim(b){ const y=lvAno(), meta=+(S.livros.meta||{})[y]||0, n=lvLidosAno(y).length;
   festa({nivel:'grande',emoji:'📚',tit:'Livro terminado!',sub:`${b.titulo}`+(meta?` · ${n} de ${meta} na sua meta de ${y}`:''),barra:meta?Math.min(100,n/meta*100):null});
   setTimeout(()=>openSheet(`${sheetHead('E aí, o que achou?',esc(b.titulo))}<div class="stack">${lvEstrelas(+b.nota||0,b.id)}<form data-f="lvResenha" data-id="${b.id}" class="stack"><textarea name="resenha" id="lvR" rows="4" placeholder="Uma frase, o que ficou, pra quem você indicaria…">${esc(b.resenha||'')}</textarea><button class="btn pri">Guardar na estante</button></form></div>`),1600); }
-function lerDepois(id,dia){ if(dia!==TODAY()||String(id).includes(':')) return; const i=getT(id); const b=lvDoItem(i); if(!b) return; setTimeout(()=>{ if($('#sheet').hidden) openSheet(lvLerHtml(b,'Leitura feita ✅')); },650); }
+function lerDepois(id,dia){ if(dia!==TODAY()||String(id).includes(':')) return; const i=getT(id); const b=lvDoItem(i); if(!b) return; setTimeout(()=>{ if($('#sheet').hidden) openSheet(lvLerHtml(b,'Leitura feita ✅'),{meio:1}); },650); }
 
 /* ================= comemorações (som + confete) ================= */
 const FESTA={ac:null};
@@ -2999,8 +3003,8 @@ const ACT={
  lvNovo:()=>openSheet(formLivro()),
  lvEditar:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(formLivro(b))},
  lvVer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvVerHtml(b))},
- lvLer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b))},
- lvLerTroca:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b,d.i||''))},
+ lvLer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b),{meio:1})},
+ lvLerTroca:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b,d.i||''),{meio:1})},
  lvTab:d=>{UI.lvTab=d.t;render()},
  lvSesNota:d=>{const b=S.livros.items.find(x=>x.id===d.id), s=b&&(b.sessoes||[])[+d.k]; if(!s) return; openSheet(`${sheetHead('Anotação',`${esc(b.titulo)} · ${fmtDs(s.data)}${s.modo==='pct'?` · ${Math.round(s.ate)}%`:` · até a pág ${s.ate}`}`)}<form data-f="lvSesNota" data-id="${b.id}" data-k="${d.k}" class="stack"><textarea name="nota" id="lvSN" rows="6" autofocus placeholder="O que você entendeu, uma frase que marcou, o que pensou dessa parte…">${esc(s.nota||'')}</textarea><div class="row between"><button class="btn pri">Salvar</button><button type="button" class="btn ghost" data-a="lvVer" data-id="${b.id}">Voltar pro livro</button></div></form>`); },
  lvSub:d=>{UI.lvSub=d.s;if(d.f)UI.lvFiltro=d.f;render();window.scrollTo(0,0)},
