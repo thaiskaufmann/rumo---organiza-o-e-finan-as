@@ -583,6 +583,21 @@ body.focoon{overflow:hidden}
 .lvses{display:flex;flex-direction:column;gap:6px;border:0;background:var(--sunk);border-radius:14px;padding:12px 14px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}
 .lvsesn{font-size:14px;line-height:1.45;white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:10px;font-family:Georgia,'Times New Roman',serif}
 .lvfalta input{border-color:var(--warn)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 25%,transparent)}.lvfalta #lvPMsg{color:var(--warn)!important;font-weight:600!important}
+.t-leitura{--tc:#C2185B;--ts:color-mix(in srgb,#C2185B 12%,transparent)}
+[data-theme=dark] .t-leitura,.t-leitura.dk{--tc:#F28BB0}
+.lvitem{display:flex;align-items:center;gap:12px}
+.lvitem .lvcapa.xs{width:34px;height:50px;border-radius:3px 6px 6px 3px}
+.lvitxt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.lvitxt .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lvibar{display:block;height:4px;border-radius:9px;background:var(--sunk);overflow:hidden;margin-top:5px}.lvibar i{display:block;height:100%;background:var(--tc);border-radius:9px}
+.item.done .lvibar i{background:var(--good)}
+.lvim{display:flex;gap:16px;align-items:center}
+.addtiles:has(.t-leitura){grid-template-columns:repeat(2,1fr)}
+.lvescolhe{display:flex;flex-direction:column;gap:8px}
+.lvop{display:block;cursor:pointer}.lvop input{position:absolute;opacity:0;pointer-events:none}
+.lvop>span{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px 8px 8px}
+.lvop>span>span{display:flex;flex-direction:column;gap:2px;min-width:0}.lvop small{color:var(--muted);font-size:12px;font-weight:400}
+.lvop input:checked+span{border-color:var(--accent);background:var(--sunk);box-shadow:0 0 0 1px var(--accent)}
 .lvachados{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .lvachados button{border:2px solid transparent;border-radius:8px;padding:0;background:var(--sunk);aspect-ratio:2/3;overflow:hidden;cursor:pointer}
 .lvachados img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1025,7 +1040,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.7';
+const VERSAO='2026-11-10.8';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1293,7 +1308,15 @@ const actBtns=acts=>acts.map(([a,l,k,data])=>`<button class="btn sm ${k||''}" da
 
 /* ================= VIEW: Hoje ================= */
 function saudacao(){const h=new Date().getHours();return h<5?'Boa noite':h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}
+function itemLeitura(i,d,b){ const done=isDone(i,d),est=estadoDe(i,d),st=streak(i,d),e=ESTADOS[est],p=lvPct(b), hoje=(b.sessoes||[]).filter(x=>x.data===d).reduce((a,x)=>a+(+x.pags||0),0), dp=(b.sessoes||[]).filter(x=>x.data===d&&x.modo==='pct');
+  const info=hoje?`+${hoje} págs hoje`:dp.length?`+${Math.round(dp[dp.length-1].ate-dp[0].de)}% hoje`:lvFaltaTxt(b);
+  return `<div class="item t-leitura ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
+    <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
+    <button class="open lvitem" data-a="lvItemMenu" data-id="${i.id}" data-b="${b.id}" data-d="${d}">${lvCapa(b,'xs')}<span class="lvitxt"><span class="t">${esc(b.titulo)}</span><span class="meta"><span class="typ">📖 Leitura</span>${Math.round(p)}% · ${esc(info)}${st>1?` · 🔥 ${st}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</span><span class="lvibar"><i style="width:${p}%"></i></span></span></button>
+    <button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>
+  </div>`; }
 function itemHtml(i,d){
+  { const lb=!i.virt&&i.tipo!=='compromisso'&&lvDoItem(i); if(lb) return itemLeitura(i,d,lb); }
   const done=isDone(i,d),est=estadoDe(i,d),st=i.tipo==='habito'?streak(i,d):0, e=ESTADOS[est];
   return `<div class="item t-${i.virt==='casa'?'casa':i.virt==='est'?'est':i.tipo} ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
@@ -1427,8 +1450,19 @@ function timeline(d,its){
 function addMenuHtml(d){
   return `${sheetHead('Adicionar ao seu dia')}
   <form class="voice" data-f="voz"><div class="row">${ic('mic')}<b>Adicionar rápido</b></div><span class="small" style="opacity:.8">Escreva ou dite do jeito que fala. Eu entendo dia e horário e abro pra você conferir. No iPhone, use o microfone do teclado.</span><div class="row"><input type="text" name="t" id="vozTxt" placeholder="Ex.: dentista quinta às 15h" autocomplete="off"><button class="btn acc">Continuar</button></div></form>
-  <div class="addtiles">${[['compromisso','Compromisso','Data e horário'],['tarefa','Tarefa','Algo para fazer'],['habito','Hábito','Parte da rotina']].map(([k,l,s])=>`<button class="t-${k}" data-a="novoItem" data-tipo="${k}" data-d="${d||''}"><span style="color:var(--tc)">${svg(TIPOS[k][1])}</span><b>${l}</b><small>${s}</small></button>`).join('')}</div>`;
+  <div class="addtiles">${[['compromisso','Compromisso','Data e horário'],['tarefa','Tarefa','Algo para fazer'],['habito','Hábito','Parte da rotina']].map(([k,l,s])=>`<button class="t-${k}" data-a="novoItem" data-tipo="${k}" data-d="${d||''}"><span style="color:var(--tc)">${svg(TIPOS[k][1])}</span><b>${l}</b><small>${s}</small></button>`).join('')}<button class="t-leitura" data-a="lvNovaLeitura"><span style="color:var(--tc);font-size:20px;line-height:22px">📖</span><b>Leitura</b><small>Livro do dia</small></button></div>`;
 }
+function lvNovaHtml(sel){ const L=S.livros.items.filter(b=>b.status!=='lido'), at=lvAtual(); sel=sel||(at?'*':(L[0]||{}).id||'');
+  return `${sheetHead('Nova leitura','Ela entra no seu dia como um hábito')}<form data-f="lvNova" class="stack">
+   <div class="f"><span>Qual livro?</span><div class="lvescolhe">
+    ${at?`<label class="lvop"><input type="radio" name="livro" value="*" ${sel==='*'?'checked':''}><span>${lvCapa(at,'xs')}<span><b>O que eu estiver lendo</b><small>Agora: ${esc(at.titulo)}. Troca sozinho quando você começar outro.</small></span></span></label>`:''}
+    ${L.map(b=>`<label class="lvop"><input type="radio" name="livro" value="${b.id}" ${sel===b.id?'checked':''}><span>${lvCapa(b,'xs')}<span><b>${esc(b.titulo)}</b><small>${b.status==='lendo'?Math.round(lvPct(b))+'% lido':'Quero ler'}</small></span></span></label>`).join('')}
+    <button type="button" class="btn ghost sm" data-a="lvNovo" style="align-self:flex-start">${svg('plus')}Livro novo</button></div></div>
+   <div class="f"><span>Quando?</span><div class="qpick">${[['diario','Todo dia'],['dias','Alguns dias']].map(([v,l])=>`<label><input type="radio" name="rep" value="${v}" ${v==='diario'?'checked':''} data-c="lvNovaRep"><span>${l}</span></label>`).join('')}</div>
+    <div class="daypick hide" id="lvNDias">${[1,2,3,4,5,6,0].map(w=>`<label><input type="checkbox" name="dias" value="${w}"><span>${DOW[w]}</span></label>`).join('')}</div></div>
+   <div class="f"><span>Em que período?</span><div class="qpick">${[['manha','Manhã'],['tarde','Tarde'],['noite','Noite'],['','Qualquer hora']].map(([v,l])=>`<label><input type="radio" name="periodo" value="${v}" ${v==='noite'?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
+   <label class="f">Versão mínima <small class="muted" style="font-weight:400">(pros dias difíceis)</small><input type="text" name="minimo" id="lvNMin" value="1 página"></label>
+   <button class="btn pri">Colocar no meu dia</button></form>`; }
 function estadoHtml(i,d){
   const est=estadoDe(i,d), op=i.tipo==='habito'?[['feito','✅','Feito'],['minimo','🌱','Fiz o mínimo'],['pulou','➖','Hoje não'],['naofiz','✖','Não fiz']]:[['feito','✅','Feito'],['pulou','➖','Hoje não'],['naofiz','✖','Não fiz'],['cancelado','🚫','Cancelado']];
   return `${sheetHead(esc(i.titulo),(d===TODAY()?'Hoje':cap(fmtD(d)))+(i.hora?' · '+i.hora:''))}
@@ -2437,7 +2471,7 @@ function lvMarcaHoje(b){ const t=TODAY(); let mud=false; for(const i of itensDoD
 function lvFim(b){ const y=lvAno(), meta=+(S.livros.meta||{})[y]||0, n=lvLidosAno(y).length;
   festa({nivel:'grande',emoji:'📚',tit:'Livro terminado!',sub:`${b.titulo}`+(meta?` · ${n} de ${meta} na sua meta de ${y}`:''),barra:meta?Math.min(100,n/meta*100):null});
   setTimeout(()=>openSheet(`${sheetHead('E aí, o que achou?',esc(b.titulo))}<div class="stack">${lvEstrelas(+b.nota||0,b.id)}<form data-f="lvResenha" data-id="${b.id}" class="stack"><textarea name="resenha" id="lvR" rows="4" placeholder="Uma frase, o que ficou, pra quem você indicaria…">${esc(b.resenha||'')}</textarea><button class="btn pri">Guardar na estante</button></form></div>`),1600); }
-function lerDepois(id,dia){ if(dia!==TODAY()||String(id).includes(':')) return; const i=getT(id); const b=lvDoItem(i); if(!b) return; setTimeout(()=>{ if($('#sheet').hidden) openSheet(lvLerHtml(b,'Leitura feita ✅'),{meio:1}); },650); }
+function lerDepois(id,dia){ if(UI.lvSemPerg||dia!==TODAY()||String(id).includes(':')) return; const i=getT(id); const b=lvDoItem(i); if(!b) return; setTimeout(()=>{ if($('#sheet').hidden) openSheet(lvLerHtml(b,'Leitura feita ✅'),{meio:1}); },650); }
 
 /* ================= comemorações (som + confete) ================= */
 const FESTA={ac:null};
@@ -3005,6 +3039,13 @@ const ACT={
  lvEditar:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(formLivro(b))},
  lvVer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvVerHtml(b))},
  lvLer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b),{meio:1})},
+ lvItemMenu:d=>{const i=getT(d.id), b=S.livros.items.find(x=>x.id===d.b); if(!i||!b) return; const dia=d.d||UI.dia, ok=isDone(i,dia), p=lvPct(b);
+   openSheet(`${sheetHead('','')}<div class="lvim">${lvCapa(b,'md')}<div class="stack" style="gap:4px;min-width:0"><span class="eyebrow">📖 Leitura de hoje</span><b style="font-size:18px;line-height:1.2">${esc(b.titulo)}</b><span class="small muted">${Math.round(p)}% · ${lvFaltaTxt(b)}</span><div class="lvprog" style="margin-top:4px"><i style="width:${p}%"></i></div></div></div>
+    <div class="stack" style="gap:8px;margin-top:4px"><button class="btn pri" data-a="lvLer" data-id="${b.id}">📖 Registrar onde parei</button>
+    <button class="btn" data-a="lvItemFeito" data-id="${i.id}" data-d="${dia}">${ok?'Desmarcar':'✅ Li hoje (sem registrar)'}</button>
+    <div class="row" style="gap:8px"><button class="btn ghost sm grow" data-a="lvVer" data-id="${b.id}">Ver livro</button><button class="btn ghost sm grow" data-a="editT" data-id="${i.id}">Editar hábito</button></div></div>`,{meio:1}); },
+ lvNovaLeitura:()=>openSheet(lvNovaHtml(),{meio:1}),
+ lvItemFeito:d=>{ closeSheet(); UI.lvSemPerg=1; try{ ACT.toggleT(d); }finally{ UI.lvSemPerg=0; } },
  lvPags:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(!b)return;openSheet(`${sheetHead('Quantas páginas tem?',esc(b.titulo))}<form data-f="lvPags" data-id="${b.id}" class="stack"><input type="number" inputmode="numeric" min="1" name="n" id="lvPN" placeholder="Ex.: 320" required><p class="tiny muted" style="margin:0">O total do livro inteiro, que aparece na página dele na Amazon. Com isso, o app transforma a % do Kindle em páginas lidas.</p><button class="btn pri">Salvar</button></form>`,{meio:1})},
  lvLerTroca:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b,d.i||''),{meio:1})},
  lvTab:d=>{UI.lvTab=d.t;render()},
@@ -3233,6 +3274,10 @@ const FORMS={
    festa({nivel:'medio',emoji:marco===50?'🎯':'📖',tit:r.pags>0?`+${Math.round(r.pags)} ${plural(Math.round(r.pags),'página','páginas')}!`:r.dpct>0?`+${Math.round(r.dpct)}% lido!`:'Leitura registrada',sub:marco===50?`Metade de ${b.titulo}!`:marco?`${marco}% de ${b.titulo}. Tá chegando!`:`Você está em ${Math.round(r.pct)}% de ${b.titulo}`,barra:r.pct})},
  lvSesNota:(o,f)=>{const b=S.livros.items.find(x=>x.id===f.dataset.id), s=b&&(b.sessoes||[])[+f.dataset.k]; if(!s) return; const nt=String(o.nota||'').trim(); if(nt) s.nota=nt; else delete s.nota; save('livros'); openSheet(lvVerHtml(b)); toast('Anotação guardada 📝')},
  lvPags:(o,f)=>{const b=S.livros.items.find(x=>x.id===f.dataset.id);const n=Math.round(+o.n||0);if(!b||!n)return;b.paginas=n;save('livros');closeSheet();render();toast(`${n} páginas · agora conto as páginas que você lê 📖`)},
+ lvNova:o=>{ const rep=o.rep==='dias'?'dias':'diario', dias=rep==='dias'?arr(o.dias).map(Number):[]; if(rep==='dias'&&!dias.length){ toast('Escolha pelo menos um dia'); return; }
+   const lv=o.livro||'*', b=lv==='*'?lvAtual():S.livros.items.find(x=>x.id===lv); if(b&&b.status==='quero'){ b.status='lendo'; b.inicio=TODAY(); save('livros'); }
+   S.tarefas.items.push({id:uid(),titulo:'Leitura',tipo:'habito',rep,dias,data:TODAY(),hora:'',dur:30,etiqueta:'',periodo:['manha','tarde','noite'].includes(o.periodo)?o.periodo:'',minimo:String(o.minimo||'').trim(),nota:'',prioridade:'',local:'',link:'',obs:'',passos:[],livro:lv,feitos:{},criado:Date.now()});
+   save('tarefas'); closeSheet(); go('hoje'); toast('Leitura no seu dia 📖'); },
  lvResenha:(o,f)=>{const b=S.livros.items.find(x=>x.id===f.dataset.id);if(!b)return;b.resenha=String(o.resenha||'').trim();save('livros');closeSheet();render();toast('Guardado na estante 📚')},
  lvMeta:o=>{const n=Math.round(+o.outro||+o.n||0);if(!n)return;S.livros.meta=S.livros.meta||{};S.livros.meta[lvAno()]=n;save('livros');closeSheet();render();toast(`Meta: ${n} livros em ${lvAno()} 📚`)},
  item:(o,f)=>{const id=f.dataset.id; const tipo=o.tipo; let rep=o.rep||'nao'; if(tipo==='habito'&&rep==='nao') rep='diario';
@@ -3320,7 +3365,7 @@ document.addEventListener('pointerdown',e=>{ const dial=e.target.closest('#sonoD
 document.addEventListener('pointermove',e=>{ if(!sonoArr||!UI.sono||!$('#sonoDial')) return; UI.sono[sonoArr]=sonoMin(e); sonoAtualizaDial(); });
 document.addEventListener('pointerup',()=>{sonoArr=null}); document.addEventListener('pointercancel',()=>{sonoArr=null});
 let buscaT=null;
-document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c; if(c==='txValor') parcInfo(); if(c==='ipCalc') ipCalc(); if(c==='lvCalc'||c==='lvModo') lvCalc(); if(c==='sonoObs'&&UI.sono) UI.sono.obs=el.value;
+document.addEventListener('input',e=>{const el=e.target;const c=el.dataset&&el.dataset.c; if(c==='txValor') parcInfo(); if(c==='ipCalc') ipCalc(); if(c==='lvNovaRep'){ const x=$('#lvNDias'); if(x) x.classList.toggle('hide',el.value!=='dias'); } if(c==='lvCalc'||c==='lvModo') lvCalc(); if(c==='sonoObs'&&UI.sono) UI.sono.obs=el.value;
   if(c==='agBusca'||c==='txBusca'){clearTimeout(buscaT);buscaT=setTimeout(()=>{if(c==='agBusca')UI.ag.q=el.value;else UI.txq=el.value;const pos=el.selectionStart;render();const n=document.getElementById(el.id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}},250)}
   if(c==='calcIn'){const f=el.form;const cc=CALCS.find(x=>x.id===f.dataset.id);const v={};new FormData(f).forEach((val,k)=>v[k]=+val||0);let r;try{r=cc.calc(v)}catch(x){r='Confira os números.'}$('#calcRes').textContent=r}});
 document.addEventListener('change',async e=>{const el=e.target;const c=el.dataset&&el.dataset.c;if(!c)return;
