@@ -589,6 +589,8 @@ body.focoon{overflow:hidden}
 .lvitem .lvcapa.xs{width:34px;height:50px;border-radius:3px 6px 6px 3px}
 .lvitxt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .lvitxt .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lvitxt .meta{flex-wrap:nowrap;white-space:nowrap;overflow:hidden;min-width:0}.lvitxt .meta>*{flex:none}.lvitxt .meta .typ{margin-right:2px}
+.lvitxt .lvinfo{overflow:hidden;text-overflow:ellipsis;flex:0 1 auto!important;min-width:0}
 .lvibar{display:block;height:4px;border-radius:9px;background:var(--sunk);overflow:hidden;margin-top:5px}.lvibar i{display:block;height:100%;background:var(--tc);border-radius:9px}
 .item.done .lvibar i{background:var(--good)}
 .lvim{display:flex;gap:16px;align-items:center}
@@ -1040,7 +1042,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.8';
+const VERSAO='2026-11-10.9';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1312,7 +1314,7 @@ function itemLeitura(i,d,b){ const done=isDone(i,d),est=estadoDe(i,d),st=streak(
   const info=hoje?`+${hoje} págs hoje`:dp.length?`+${Math.round(dp[dp.length-1].ate-dp[0].de)}% hoje`:lvFaltaTxt(b);
   return `<div class="item t-leitura ${done?'done':''} ${est&&!done?'est-'+est:''} ${isSkip(i,d)?'skip':''}">
     <button class="check ${done?'on':''} ${e?'x':''}" data-a="toggleT" data-id="${i.id}" data-d="${d}" aria-label="${done?'Desmarcar':'Marcar como feito'}">${e?`<span aria-hidden="true">${e[1]}</span>`:svg('check')}</button>
-    <button class="open lvitem" data-a="lvItemMenu" data-id="${i.id}" data-b="${b.id}" data-d="${d}">${lvCapa(b,'xs')}<span class="lvitxt"><span class="t">${esc(b.titulo)}</span><span class="meta"><span class="typ">📖 Leitura</span>${Math.round(p)}% · ${esc(info)}${st>1?` · 🔥 ${st}`:''}${e?` · <span class="pill mut">${e[0].toLowerCase()}</span>`:''}</span><span class="lvibar"><i style="width:${p}%"></i></span></span></button>
+    <button class="open lvitem" data-a="lvItemMenu" data-id="${i.id}" data-b="${b.id}" data-d="${d}">${lvCapa(b,'xs')}<span class="lvitxt"><span class="t">${esc(b.titulo)}</span><span class="meta"><span class="typ">📖 Leitura</span><span class="lvinfo">${Math.round(p)}% · ${esc(info)}${st>1?` · 🔥 ${st}`:''}${e?` · ${e[0].toLowerCase()}`:''}</span></span><span class="lvibar"><i style="width:${p}%"></i></span></span></button>
     <button class="iconbtn sm" data-a="estadoMenu" data-id="${i.id}" data-d="${d}" aria-label="Mais opções">⋯</button>
   </div>`; }
 function itemHtml(i,d){
