@@ -1024,7 +1024,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.5';
+const VERSAO='2026-11-10.6';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -3009,13 +3009,13 @@ const ACT={
  lvSesNota:d=>{const b=S.livros.items.find(x=>x.id===d.id), s=b&&(b.sessoes||[])[+d.k]; if(!s) return; openSheet(`${sheetHead('Anotação',`${esc(b.titulo)} · ${fmtDs(s.data)}${s.modo==='pct'?` · ${Math.round(s.ate)}%`:` · até a pág ${s.ate}`}`)}<form data-f="lvSesNota" data-id="${b.id}" data-k="${d.k}" class="stack"><textarea name="nota" id="lvSN" rows="6" autofocus placeholder="O que você entendeu, uma frase que marcou, o que pensou dessa parte…">${esc(s.nota||'')}</textarea><div class="row between"><button class="btn pri">Salvar</button><button type="button" class="btn ghost" data-a="lvVer" data-id="${b.id}">Voltar pro livro</button></div></form>`); },
  lvSub:d=>{UI.lvSub=d.s;if(d.f)UI.lvFiltro=d.f;render();window.scrollTo(0,0)},
  lvFiltro:d=>{UI.lvFiltro=d.f;render()},
- lvBuscaCapa:async()=>{ const t=(($('#lvT')||{}).value||'').trim(), box=$('#lvBusca'), msg=$('#lvCapaMsg'); if(!t){ msg.textContent='Escreve o título primeiro.'; return; } msg.textContent='Procurando…';
-   try{ const r=await fetch('https://www.googleapis.com/books/v1/volumes?maxResults=15&printType=books&q='+encodeURIComponent(t+' '+(($('#lvA')||{}).value||''))); const j=await r.json();
-     const it=(j.items||[]).map(x=>x.volumeInfo||{}).filter(v=>v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail)).slice(0,9);
-     if(!it.length){ msg.textContent='Não achei. Tenta mandar uma foto da capa.'; box.innerHTML=''; return; }
-     UI.lvAchados=it.map(v=>({url:String(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail).replace(/^http:/,'https:').replace('&edge=curl',''),t:v.title||'',a:(v.authors||[]).join(', '),p:+v.pageCount||0}));
-     msg.textContent='Toca na capa certa:'; box.innerHTML=`<div class="lvachados">${UI.lvAchados.map((x,k)=>`<button type="button" data-a="lvEscolheCapa" data-k="${k}"><img src="${esc(x.url)}" alt="${esc(x.t)}"></button>`).join('')}</div>`;
-   }catch(e){ msg.textContent='Não consegui buscar agora. Tenta mandar uma foto da capa.'; } },
+ lvBuscaCapa:async()=>{ const t=(($('#lvT')||{}).value||'').trim(), au=(($('#lvA')||{}).value||'').trim(), box=$('#lvBusca'), msg=$('#lvCapaMsg'); if(!t){ msg.textContent='Escreve o título primeiro.'; return; } msg.textContent='Procurando…';
+   const q=(t+' '+au).trim();
+   const gb=fetch('https://www.googleapis.com/books/v1/volumes?maxResults=15&printType=books&q='+encodeURIComponent(q)).then(r=>r.ok?r.json():{}).then(j=>(j.items||[]).map(x=>x.volumeInfo||{}).filter(v=>v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail)).map(v=>({url:String(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail).replace(/^http:/,'https:').replace('&edge=curl',''),t:v.title||'',a:(v.authors||[]).join(', '),p:+v.pageCount||0}))).catch(()=>[]);
+   const ol=fetch('https://openlibrary.org/search.json?limit=12&fields=title,author_name,cover_i,number_of_pages_median&q='+encodeURIComponent(q)).then(r=>r.ok?r.json():{}).then(j=>(j.docs||[]).filter(x=>x.cover_i).map(x=>({url:`https://covers.openlibrary.org/b/id/${x.cover_i}-L.jpg`,t:x.title||'',a:(x.author_name||[]).join(', '),p:+x.number_of_pages_median||0}))).catch(()=>[]);
+   const [A,B]=await Promise.all([gb,ol]); const vis=new Set(); UI.lvAchados=[...B,...A].filter(x=>!vis.has(x.url)&&vis.add(x.url)).slice(0,12);
+   if(!UI.lvAchados.length){ msg.textContent='Não achei. Tenta mandar uma foto da capa.'; box.innerHTML=''; return; }
+   msg.textContent='Toca na capa certa:'; box.innerHTML=`<div class="lvachados">${UI.lvAchados.map((x,k)=>`<button type="button" data-a="lvEscolheCapa" data-k="${k}"><img src="${esc(x.url)}" alt="${esc(x.t)}" loading="lazy" onerror="this.parentNode.remove()"></button>`).join('')}</div>`; },
  lvEscolheCapa:d=>{ const x=(UI.lvAchados||[])[+d.k]; if(!x) return; $('#lvCapaUrl').value=x.url; $('#lvFoto').value=''; const a=$('#lvA'), pg=$('#lvP'); if(a&&!a.value&&x.a) a.value=x.a; if(pg&&!pg.value&&x.p) pg.value=x.p; $('#lvBusca').innerHTML=''; $('#lvCapaMsg').innerHTML='Capa escolhida ✓ <button type="button" class="linkbtn" data-a="lvTiraCapa">Tirar</button>'; lvCapaPrev(); },
  lvTiraCapa:()=>{ $('#lvCapaUrl').value=''; $('#lvFoto').value=''; $('#lvCapaMsg').textContent=''; lvCapaPrev(); },
  lvNota:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(!b)return;b.nota=+d.n===+b.nota?0:+d.n;save('livros');document.querySelectorAll('.lvstars button').forEach((x,k)=>x.classList.toggle('on',k<b.nota));render()},
