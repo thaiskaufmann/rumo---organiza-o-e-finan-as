@@ -582,6 +582,7 @@ body.focoon{overflow:hidden}
 .lvdiario{display:flex;flex-direction:column;gap:8px}
 .lvses{display:flex;flex-direction:column;gap:6px;border:0;background:var(--sunk);border-radius:14px;padding:12px 14px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}
 .lvsesn{font-size:14px;line-height:1.45;white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:10px;font-family:Georgia,'Times New Roman',serif}
+.lvfalta input{border-color:var(--warn)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 25%,transparent)}.lvfalta #lvPMsg{color:var(--warn)!important;font-weight:600!important}
 .lvachados{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .lvachados button{border:2px solid transparent;border-radius:8px;padding:0;background:var(--sunk);aspect-ratio:2/3;overflow:hidden;cursor:pointer}
 .lvachados img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1024,7 +1025,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.6';
+const VERSAO='2026-11-10.7';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -2362,7 +2363,7 @@ function lvInicio(){
   if(lendo.length){ out+=`<div class="row between" style="margin-top:4px"><h2>Lendo agora</h2>${lendo.length>1?`<span class="tiny muted">${lendo.length} livros · deslize</span>`:''}</div><div class="lvcarr ${lendo.length===1?'um':''}">`;
     for(const b of lendo){ const p=lvPct(b), hoje=(b.sessoes||[]).filter(x=>x.data===TODAY()).reduce((a,x)=>a+(+x.pags||0),0);
       out+=`<div class="lvcar"><button class="lvcarcap" data-a="lvVer" data-id="${b.id}">${lvCapa(b,'xl')}</button><div class="lvcarinfo"><button class="lvcartit" data-a="lvVer" data-id="${b.id}"><b>${esc(b.titulo)}</b>${b.autor?`<span class="tiny muted">${esc(b.autor)}</span>`:''}</button>
-       <div class="lvpct"><b class="num">${Math.round(p)}%</b>${hoje?`<span class="pill good">+${hoje} hoje</span>`:''}</div><div class="lvprog"><i style="width:${p}%"></i></div><span class="tiny muted">${lvFaltaTxt(b)}</span>
+       <div class="lvpct"><b class="num">${Math.round(p)}%</b>${hoje?`<span class="pill good">+${hoje} hoje</span>`:''}</div><div class="lvprog"><i style="width:${p}%"></i></div><span class="tiny muted">${lvFaltaTxt(b)}</span>${!lvPag(b)?`<button class="linkbtn tiny" style="align-self:flex-start" data-a="lvPags" data-id="${b.id}">+ quantas páginas tem?</button>`:''}
        <button class="btn pri sm" data-a="lvLer" data-id="${b.id}">📖 Registrar</button></div></div>`; }
     out+=`</div>`; }
   else out+=`<section class="card flat"><b>Nenhum livro aberto agora.</b><span class="muted small">Adicione o livro que você está lendo. No Hoje, quando marcar sua leitura, o Rumo pergunta onde você parou.</span></section>`;
@@ -2406,7 +2407,7 @@ function formLivro(b){ b=b||{status:'lendo',modo:'pag'};
    <label class="f">Autor <small class="muted" style="font-weight:400">(opcional)</small><input type="text" name="autor" id="lvA" value="${esc(b.autor||'')}"></label>
    <div class="f"><span>Status</span><div class="qpick">${[['lendo','Lendo'],['quero','Quero ler'],['lido','Já li']].map(([v,l])=>`<label><input type="radio" name="status" value="${v}" ${(b.status||'lendo')===v?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
    <div class="f"><span>Como você acompanha?</span><div class="seg">${[['pag','Por página'],['pct','Por % (Kindle)']].map(([v,l])=>`<label><input type="radio" name="modo" value="${v}" ${(b.modo||'pag')===v?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
-   <label class="f">Total de páginas <small class="muted" style="font-weight:400">${'(opcional no Kindle)'}</small><input type="number" inputmode="numeric" min="0" name="paginas" id="lvP" value="${lvPag(b)||''}" placeholder="Ex.: 320"></label>
+   <label class="f" id="lvPW">Quantas páginas o livro tem?<input type="number" inputmode="numeric" min="0" name="paginas" id="lvP" value="${lvPag(b)||''}" placeholder="Ex.: 320"><span class="tiny muted" style="font-weight:400" id="lvPMsg">O total do livro inteiro. Você coloca só uma vez. No dia a dia, só registra onde parou.</span></label>
    <div class="row between"><button class="btn pri">${b.id?'Salvar':'Adicionar'}</button>${b.id?`<button type="button" class="btn danger ghost" data-a="lvApagar" data-id="${b.id}">Apagar</button>`:''}</div></form>`; }
 function lvVerHtml(b){ const p=lvPct(b), ss=(b.sessoes||[]).map((x,k)=>({...x,k})).reverse().slice(0,40);
   return `${sheetHead('','')}<div class="lvdet">${lvCapa(b,'lg')}<div class="stack" style="gap:4px;align-items:center;text-align:center"><h2>${esc(b.titulo)}</h2>${b.autor?`<span class="small muted">${esc(b.autor)}</span>`:''}</div>
@@ -2421,7 +2422,7 @@ function lvLerHtml(b,intro){ const L=S.livros.items.filter(x=>x.status==='lendo'
    ${intro&&L.length>1?`<div class="lvpick">${L.map(x=>`<button type="button" class="${x.id===b.id?'on':''}" data-a="lvLerTroca" data-id="${x.id}" data-i="${esc(intro||'')}">${lvCapa(x,'xs')}<span>${esc(x.titulo)}</span></button>`).join('')}</div>`:`<div class="row" style="gap:12px">${lvCapa(b,'sm')}<div class="stack" style="gap:2px"><b>${esc(b.titulo)}</b><span class="tiny muted">Agora: ${lvOndeTxt(b)}</span></div></div>`}
    <div class="seg">${[['pag','Página'],['pct','% (Kindle)']].map(([v,l])=>`<label><input type="radio" name="modo" value="${v}" ${(b.modo||'pag')===v?'checked':''} data-c="lvModo"><span>${l}</span></label>`).join('')}</div>
    <label class="f"><span id="lvLbl">${pct?'Em quantos % você está?':'Parei na página'}</span><input type="number" inputmode="decimal" min="0" step="any" name="v" id="lvV" data-c="lvCalc" value="" placeholder="${pct?Math.round(lvPct(b))+'%':(+b.atual||0)}" required></label>
-   <div class="iptot"><span id="lvAnt">Antes: ${lvOndeTxt(b)}</span><b class="num" id="lvDelta">—</b></div>
+   <div class="iptot"><span id="lvAnt">Antes: ${lvOndeTxt(b)}${!lvPag(b)&&pct?` · <button type="button" class="linkbtn" data-a="lvPags" data-id="${b.id}">+ total de páginas</button>`:''}</span><b class="num" id="lvDelta">—</b></div>
    <label class="f">📝 O que ficou dessa leitura? <small class="muted" style="font-weight:400">(opcional)</small><textarea name="nota" id="lvN" rows="3" placeholder="O que você entendeu, uma frase que marcou, o que pensou dessa parte…"></textarea></label>
    <button class="btn pri">Salvar leitura</button>${intro?`<button type="button" class="btn ghost" data-a="fecharSheet">Agora não</button>`:''}</form>`; }
 function lvCalc(){ const f=$('#sheet form[data-f=lvLer]'); if(!f) return; const b=S.livros.items.find(x=>x.id===f.dataset.id); if(!b) return;
@@ -3004,6 +3005,7 @@ const ACT={
  lvEditar:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(formLivro(b))},
  lvVer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvVerHtml(b))},
  lvLer:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b),{meio:1})},
+ lvPags:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(!b)return;openSheet(`${sheetHead('Quantas páginas tem?',esc(b.titulo))}<form data-f="lvPags" data-id="${b.id}" class="stack"><input type="number" inputmode="numeric" min="1" name="n" id="lvPN" placeholder="Ex.: 320" required><p class="tiny muted" style="margin:0">O total do livro inteiro, que aparece na página dele na Amazon. Com isso, o app transforma a % do Kindle em páginas lidas.</p><button class="btn pri">Salvar</button></form>`,{meio:1})},
  lvLerTroca:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(b)openSheet(lvLerHtml(b,d.i||''),{meio:1})},
  lvTab:d=>{UI.lvTab=d.t;render()},
  lvSesNota:d=>{const b=S.livros.items.find(x=>x.id===d.id), s=b&&(b.sessoes||[])[+d.k]; if(!s) return; openSheet(`${sheetHead('Anotação',`${esc(b.titulo)} · ${fmtDs(s.data)}${s.modo==='pct'?` · ${Math.round(s.ate)}%`:` · até a pág ${s.ate}`}`)}<form data-f="lvSesNota" data-id="${b.id}" data-k="${d.k}" class="stack"><textarea name="nota" id="lvSN" rows="6" autofocus placeholder="O que você entendeu, uma frase que marcou, o que pensou dessa parte…">${esc(s.nota||'')}</textarea><div class="row between"><button class="btn pri">Salvar</button><button type="button" class="btn ghost" data-a="lvVer" data-id="${b.id}">Voltar pro livro</button></div></form>`); },
@@ -3016,7 +3018,7 @@ const ACT={
    const [A,B]=await Promise.all([gb,ol]); const vis=new Set(); UI.lvAchados=[...B,...A].filter(x=>!vis.has(x.url)&&vis.add(x.url)).slice(0,12);
    if(!UI.lvAchados.length){ msg.textContent='Não achei. Tenta mandar uma foto da capa.'; box.innerHTML=''; return; }
    msg.textContent='Toca na capa certa:'; box.innerHTML=`<div class="lvachados">${UI.lvAchados.map((x,k)=>`<button type="button" data-a="lvEscolheCapa" data-k="${k}"><img src="${esc(x.url)}" alt="${esc(x.t)}" loading="lazy" onerror="this.parentNode.remove()"></button>`).join('')}</div>`; },
- lvEscolheCapa:d=>{ const x=(UI.lvAchados||[])[+d.k]; if(!x) return; $('#lvCapaUrl').value=x.url; $('#lvFoto').value=''; const a=$('#lvA'), pg=$('#lvP'); if(a&&!a.value&&x.a) a.value=x.a; if(pg&&!pg.value&&x.p) pg.value=x.p; $('#lvBusca').innerHTML=''; $('#lvCapaMsg').innerHTML='Capa escolhida ✓ <button type="button" class="linkbtn" data-a="lvTiraCapa">Tirar</button>'; lvCapaPrev(); },
+ lvEscolheCapa:d=>{ const x=(UI.lvAchados||[])[+d.k]; if(!x) return; $('#lvCapaUrl').value=x.url; $('#lvFoto').value=''; const a=$('#lvA'), pg=$('#lvP'); if(a&&!a.value&&x.a) a.value=x.a; if(pg&&!pg.value&&x.p) pg.value=x.p; if(pg&&!pg.value){ $('#lvPW').classList.add('lvfalta'); $('#lvPMsg').textContent='Não achei quantas páginas ele tem. Coloca aqui (aparece na página do livro na Amazon).'; } $('#lvBusca').innerHTML=''; $('#lvCapaMsg').innerHTML='Capa escolhida ✓ <button type="button" class="linkbtn" data-a="lvTiraCapa">Tirar</button>'; lvCapaPrev(); },
  lvTiraCapa:()=>{ $('#lvCapaUrl').value=''; $('#lvFoto').value=''; $('#lvCapaMsg').textContent=''; lvCapaPrev(); },
  lvNota:d=>{const b=S.livros.items.find(x=>x.id===d.id);if(!b)return;b.nota=+d.n===+b.nota?0:+d.n;save('livros');document.querySelectorAll('.lvstars button').forEach((x,k)=>x.classList.toggle('on',k<b.nota));render()},
  lvApagar:d=>{const b=S.livros.items.find(x=>x.id===d.id);S.livros.items=S.livros.items.filter(x=>x.id!==d.id);save('livros');closeSheet();render();toast('Livro apagado',()=>{S.livros.items.push(b);save('livros');render()})},
@@ -3230,6 +3232,7 @@ const FORMS={
    const marco=[25,50,75,90].find(m=>p0<m&&r.pct>=m);
    festa({nivel:'medio',emoji:marco===50?'🎯':'📖',tit:r.pags>0?`+${Math.round(r.pags)} ${plural(Math.round(r.pags),'página','páginas')}!`:r.dpct>0?`+${Math.round(r.dpct)}% lido!`:'Leitura registrada',sub:marco===50?`Metade de ${b.titulo}!`:marco?`${marco}% de ${b.titulo}. Tá chegando!`:`Você está em ${Math.round(r.pct)}% de ${b.titulo}`,barra:r.pct})},
  lvSesNota:(o,f)=>{const b=S.livros.items.find(x=>x.id===f.dataset.id), s=b&&(b.sessoes||[])[+f.dataset.k]; if(!s) return; const nt=String(o.nota||'').trim(); if(nt) s.nota=nt; else delete s.nota; save('livros'); openSheet(lvVerHtml(b)); toast('Anotação guardada 📝')},
+ lvPags:(o,f)=>{const b=S.livros.items.find(x=>x.id===f.dataset.id);const n=Math.round(+o.n||0);if(!b||!n)return;b.paginas=n;save('livros');closeSheet();render();toast(`${n} páginas · agora conto as páginas que você lê 📖`)},
  lvResenha:(o,f)=>{const b=S.livros.items.find(x=>x.id===f.dataset.id);if(!b)return;b.resenha=String(o.resenha||'').trim();save('livros');closeSheet();render();toast('Guardado na estante 📚')},
  lvMeta:o=>{const n=Math.round(+o.outro||+o.n||0);if(!n)return;S.livros.meta=S.livros.meta||{};S.livros.meta[lvAno()]=n;save('livros');closeSheet();render();toast(`Meta: ${n} livros em ${lvAno()} 📚`)},
  item:(o,f)=>{const id=f.dataset.id; const tipo=o.tipo; let rep=o.rep||'nao'; if(tipo==='habito'&&rep==='nao') rep='diario';
