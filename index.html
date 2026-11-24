@@ -1062,7 +1062,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-24.1';
+const VERSAO='2026-11-24.2';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
@@ -1393,11 +1393,11 @@ function vHoje(){
 }
 function tempoLivre(its,t){
   const now=new Date(), agora=now.getHours()*60+now.getMinutes();
-  const prox=its.filter(i=>i.tipo==='compromisso'&&i.hora&&!isFechado(i,t)&&toMin(i.hora)>agora).sort((a,b)=>a.hora<b.hora?-1:1)[0];
+  const prox=its.filter(i=>!i.virt&&i.hora&&!isFechado(i,t)&&!isDone(i,t)&&toMin(i.hora)>agora).sort((a,b)=>a.hora<b.hora?-1:a.hora>b.hora?1:(a.tipo==='compromisso'?-1:1))[0];
   if(!prox) return '';
   const falta=toMin(prox.hora)-agora, N=NC(), avisa=+N.antes&&PUSH.estado==='on';
   if(falta<45) return `<div class="tlivre perto"><span class="e">⏰</span><div><b>Daqui a ${falta} min: ${esc(prox.titulo)}</b><span class="small muted">Hora de ir se arrumando.</span></div></div>`;
-  const pend=its.filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)).length;
+  const pend=its.filter(i=>i.tipo!=='compromisso'&&!i.virt&&!isFechado(i,t)&&i.id!==prox.id).length;
   return `<div class="tlivre"><span class="e">☕</span><div class="grow"><b>Você tem ${durTxt(Math.floor(falta/5)*5)} livres até ${esc(prox.titulo)} (${prox.hora})</b>
    <span class="small muted">Dá tempo de fazer outras coisas antes, com calma. ${avisa?`O lembrete toca ${N.antes} min antes, não precisa ficar de olho no relógio.`:'Põe um alarme uns 30 min antes e esquece o relógio.'}</span>
    ${pend?`<button class="btn sm" data-a="focoEscolher" style="align-self:flex-start;margin-top:6px">🎯 Escolher algo pra focar</button>`:''}</div></div>`;
