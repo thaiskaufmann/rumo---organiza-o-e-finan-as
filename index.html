@@ -977,6 +977,10 @@ let REAL=null; // dados reais guardados enquanto a demonstração está ligada
 
 const LS='rumo-cache-v1', LSTS='rumo-ts-v1', LSCFG='rumo-sync-v1';
 let TS={}; try{TS=JSON.parse(localStorage.getItem(LSTS)||'{}')||{}}catch(e){}
+let BASE={}; try{BASE=JSON.parse(localStorage.getItem('rumo-base-v1')||'{}')||{}}catch(e){}
+const salvaBase=()=>{ try{localStorage.setItem('rumo-base-v1',JSON.stringify(BASE))}catch(e){} };
+// listas que juntam por id quando o mesmo dado mudou em dois lugares
+const JUNTA={tarefas:['items'],livros:['items'],casa:['compras','listas','rotina'],estudos:['materias'],metas:['items'],fin:['recorrentes','compras','metas'],fotos:null};
 const SB={client:null,user:null,cfg:null,timers:{},estado:'off',ultima:null,canal:null};
 try{SB.cfg=JSON.parse(localStorage.getItem(LSCFG)||'null')}catch(e){}
 const SB_PADRAO={url:'https://ekrpaspjjbdjmoxsblzq.supabase.co',key:'sb_publishable_YESqYBtxIovGLU5XpIlChQ_tPCGsFeR'}; // chave pública (os dados ficam protegidos por conta)
@@ -995,7 +999,7 @@ async function push(k){
   if(!SB.user) return;
   try{
     const {error}=await SB.client.from('rumo_docs').upsert({user_id:SB.user.id,key:k,data:JSON.parse(JSON.stringify(bodyOf(k))),updated_at:new Date(TS[k]||Date.now()).toISOString()});
-    if(error) throw error; SB.estado='ok'; SB.ultima=Date.now();
+    if(error) throw error; SB.estado='ok'; SB.ultima=Date.now(); BASE[k]=TS[k]||Date.now(); salvaBase();
   }catch(e){ SB.estado='erro'; }
   drawBanner();
 }
@@ -1007,17 +1011,33 @@ function aplicar(k,data,ts){
   if(k.startsWith('m:')) alvo.M[k.slice(2)]={tx:Array.isArray(data?.tx)?data.tx:[]};
   else if(DEF[k]) alvo.S[k]=fill(DEF[k],data);
   else return;
-  TS[k]=ts;
+  TS[k]=ts; BASE[k]=ts; salvaBase();
 }
+function juntar(k,loc,rem){ // conflito: começa do que está salvo na nuvem e acrescenta o que só existe aqui
+  if(k.startsWith('m:')){ const ids=new Set((rem?.tx||[]).map(x=>x.id)); return {tx:[...(rem?.tx||[]),...(loc?.tx||[]).filter(x=>!ids.has(x.id))]}; }
+  if(!(k in JUNTA)) return null;
+  if(JUNTA[k]===null) return {...(loc||{}),...(rem||{})};
+  const o=JSON.parse(JSON.stringify(rem||{}));
+  for(const f of JUNTA[k]){ const A=Array.isArray(o[f])?o[f]:[], B=Array.isArray(loc?.[f])?loc[f]:[]; if(!B.length) continue; const ids=new Set(A.map(x=>x&&x.id)); o[f]=[...A,...B.filter(x=>x&&x.id&&!ids.has(x.id))]; }
+  return o; }
 async function pull(){
   if(!SB.user) return;
   SB.estado='sync'; drawBanner();
   const {data,error}=await SB.client.from('rumo_docs').select('key,data,updated_at');
   if(error){ SB.estado='erro'; drawBanner(); if(UI.view==='ajustes') render(); return; }
-  const remoto={};
-  for(const r of data||[]){ const ts=Date.parse(r.updated_at); remoto[r.key]=ts; aplicar(r.key,r.data,ts); }
+  const remoto={}, remDado={};
+  for(const r of data||[]){ const ts=Date.parse(r.updated_at); remoto[r.key]=ts; remDado[r.key]=r.data; aplicar(r.key,r.data,ts); }
   const locais=[...KEYS,...Object.keys(REAL?REAL.M:M).map(m=>'m:'+m)].filter(k=>TS[k]);
-  for(const k of locais){ if(!remoto[k]||TS[k]>remoto[k]) await push(k); }
+  const alvo=REAL||{S,M};
+  for(const k of locais){
+    if(!remoto[k]){ await push(k); continue; }
+    if(TS[k]<=remoto[k]) continue;
+    // a nuvem mudou desde a última vez que este aparelho sincronizou (ou ele nunca sincronizou): junta em vez de sobrescrever
+    if(!BASE[k]||BASE[k]<remoto[k]){ const loc=k.startsWith('m:')?alvo.M[k.slice(2)]:alvo.S[k], j=juntar(k,loc,remDado[k]);
+      if(j){ if(k.startsWith('m:')) alvo.M[k.slice(2)]=j; else alvo.S[k]=fill(DEF[k],j); TS[k]=Date.now(); await push(k); }
+      else { aplicar(k,remDado[k],TS[k]+1); TS[k]=remoto[k]; BASE[k]=remoto[k]; salvaBase(); }
+      continue; }
+    await push(k); }
   if(!REAL){ migrar(); cacheLocal(); }
   SB.estado='ok'; SB.ultima=Date.now(); drawBanner(); scheduleRender(); agendaLembretes();
 }
@@ -1042,7 +1062,7 @@ async function initSync(){
   }catch(e){ SB.estado='erro'; drawBanner(); }
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushAll(); else { if(SB.user) pull(); checaVersao(); } });
-const VERSAO='2026-11-10.9';
+const VERSAO='2026-11-24.1';
 async function checaVersao(manual){
   try{ const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}); const t=await r.text(); const m=t.match(/const VERSAO='([^']+)'/);
     if(m&&m[1]!==VERSAO){ let b=document.getElementById('novaVersao'); if(!b){ b=document.createElement('div'); b.id='novaVersao'; b.className='novaversao'; b.innerHTML='<span>Tem versão nova do app</span><button class="btn pri sm" data-a="atualizarApp">Atualizar</button>'; document.body.appendChild(b);} }
